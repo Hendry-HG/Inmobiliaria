@@ -1,0 +1,683 @@
+@extends('layouts.landing')
+
+@section('title', $property->title)
+
+@push('css')
+<style>
+    .hero-img-transition {
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+    .hide-scroll::-webkit-scrollbar { display: none; }
+    .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+
+    .modal-overlay {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        transition: opacity 0.3s ease;
+    }
+    .modal-content {
+        transform: scale(0.9);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
+    }
+    .modal-content.show {
+        transform: scale(1);
+        opacity: 1;
+    }
+    .modal-overlay.hidden {
+        display: none;
+    }
+    .house-icon {
+        font-size: 4rem;
+        display: inline-block;
+        animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    .feature-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .feature-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #f8fafc;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+    .info-card {
+        background-color: #f8fafc;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+    .custom-prose {
+        max-width: 100%;
+        line-height: 1.8;
+        color: #475569;
+    }
+    .custom-prose p {
+        margin-bottom: 1rem;
+    }
+</style>
+@endpush
+
+@section('content')
+{{-- HERO SECTION: GALERÍA INMERSIVA --}}
+<section class="relative pt-20 h-[60vh] md:h-[70vh] w-full bg-slate-900 overflow-hidden">
+    <img id="mainImage"
+         src="{{ $property->primary_image_url }}"
+         alt="{{ $property->title }}"
+         class="absolute inset-0 w-full h-full object-cover hero-img-transition">
+    <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none"></div>
+
+    {{-- Badges --}}
+    <div class="absolute top-24 left-4 md:left-10 z-30 flex flex-wrap gap-2">
+        <span class="bg-mso-blue text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg border border-white/20">
+            {{ ucfirst($property->status) }}
+        </span>
+        <span class="px-4 py-2 text-xs font-bold rounded-full shadow-lg
+            @if($property->type == 'venta') bg-blue-600 text-white
+            @elseif($property->type == 'alquiler') bg-green-600 text-white
+            @else bg-purple-600 text-white @endif">
+            {{ ucfirst($property->type) }}
+        </span>
+    </div>
+
+    {{-- Miniaturas --}}
+    @if($property->images && $property->images->count() > 1)
+    <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30 w-[90%] md:w-[500px]">
+        <div class="flex items-center gap-3 overflow-x-auto hide-scroll p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
+            @foreach($property->images as $image)
+            <div onclick="changeMainImage(this, '{{ asset('storage/' . $image->image_path) }}')"
+                 class="thumbnail flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden cursor-pointer border-2 {{ $image->is_primary ? 'border-mso-gold opacity-100' : 'border-transparent opacity-60' }} hover:opacity-100 hover:scale-105 transition-all relative">
+                <img src="{{ asset('storage/' . $image->image_path) }}" class="w-full h-full object-cover" alt="Miniatura">
+                @if($image->is_primary)
+                <div class="absolute inset-0 bg-mso-gold/20"></div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+</section>
+
+{{-- DETALLES DE LA PROPIEDAD --}}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+    <div class="flex flex-col lg:flex-row gap-10 lg:gap-12">
+
+        {{-- Columna Izquierda --}}
+        <div class="lg:w-2/3 space-y-8 animate-fade-in">
+
+            {{-- Encabezado --}}
+            <div class="border-b border-slate-200 pb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-bold text-slate-900 leading-tight mb-2">{{ $property->title }}</h1>
+                        <div class="flex items-center gap-2 text-slate-500">
+                            <i class="ph-fill ph-map-pin text-mso-gold text-lg"></i>
+                            <span class="text-sm font-medium">{{ $property->full_location ?? 'Ubicación no especificada' }}</span>
+                        </div>
+                    </div>
+                    <div class="text-left md:text-right">
+                        <p class="text-3xl md:text-4xl text-mso-gold font-bold">{{ $property->formatted_price }}</p>
+                        @if($property->price_currency)
+                        <p class="text-xs text-slate-400 uppercase tracking-widest mt-1">{{ $property->price_currency }}</p>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Características principales --}}
+                <div class="flex flex-wrap gap-6 md:gap-8 mt-6 pt-6 border-t border-slate-100">
+                    @if($property->bedrooms)
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-bed text-2xl text-slate-400"></i>
+                        <div><span class="block font-bold text-slate-900 text-lg">{{ $property->bedrooms }}</span><span class="text-xs text-slate-500 uppercase">Habitaciones</span></div>
+                    </div>
+                    @endif
+                    @if($property->bathrooms)
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-shower text-2xl text-slate-400"></i>
+                        <div><span class="block font-bold text-slate-900 text-lg">{{ $property->bathrooms }}</span><span class="text-xs text-slate-500 uppercase">Baños</span></div>
+                    </div>
+                    @endif
+                    @if($property->area)
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-ruler text-2xl text-slate-400"></i>
+                        <div><span class="block font-bold text-slate-900 text-lg">{{ number_format($property->area, 0) }}m²</span><span class="text-xs text-slate-500 uppercase">Construcción</span></div>
+                    </div>
+                    @endif
+                    @if($property->land_area)
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-arrows-out text-2xl text-slate-400"></i>
+                        <div><span class="block font-bold text-slate-900 text-lg">{{ number_format($property->land_area, 0) }}m²</span><span class="text-xs text-slate-500 uppercase">Terreno</span></div>
+                    </div>
+                    @endif
+                    @if($property->parking_spaces)
+                    <div class="flex items-center gap-3">
+                        <i class="ph-fill ph-car text-2xl text-slate-400"></i>
+                        <div><span class="block font-bold text-slate-900 text-lg">{{ $property->parking_spaces }}</span><span class="text-xs text-slate-500 uppercase">Estac.</span></div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Descripción --}}
+            <div>
+                <h3 class="text-2xl font-bold text-slate-900 mb-4">Descripción General</h3>
+                <div class="custom-prose">
+                    {!! nl2br(e($property->description)) !!}
+                </div>
+            </div>
+
+            {{--  CARACTERÍSTICAS ADICIONALES CON ICONOS --}}
+            @php
+                $features = $property->features;
+                if (is_string($features)) {
+                    $features = json_decode($features, true);
+                }
+                $featureIcons = [
+                    'aire_acondicionado' => 'ph-snowflake',
+                    'ascensor' => 'ph-elevator',
+                    'balcon' => 'ph-balcony',
+                    'calefaccion' => 'ph-thermometer-hot',
+                    'camaras_seguridad' => 'ph-camera',
+                    'casa_campo' => 'ph-tree',
+                    'chimenea' => 'ph-fireplace',
+                    'cisterna' => 'ph-drop',
+                    'club_campo' => 'ph-golf',
+                    'gimnasio' => 'ph-dumbbell',
+                    'jardin' => 'ph-flower',
+                    'piscina' => 'ph-swimming-pool',
+                    'placas_solares' => 'ph-sun',
+                    'playa' => 'ph-beach-ball',
+                    'porteria' => 'ph-shield-check',
+                    'salon_eventos' => 'ph-cake',
+                    'terraza' => 'ph-sun-horizon',
+                    'vista_mar' => 'ph-wave',
+                    'vista_montana' => 'ph-mountains',
+                    'zonas_verdes' => 'ph-tree-palm'
+                ];
+            @endphp
+            @if($features && is_array($features) && count($features) > 0)
+            <div>
+                <h3 class="text-2xl font-bold text-slate-900 mb-4">Características de la Propiedad</h3>
+                <div class="flex flex-wrap gap-3">
+                    @foreach($features as $feature)
+                    @php
+                        $icon = $featureIcons[$feature] ?? 'ph-check-circle';
+                        $label = ucfirst(str_replace('_', ' ', $feature));
+                    @endphp
+                    <span class="feature-tag">
+                        <i class="ph {{ $icon }} text-mso-gold text-base"></i>
+                        {{ $label }}
+                    </span>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- INFORMACIÓN DETALLADA (SIN DESTACADA) --}}
+            <div>
+                <h3 class="text-2xl font-bold text-slate-900 mb-4">Información Detallada</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @if($property->category)
+                    <div class="info-card">
+                        <p class="text-xs text-slate-500 uppercase">Categoría</p>
+                        <p class="font-medium text-slate-800">{{ $property->category->name }}</p>
+                    </div>
+                    @endif
+                    @if($property->floors)
+                    <div class="info-card">
+                        <p class="text-xs text-slate-500 uppercase">Nº de Pisos</p>
+                        <p class="font-medium text-slate-800">{{ $property->floors }}</p>
+                    </div>
+                    @endif
+                    @if($property->year_built)
+                    <div class="info-card">
+                        <p class="text-xs text-slate-500 uppercase">Año Construcción</p>
+                        <p class="font-medium text-slate-800">{{ $property->year_built }}</p>
+                    </div>
+                    @endif
+                    {{--  ELIMINADOS: is_featured y featured_until (SOLO VISIBLE EN DASHBOARD) --}}
+                </div>
+            </div>
+
+            {{-- Ubicación Completa --}}
+            <div>
+                <h3 class="text-2xl font-bold text-slate-900 mb-4">Ubicación</h3>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg">
+                            <i class="ph ph-globe text-slate-400 mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase">País</p>
+                                <p class="font-medium text-slate-800">{{ $property->countryRelation->name ?? $property->country ?? 'No especificado' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg">
+                            <i class="ph ph-map-pin-area text-slate-400 mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase">Estado</p>
+                                <p class="font-medium text-slate-800">{{ $property->stateRelation->name ?? $property->state ?? 'No especificado' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg">
+                            <i class="ph ph-buildings text-slate-400 mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase">Municipio</p>
+                                <p class="font-medium text-slate-800">{{ $property->municipalityRelation->name ?? 'No especificado' }}</p>
+                            </div>
+                        </div>
+                        @if($property->parishRelation)
+                        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg">
+                            <i class="ph ph-church text-slate-400 mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase">Parroquia</p>
+                                <p class="font-medium text-slate-800">{{ $property->parishRelation->name }}</p>
+                            </div>
+                        </div>
+                        @endif
+                        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg">
+                            <i class="ph ph-city text-slate-400 mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase">Ciudad</p>
+                                <p class="font-medium text-slate-800">{{ $property->cityRelation->name ?? $property->city ?? 'No especificado' }}</p>
+                            </div>
+                        </div>
+                        @if($property->address)
+                        <div class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg md:col-span-2">
+                            <i class="ph ph-road-horizon text-slate-400 mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase">Dirección</p>
+                                <p class="font-medium text-slate-800">{{ $property->address }}</p>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Columna Derecha --}}
+        <div class="lg:w-1/3 space-y-6">
+
+            {{-- Tarjeta del Asesor --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-mso-blue to-slate-700 h-16"></div>
+                <div class="px-6 pb-6">
+                    <div class="flex justify-center -mt-12">
+                        <img src="{{ $property->user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($property->user->full_name ?? $property->user->name ?? 'Asesor') . '&background=c5a059&color=fff&size=128' }}"
+                             class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl">
+                    </div>
+                    <div class="text-center mt-3">
+                        <h4 class="font-bold text-slate-900 text-lg">{{ $property->user->full_name ?? $property->user->name ?? 'Asesor no asignado' }}</h4>
+                        <p class="text-sm text-slate-500">{{ $property->user->specialization ?? 'Asesor Inmobiliario' }}</p>
+                    </div>
+                    <div class="flex gap-2 mt-5 pt-4 border-t border-slate-100">
+                        @php $socialLinks = $property->user->social_links ?? []; @endphp
+                        @if(isset($socialLinks['whatsapp']))
+                        <a href="https://wa.me/{{ $socialLinks['whatsapp'] }}" target="_blank" class="flex-1 bg-green-500 text-white text-center py-2.5 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2 shadow-md">
+                            <i class="ph-fill ph-whatsapp-logo text-lg"></i> WhatsApp
+                        </a>
+                        @endif
+                        <a href="mailto:{{ $property->user->email ?? '#' }}" class="flex-1 border border-slate-200 text-slate-700 text-center py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                            <i class="ph-fill ph-envelope-simple"></i> Email
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {{-- FORMULARIO DE AGENDAR CITA --}}
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 lg:sticky lg:top-24">
+                <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="ph ph-calendar-check text-mso-gold"></i>
+                    Agendar Visita
+                </h3>
+                <p class="text-slate-500 text-sm mb-5">Déjanos tus datos y el asesor confirmará la cita contigo.</p>
+
+                @auth
+                {{-- Formulario para usuarios autenticados --}}
+                <form id="appointmentForm" class="space-y-4">
+                    @csrf
+                    <input type="hidden" name="property_id" value="{{ $property->id }}">
+                    <input type="hidden" name="date" id="fullDateTimeInput">
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
+                        <input type="text" name="name" id="formName" required placeholder="Tu nombre completo"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
+                        <input type="email" name="email" id="formEmail" required placeholder="ejemplo@correo.com"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
+                        <input type="tel" name="phone" id="formPhone" required placeholder="Tu número de contacto"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Fecha *</label>
+                            <input type="date" name="date_picker" id="datePicker" required
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Hora *</label>
+                            <select name="time_picker" id="timePicker" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                                <option value="">Seleccionar</option>
+                                <option value="09:00">09:00 AM</option>
+                                <option value="10:00">10:00 AM</option>
+                                <option value="11:00">11:00 AM</option>
+                                <option value="12:00">12:00 PM</option>
+                                <option value="13:00">01:00 PM</option>
+                                <option value="14:00">02:00 PM</option>
+                                <option value="15:00">03:00 PM</option>
+                                <option value="16:00">04:00 PM</option>
+                                <option value="17:00">05:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
+                        <textarea name="message" id="formMessage" rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?"
+                                  class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm resize-none"></textarea>
+                    </div>
+
+                    <button type="submit" id="submitAppointmentBtn"
+                            class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                        <i class="ph ph-calendar-plus"></i>
+                        Solicitar Cita
+                    </button>
+
+                    <div id="formMessageError" class="text-red-500 text-xs text-center hidden"></div>
+                    <div id="formMessageSuccess" class="text-green-600 text-xs text-center hidden"></div>
+                </form>
+                @else
+                {{-- Formulario para usuarios NO autenticados (campos deshabilitados) --}}
+                <div class="space-y-4 opacity-60">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
+                        <input type="text" placeholder="Tu nombre completo" disabled
+                               class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
+                        <input type="email" placeholder="ejemplo@correo.com" disabled
+                               class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
+                        <input type="tel" placeholder="Tu número de contacto" disabled
+                               class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Fecha *</label>
+                            <input type="date" disabled
+                                   class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Hora *</label>
+                            <select disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
+                                <option>Seleccionar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
+                        <textarea rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?" disabled
+                                  class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm resize-none cursor-not-allowed"></textarea>
+                    </div>
+
+                    {{-- Botón que abre el modal de autenticación --}}
+                    <button type="button" onclick="openAuthModal()"
+                            class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                        <i class="ph ph-calendar-plus"></i>
+                        Solicitar Cita
+                    </button>
+                </div>
+                @endauth
+
+                <p class="text-xs text-slate-400 text-center mt-3">
+                    <i class="ph ph-shield-check"></i> Tus datos están seguros
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================ --}}
+{{-- MODAL DE AUTENTICACIÓN PARA USUARIOS NO REGISTRADOS --}}
+{{-- ============================================================ --}}
+<div id="authModal" class="modal-overlay fixed inset-0 z-[200] hidden items-center justify-center p-4">
+    <div class="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-8">
+        {{-- Icono de casita --}}
+        <div class="mb-4">
+            <span class="house-icon"></span>
+        </div>
+
+        <h3 class="text-2xl font-bold text-slate-800 mb-2">
+            ¡Regístrate para agendar tu visita!
+        </h3>
+        <p class="text-slate-500 text-sm mb-6">
+            Para poder solicitar una cita y recibir la confirmación del asesor, necesitas tener una cuenta activa en nuestra plataforma.
+        </p>
+
+        <div class="flex flex-col gap-3">
+            <a href="{{ route('login') }}"
+               class="w-full bg-mso-blue text-white text-center font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all shadow-lg flex items-center justify-center gap-2">
+                <i class="ph ph-sign-in text-lg"></i>
+                Iniciar Sesión
+            </a>
+            <a href="{{ route('register') }}"
+               class="w-full border-2 border-slate-200 text-slate-700 text-center font-medium py-3.5 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                <i class="ph ph-user-plus text-lg"></i>
+                Crear Cuenta Gratis
+            </a>
+        </div>
+
+        <button onclick="closeAuthModal()"
+                class="mt-6 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+            <i class="ph ph-x mr-1"></i> Cerrar
+        </button>
+    </div>
+</div>
+
+@push('js')
+<script>
+    // ============================================================
+    // FUNCIONES DEL MODAL DE AUTENTICACIÓN
+    // ============================================================
+    function openAuthModal() {
+        const modal = document.getElementById('authModal');
+        const content = modal.querySelector('.modal-content');
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+
+        setTimeout(() => {
+            content.classList.add('show');
+        }, 10);
+
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAuthModal() {
+        const modal = document.getElementById('authModal');
+        const content = modal.querySelector('.modal-content');
+        content.classList.remove('show');
+
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('authModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAuthModal();
+        }
+    });
+
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAuthModal();
+        }
+    });
+
+    // ============================================================
+    // FUNCIONES PARA GALERÍA DE IMÁGENES
+    // ============================================================
+    function changeMainImage(thumbnailElement, imageUrl) {
+        const mainImage = document.getElementById('mainImage');
+        if (!mainImage || !thumbnailElement) return;
+        mainImage.style.opacity = '0';
+        mainImage.classList.add('scale-105');
+        setTimeout(() => {
+            mainImage.src = imageUrl;
+            const onImageLoad = () => {
+                mainImage.style.opacity = '1';
+                mainImage.classList.remove('scale-105');
+                mainImage.removeEventListener('load', onImageLoad);
+            };
+            if (mainImage.complete) {
+                onImageLoad();
+            } else {
+                mainImage.addEventListener('load', onImageLoad);
+            }
+        }, 200);
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        thumbnails.forEach(t => {
+            t.classList.remove('border-mso-gold', 'opacity-100', 'shadow-lg', 'ring-2', 'ring-mso-gold/50');
+            t.classList.add('border-transparent', 'opacity-60');
+        });
+        thumbnailElement.classList.remove('border-transparent', 'opacity-60');
+        thumbnailElement.classList.add('border-mso-gold', 'opacity-100', 'shadow-lg', 'ring-2', 'ring-mso-gold/50');
+    }
+
+    // ============================================================
+    // FUNCIONES PARA FORMULARIO DE CITAS (SOLO AUTENTICADOS)
+    // ============================================================
+    @auth
+    function showFormMessage(message, isError = false) {
+        const errorDiv = document.getElementById('formMessageError');
+        const successDiv = document.getElementById('formMessageSuccess');
+        if (isError) {
+            errorDiv.innerText = message;
+            errorDiv.classList.remove('hidden');
+            successDiv.classList.add('hidden');
+        } else {
+            successDiv.innerText = message;
+            successDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+        }
+        setTimeout(() => {
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+        }, 5000);
+    }
+
+    function setLoading(loading) {
+        const btn = document.getElementById('submitAppointmentBtn');
+        if (loading) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Enviando...';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ph ph-calendar-plus"></i> Solicitar Cita';
+        }
+    }
+
+    document.getElementById('appointmentForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const datePicker = document.getElementById('datePicker');
+        const timePicker = document.getElementById('timePicker');
+        const fullDateTimeInput = document.getElementById('fullDateTimeInput');
+
+        if (!datePicker.value || !timePicker.value) {
+            showFormMessage('Por favor selecciona fecha y hora.', true);
+            return;
+        }
+
+        fullDateTimeInput.value = datePicker.value + 'T' + timePicker.value + ':00';
+
+        const selectedDate = new Date(fullDateTimeInput.value);
+        if (selectedDate <= new Date()) {
+            showFormMessage('La fecha debe ser posterior a la fecha actual.', true);
+            return;
+        }
+
+        const formData = new FormData(this);
+        const data = {
+            name: document.getElementById('formName').value,
+            email: document.getElementById('formEmail').value,
+            phone: document.getElementById('formPhone').value,
+            date: fullDateTimeInput.value,
+            property_id: document.querySelector('input[name="property_id"]').value,
+            message: document.getElementById('formMessage').value,
+            _token: document.querySelector('input[name="_token"]')?.value || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        };
+
+        setLoading(true);
+
+        fetch('{{ route("citas.store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': data._token
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            setLoading(false);
+            if (result.success) {
+                showFormMessage(result.message, false);
+                document.getElementById('appointmentForm').reset();
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showFormMessage(result.message || 'Error al agendar la cita. Intenta de nuevo.', true);
+            }
+        })
+        .catch(error => {
+            setLoading(false);
+            console.error('Error:', error);
+            showFormMessage('Error de conexión. Intenta de nuevo más tarde.', true);
+        });
+    });
+    @endauth
+</script>
+@endpush
+@endsection
