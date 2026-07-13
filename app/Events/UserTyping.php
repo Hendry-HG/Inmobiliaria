@@ -17,18 +17,20 @@ class UserTyping implements ShouldBroadcast
     public $user_name;
     public $conversation_id;
     public $is_typing;
+    public $receiver_id;
 
-    public function __construct(User $user, $conversation_id, $is_typing)
+    public function __construct(User $user, $conversation_id, $is_typing, $receiver_id)
     {
         $this->user_id = $user->id;
         $this->user_name = $user->name;
         $this->conversation_id = $conversation_id;
         $this->is_typing = $is_typing;
+        $this->receiver_id = $receiver_id;
     }
 
     public function broadcastOn()
     {
-        return new Channel('chat.user.' . $this->user_id);
+        return new Channel('chat.user.' . $this->receiver_id);
     }
 
     public function broadcastAs()

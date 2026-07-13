@@ -1,9 +1,11 @@
 <?php
+// bootstrap/app.php
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\CheckAccountActive;
+use App\Http\Middleware\SecurityHeaders; // ✅ IMPORTAR
 use App\Http\Middleware\VerifyCsrfToken;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,17 +16,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Registrar middleware alias - USANDO SPATIE PERMISSION
+        // Registrar middleware alias
         $middleware->alias([
-            // Middleware de Spatie Permission
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
 
-            // Tu middleware personalizado
             'check.account.active' => CheckAccountActive::class,
             'VerifyCsrfToken' => VerifyCsrfToken::class,
+            'security.headers' => SecurityHeaders::class, //  REGISTRADO
         ]);
+
+        //  AGREGAR SECURITY HEADERS A TODAS LAS RUTAS WEB
+        $middleware->append(SecurityHeaders::class);
 
         // Configurar redirección para invitados
         $middleware->redirectGuestsTo(fn () => route('login'));

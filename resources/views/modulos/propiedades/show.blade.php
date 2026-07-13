@@ -221,9 +221,7 @@
                     Descripción General
                 </h3>
                 <div class="prose prose-slate max-w-none">
-                    <p class="text-slate-600 leading-relaxed text-justify whitespace-pre-line">
-                        {{ $property->description }}
-                    </p>
+                 {!! $property->description !!}
                 </div>
             </div>
 

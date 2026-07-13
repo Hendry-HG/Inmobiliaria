@@ -20,4 +20,9 @@ class Municipality extends Model
     {
         return $this->hasMany(Parish::class);
     }
+
+     public function properties()
+    {
+        return $this->hasMany(Property::class, 'municipality_id');
+    }
 }

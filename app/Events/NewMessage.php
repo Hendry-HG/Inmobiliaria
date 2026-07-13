@@ -26,7 +26,6 @@ class NewMessage implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        // Canal privado para el usuario específico que recibe el mensaje
         return new Channel('chat.user.' . $this->receiver_id);
     }
 
@@ -44,6 +43,7 @@ class NewMessage implements ShouldBroadcast
                 'user_id' => $this->message->user_id,
                 'user_name' => $this->message->user->name,
                 'user_avatar' => $this->message->user->profile_photo_url,
+                'created_at' => $this->message->created_at->toISOString(),
                 'formatted_time' => $this->message->created_at->format('H:i'),
                 'is_read' => $this->message->is_read,
             ],

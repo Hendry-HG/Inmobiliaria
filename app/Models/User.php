@@ -1,4 +1,5 @@
 <?php
+// app/Models/User.php
 
 namespace App\Models;
 
@@ -22,50 +23,57 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class User extends Authenticatable implements CanResetPasswordContract
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes, CanResetPassword;
 
     protected $fillable = [
+        // ============ DATOS PERSONALES ============
         'name',
         'last_name',
         'email',
         'password',
         'phone',
+        
+        // ============ PERFIL ============
         'profile_photo',
         'bio',
         'specialization',
         'social_links',
-        'is_active',
+        
+        // ============ IDENTIFICACIÓN ============
         'id_type',
         'id_number',
+        
+        // ============ UBICACIÓN ============
         'address',
         'country_id',
         'state_id',
         'municipality_id',
         'parish_id',
         'city_id',
-        'email_verified_at',
+        
+        // ============ ESTADO ============
+        'is_active',
         'is_online',
         'last_seen_at',
-        // Nuevos campos de seguridad
-        'security_questions',
-        'security_answers',
-        'security_answer_1',
-        'security_answer_2',
-        'security_answer_3',
-        'security_questions_set_at'
+        'email_verified_at',
+        
+        // ============ SEGURIDAD ============
+        'security_questions',      
+        'security_answer_1',       
+        'security_answer_2',       
+        'security_answer_3',       
+        'security_questions_set_at', 
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
-        'security_answers',
         'security_answer_1',
         'security_answer_2',
-        'security_answer_3'
+        'security_answer_3',
     ];
 
     protected $casts = [
@@ -75,26 +83,11 @@ class User extends Authenticatable implements CanResetPasswordContract
         'is_active' => 'boolean',
         'is_online' => 'boolean',
         'last_seen_at' => 'datetime',
-        'security_questions' => 'array',
-        'security_answers' => 'array',
+        'security_questions' => 'array', 
     ];
 
     // ==========================================
-    // RELACIONES CON AUDIT LOGS
-    // ==========================================
-
-    public function auditLogsAsSubject()
-    {
-        return $this->morphMany(AuditLog::class, 'subject');
-    }
-
-    public function auditLogsAsAuthor()
-    {
-        return $this->hasMany(AuditLog::class, 'user_id');
-    }
-
-    // ==========================================
-    // ACCESSORS (GETTERS)
+    // ACCESORS (GETTERS)
     // ==========================================
 
     public function getFullNameAttribute()
@@ -141,7 +134,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     }
 
     // ==========================================
-    // ACCESSORS DE UBICACIÓN - CON data_get() PARA PRODUCCIÓN
+    // ACCESSORS DE UBICACIÓN
     // ==========================================
 
     public function getCountryNameAttribute()
@@ -189,23 +182,44 @@ class User extends Authenticatable implements CanResetPasswordContract
     // MÉTODOS DE SEGURIDAD
     // ==========================================
 
-    public function hasSecurityQuestions()
+    public function hasSecurityQuestions(): bool
     {
         return !is_null($this->security_questions_set_at) &&
                !empty($this->security_questions) &&
-               !empty($this->security_answer_1);
+               !empty($this->security_answer_1) &&
+               !empty($this->security_answer_2) &&
+               !empty($this->security_answer_3);
     }
 
-    public function verifySecurityAnswer($questionIndex, $answer)
+    public function verifySecurityAnswer(int $questionIndex, string $answer): bool
     {
         $answerField = 'security_answer_' . ($questionIndex + 1);
 
-        // Verificar que la respuesta existe y no está vacía
         if (empty($this->$answerField)) {
             return false;
         }
 
         return Hash::check($answer, $this->$answerField);
+    }
+
+    public function getSecurityQuestionsWithIndex(): array
+    {
+        if (empty($this->security_questions)) {
+            return [];
+        }
+
+        $questions = $this->security_questions;
+        $result = [];
+
+        foreach ($questions as $index => $question) {
+            $result[] = [
+                'index' => $index,
+                'question' => $question,
+                'answer_field' => 'security_answer_' . ($index + 1),
+            ];
+        }
+
+        return $result;
     }
 
     // ==========================================
@@ -431,10 +445,6 @@ class User extends Authenticatable implements CanResetPasswordContract
         $this->notify(new ResetPassword($token));
     }
 
-    // ==========================================
-    // MÉTODO PARA OBTENER UBICACIONES COMPLETAS
-    // ==========================================
-
     public function getLocationHierarchy()
     {
         return [
@@ -445,5 +455,19 @@ class User extends Authenticatable implements CanResetPasswordContract
             'city' => $this->city_name,
             'full' => $this->full_location
         ];
+    }
+
+    // ==========================================
+    // AUDIT LOGS
+    // ==========================================
+
+    public function auditLogsAsSubject()
+    {
+        return $this->morphMany(AuditLog::class, 'subject');
+    }
+
+    public function auditLogsAsAuthor()
+    {
+        return $this->hasMany(AuditLog::class, 'user_id');
     }
 }

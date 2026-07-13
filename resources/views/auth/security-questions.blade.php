@@ -23,15 +23,15 @@
                     <i class="ph ph-x-circle inline-block mr-1"></i>
                     <ul class="list-disc list-inside">
                         @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
+                            <li>{{ $error }}</li>  <!--  ESCAPADO -->
                         @endforeach
                     </ul>
                 </div>
             @endif
 
             <form action="{{ route('security.verify.answers') }}" method="POST" class="space-y-6">
-                @csrf
-                <input type="hidden" name="email" value="{{ $email }}">
+                @csrf  <!--  CSRF OBLIGATORIO -->
+                <input type="hidden" name="email" value="{{ session('security_recovery_email') }}">  <!-- ✅ USAR SESIÓN -->
 
                 @foreach($questions as $index => $question)
                     <div>
@@ -41,7 +41,9 @@
                         <p class="text-gray-900 font-medium mb-2">{{ $question }}</p>
                         <input type="text" name="answer_{{ $index + 1 }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
-                               placeholder="Tu respuesta" required>
+                               placeholder="Tu respuesta" 
+                               autocomplete="off"
+                               required>
                     </div>
                 @endforeach
 

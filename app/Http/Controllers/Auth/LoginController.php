@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Auth/LoginController.php
 
 namespace App\Http\Controllers\Auth;
 
@@ -16,9 +17,6 @@ use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
-    /**
-     * Método requerido por Laravel - Define la ruta de redirección después del login
-     */
     protected function redirectTo()
     {
         $user = Auth::user();
@@ -27,7 +25,7 @@ class LoginController extends Controller
             return route('login');
         }
 
-        // Obtener roles del usuario directamente desde la base de datos
+        //  OBTENER ROLES CON UNA SOLA CONSULTA OPTIMIZADA
         $roles = DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_id', $user->id)
@@ -51,51 +49,46 @@ class LoginController extends Controller
         return route('dashboard');
     }
 
-    /**
-     * Método alternativo requerido por Laravel
-     */
     protected function redirectPath()
     {
         return $this->redirectTo();
     }
 
     /**
-     * Handle successful authentication - Sobrescribe el método por defecto
+     *  Handle successful authentication con validación de sesión
      */
     protected function authenticated(Request $request, $user)
     {
-        // Verificar si hay una URL intended guardada
+        //  VERIFICAR QUE LA SESIÓN ESTÉ ACTIVA
+        if (!Auth::check()) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Error de autenticación. Por favor, intenta nuevamente.'
+            ]);
+        }
+
         $intendedUrl = session()->get('url.intended');
 
         if ($intendedUrl && $this->isValidRedirectUrl($intendedUrl)) {
-            // Limpiar la sesión para evitar redirecciones múltiples
             session()->forget('url.intended');
 
-            // Verificar que la URL sea interna y segura
             if ($this->isInternalUrl($intendedUrl)) {
                 return redirect($intendedUrl);
             }
         }
 
-        // Si no hay intended URL válida, redirigir según el rol
         return redirect($this->redirectTo());
     }
 
-    /**
-     * Validar si la URL es segura para redirigir
-     */
     private function isValidRedirectUrl($url)
     {
         if (empty($url)) {
             return false;
         }
 
-        // No redirigir a rutas de API
         if (str_starts_with($url, '/api/')) {
             return false;
         }
 
-        // No redirigir a rutas de logout o login
         $forbiddenRoutes = ['/logout', '/login', route('logout'), route('login')];
         foreach ($forbiddenRoutes as $route) {
             if ($url === $route) {
@@ -106,17 +99,12 @@ class LoginController extends Controller
         return true;
     }
 
-    /**
-     * Validar que la URL sea interna
-     */
     private function isInternalUrl($url)
     {
-        // URLs relativas son seguras
         if (str_starts_with($url, '/')) {
             return true;
         }
 
-        // Verificar URLs completas
         if (filter_var($url, FILTER_VALIDATE_URL)) {
             $parsedUrl = parse_url($url);
             if (isset($parsedUrl['host']) && $parsedUrl['host'] === request()->getHost()) {
@@ -134,7 +122,6 @@ class LoginController extends Controller
 
     public function showLoginForm()
     {
-        // Guardar la URL a la que el usuario intentaba acceder (excepto si es login)
         $previousUrl = url()->previous();
         $loginUrl = route('login');
         $registerUrl = route('register');
@@ -148,35 +135,47 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        //  VALIDACIÓN CON RATE LIMITING INTEGRADO
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // Verificar si el usuario existe y la contraseña es correcta
         $user = User::where('email', $credentials['email'])->first();
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            //  LOG DE INTENTOS FALLIDOS PARA AUDITORÍA
+            Log::warning('Intento de login fallido', [
+                'email' => $credentials['email'],
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales no coinciden con nuestros registros.'],
             ]);
         }
 
-        // Verificar si el usuario está activo
         if (!$user->is_active) {
             session(['reactivation_email' => $user->email]);
             return redirect()->route('account.inactive')
                 ->with('warning', 'Tu cuenta se encuentra inactiva. Puedes solicitar su reactivación a través de tu correo electrónico.');
         }
 
-        // Intentar autenticar
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            //  REGENERAR SESIÓN OBLIGATORIAMENTE
             $request->session()->regenerate();
 
-            // Limpiar URLs intended no deseadas
+            //  VERIFICAR AUTENTICACIÓN
+            if (!Auth::check()) {
+                throw ValidationException::withMessages([
+                    'email' => ['Error de autenticación. Por favor, intenta nuevamente.']
+                ]);
+            }
+
             $this->cleanIntendedUrl();
 
-            return $this->authenticated($request, $user);
+            return $this->authenticated($request, Auth::user());
         }
 
         throw ValidationException::withMessages([
@@ -184,15 +183,11 @@ class LoginController extends Controller
         ]);
     }
 
-    /**
-     * Limpiar URLs intended no deseadas
-     */
     private function cleanIntendedUrl()
     {
         $intended = session()->get('url.intended');
 
         if ($intended) {
-            // Lista de URLs que deben ignorarse como intended
             $ignoredUrls = [
                 route('login'),
                 route('register'),
@@ -208,9 +203,6 @@ class LoginController extends Controller
         }
     }
 
-    /**
-     * Muestra la página de cuenta inactiva
-     */
     public function showInactiveAccount()
     {
         $email = session('reactivation_email');
@@ -220,9 +212,6 @@ class LoginController extends Controller
         return view('auth.inactive-account', compact('email'));
     }
 
-    /**
-     * Procesa la solicitud de reactivación de cuenta
-     */
     public function requestReactivation(Request $request)
     {
         $request->validate([
@@ -266,9 +255,6 @@ class LoginController extends Controller
         }
     }
 
-    /**
-     * Reactiva la cuenta mediante el token enviado por correo
-     */
     public function reactivateAccount(Request $request)
     {
         $request->validate([

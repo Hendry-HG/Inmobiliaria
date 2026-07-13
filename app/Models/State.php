@@ -20,4 +20,9 @@ class State extends Model
     {
         return $this->hasMany(Municipality::class);
     }
+
+    public function properties()
+    {
+        return $this->hasMany(Property::class, 'state_id');
+    }
 }

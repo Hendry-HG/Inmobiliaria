@@ -6,6 +6,24 @@
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
+    @if(session('success'))
+    <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+        <span><i class="ph ph-check-circle mr-2"></i>{{ session('success') }}</span>
+        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
+            <i class="ph ph-x"></i>
+        </button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+        <span><i class="ph ph-warning-circle mr-2"></i>{{ session('error') }}</span>
+        <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900">
+            <i class="ph ph-x"></i>
+        </button>
+    </div>
+    @endif
+
     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
         <div class="bg-slate-50 p-6 border-b border-slate-200">
             <div class="flex items-center gap-3">
@@ -17,7 +35,7 @@
             </div>
         </div>
 
-        <form action="{{ route('admin.phones.update', $country) }}" method="POST" class="p-6 space-y-6">
+        <form action="{{ route('admin.phones.update', $country) }}" method="POST" class="p-6 space-y-6" autocomplete="off">
             @csrf
             @method('PUT')
 
@@ -32,6 +50,8 @@
                        value="{{ old('code', $country->code) }}"
                        placeholder="Ej: VEN, USA, ESP"
                        maxlength="3"
+                       pattern="^[A-Z]{3}$"
+                       title="Debe tener 3 letras mayúsculas"
                        class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-mso-gold outline-none font-mono text-lg uppercase @error('code') border-red-500 @enderror">
                 <p class="text-xs text-slate-400 mt-1">Código ISO de 3 letras (Ej: VEN para Venezuela, USA para Estados Unidos, ESP para España)</p>
                 @error('code')
@@ -50,6 +70,8 @@
                        value="{{ old('phone_code', $country->phone_code) }}"
                        placeholder="+58"
                        required
+                       pattern="^\+[0-9]{1,4}$"
+                       title="Debe comenzar con + seguido de 1-4 números"
                        class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-mso-gold outline-none text-lg font-mono @error('phone_code') border-red-500 @enderror">
                 <p class="text-xs text-slate-400 mt-1">Ejemplos: +58, +1, +34, +52</p>
                 @error('phone_code')
@@ -68,6 +90,8 @@
                        value="{{ old('phone_format', $country->phone_format) }}"
                        placeholder="000-0000000"
                        required
+                       pattern="^[0-9\-\(\)\s\+]+$"
+                       title="Solo números, guiones, paréntesis y espacios"
                        class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-mso-gold outline-none font-mono text-lg @error('phone_format') border-red-500 @enderror">
                 <p class="text-xs text-slate-400 mt-1">Usa el número <strong>0</strong> para representar cada dígito. Los demás caracteres se mantienen como separadores.</p>
                 @error('phone_format')

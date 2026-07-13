@@ -20,4 +20,10 @@ class Parish extends Model
     {
         return $this->hasMany(City::class);
     }
+
+    public function properties()
+    {
+        return $this->hasMany(Property::class, 'parish_id');
+    }
+
 }

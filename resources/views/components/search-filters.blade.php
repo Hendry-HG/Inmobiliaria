@@ -34,7 +34,7 @@
                     <input type="number"
                            name="min_price"
                            id="quick_min_price"
-                           value="{{ request('min_price') }}"
+                           value="{{ e(request('min_price')) }}"
                            placeholder="Precio mínimo"
                            autocomplete="off"
                            min="0"
@@ -50,7 +50,7 @@
                     <input type="number"
                            name="max_price"
                            id="quick_max_price"
-                           value="{{ request('max_price') }}"
+                           value="{{ e(request('max_price')) }}"
                            placeholder="Precio máximo"
                            autocomplete="off"
                            min="0"
@@ -81,7 +81,7 @@
                 $activeFilters = [];
                 if(request('state_id')) {
                     $state = $states->firstWhere('id', request('state_id'));
-                    if($state) $activeFilters[] = ['label' => 'Estado: ' . $state->name, 'param' => 'state_id'];
+                    if($state) $activeFilters[] = ['label' => 'Estado: ' . e($state->name), 'param' => 'state_id'];
                 }
                 if(request('min_price')) {
                     $activeFilters[] = ['label' => 'Desde: $' . number_format(request('min_price'), 0, ',', '.'), 'param' => 'min_price'];

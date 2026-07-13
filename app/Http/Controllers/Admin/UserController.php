@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/UserController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -31,19 +33,23 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     *  OPTIMIZADO - Con índices y select específicos
+     */
     public function index(Request $request)
     {
         $query = User::query();
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            //  ESCAPADO CORRECTAMENTE CON BINDINGS
+            $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('last_name', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%")
-                  ->orWhere('id_number', 'LIKE', "%{$search}%")
-                  ->orWhere('phone', 'LIKE', "%{$search}%")
-                  ->orWhere('address', 'LIKE', "%{$search}%");
+                $q->where('name', 'LIKE', $search)
+                  ->orWhere('last_name', 'LIKE', $search)
+                  ->orWhere('email', 'LIKE', $search)
+                  ->orWhere('id_number', 'LIKE', $search)
+                  ->orWhere('phone', 'LIKE', $search);
+                //  address removido para evitar búsquedas pesadas
             });
         }
 
@@ -59,9 +65,16 @@ class UserController extends Controller
             }
         }
 
-        $query->orderBy('id', 'asc');
-
-        $users = $query->with(['country', 'state', 'userCity'])->paginate(8)->withQueryString();
+        //  SELECT ESPECÍFICO PARA REDUCIR DATOS
+        $users = $query->select([
+                'id', 'name', 'last_name', 'email', 'phone', 'address',
+                'id_type', 'id_number', 'country_id', 'state_id', 'city_id',
+                'is_active', 'profile_photo', 'created_at'
+            ])
+            ->with(['country:id,name', 'state:id,name', 'userCity:id,name'])
+            ->orderBy('id', 'asc')
+            ->paginate(8)
+            ->withQueryString();
 
         $roles = Role::all();
 
@@ -81,7 +94,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:10|confirmed',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'id_type' => 'nullable|string|in:V,E,J,P',
@@ -96,36 +109,46 @@ class UserController extends Controller
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        $profilePhotoPath = null;
-        if ($request->hasFile('profile_photo')) {
-            $profilePhotoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+        try {
+            $profilePhotoPath = null;
+            if ($request->hasFile('profile_photo')) {
+                $profilePhotoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            }
+
+            $user = User::create([
+                'name' => $validated['name'],
+                'last_name' => $validated['last_name'] ?? null,
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'id_type' => $validated['id_type'] ?? null,
+                'id_number' => $validated['id_number'] ?? null,
+                'country_id' => $validated['country_id'] ?? null,
+                'state_id' => $validated['state_id'] ?? null,
+                'municipality_id' => $validated['municipality_id'] ?? null,
+                'parish_id' => $validated['parish_id'] ?? null,
+                'city_id' => $validated['city_id'] ?? null,
+                'is_active' => $request->boolean('is_active', true),
+                'profile_photo' => $profilePhotoPath,
+            ]);
+
+            $user->assignRole($validated['role']);
+
+            $this->logCreated($user, (Auth::user()?->full_name ?? 'Sistema') . ' CREÓ al usuario ' . $user->full_name . ' con el rol "' . $validated['role'] . '"');
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Usuario creado exitosamente.');
+        } catch (\Exception $e) {
+            Log::error('Error al crear usuario', [
+                'email' => $validated['email'] ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Hubo un problema al crear el usuario.']);
         }
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'last_name' => $validated['last_name'] ?? null,
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'id_type' => $validated['id_type'] ?? null,
-            'id_number' => $validated['id_number'] ?? null,
-            'country_id' => $validated['country_id'] ?? null,
-            'state_id' => $validated['state_id'] ?? null,
-            'municipality_id' => $validated['municipality_id'] ?? null,
-            'parish_id' => $validated['parish_id'] ?? null,
-            'city_id' => $validated['city_id'] ?? null,
-            'is_active' => $request->boolean('is_active', true),
-            'profile_photo' => $profilePhotoPath,
-        ]);
-
-        $user->assignRole($validated['role']);
-
-        //  AUDITORÍA - CREACIÓN DE USUARIO
-        $this->logCreated($user, (Auth::user()?->full_name ?? 'Sistema') . ' CREÓ al usuario ' . $user->full_name . ' con el rol "' . $validated['role'] . '"');
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Usuario creado exitosamente.');
     }
 
     public function show(User $user)
@@ -177,71 +200,81 @@ class UserController extends Controller
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        // Guardar valores antiguos para auditoría
-        $oldValues = $user->toArray();
+        try {
+            $oldValues = $user->toArray();
 
-        if ($request->filled('password')) {
-            $request->validate([
-                'password' => 'required|string|min:8|confirmed'
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => 'required|string|min:10|confirmed'
+                ]);
+                $user->password = Hash::make($request->password);
+            }
+
+            if ($request->hasFile('profile_photo')) {
+                if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                    Storage::disk('public')->delete($user->profile_photo);
+                }
+                $user->profile_photo = $request->file('profile_photo')->store('profile-photos', 'public');
+            }
+
+            $user->update([
+                'name' => $validated['name'],
+                'last_name' => $validated['last_name'] ?? null,
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'id_type' => $validated['id_type'] ?? null,
+                'id_number' => $validated['id_number'] ?? null,
+                'country_id' => $validated['country_id'] ?? null,
+                'state_id' => $validated['state_id'] ?? null,
+                'municipality_id' => $validated['municipality_id'] ?? null,
+                'parish_id' => $validated['parish_id'] ?? null,
+                'city_id' => $validated['city_id'] ?? null,
+                'is_active' => $request->boolean('is_active', true),
             ]);
-            $user->password = Hash::make($request->password);
-        }
 
-        if ($request->hasFile('profile_photo')) {
-            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
-                Storage::disk('public')->delete($user->profile_photo);
+            $user->syncRoles([$validated['role']]);
+
+            // Auditoría
+            $changes = [];
+            $fieldLabels = [
+                'name' => 'nombre',
+                'last_name' => 'apellido',
+                'email' => 'email',
+                'phone' => 'teléfono',
+                'address' => 'dirección',
+                'id_type' => 'tipo de identificación',
+                'id_number' => 'número de identificación',
+                'is_active' => 'estado de la cuenta',
+            ];
+
+            $dirty = $user->getDirty();
+            foreach ($dirty as $key => $value) {
+                if ($key !== 'updated_at' && isset($oldValues[$key])) {
+                    $label = $fieldLabels[$key] ?? $key;
+                    $oldVal = $oldValues[$key] ?? 'vacío';
+                    $newVal = $value ?? 'vacío';
+                    $changes[] = "{$label}: '{$oldVal}' → '{$newVal}'";
+                }
             }
-            $user->profile_photo = $request->file('profile_photo')->store('profile-photos', 'public');
-        }
 
-        $user->update([
-            'name' => $validated['name'],
-            'last_name' => $validated['last_name'] ?? null,
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'id_type' => $validated['id_type'] ?? null,
-            'id_number' => $validated['id_number'] ?? null,
-            'country_id' => $validated['country_id'] ?? null,
-            'state_id' => $validated['state_id'] ?? null,
-            'municipality_id' => $validated['municipality_id'] ?? null,
-            'parish_id' => $validated['parish_id'] ?? null,
-            'city_id' => $validated['city_id'] ?? null,
-            'is_active' => $request->boolean('is_active', true),
-        ]);
-
-        $user->syncRoles([$validated['role']]);
-
-        //  AUDITORÍA - ACTUALIZACIÓN DE USUARIO
-        $changes = [];
-        $fieldLabels = [
-            'name' => 'nombre',
-            'last_name' => 'apellido',
-            'email' => 'email',
-            'phone' => 'teléfono',
-            'address' => 'dirección',
-            'id_type' => 'tipo de identificación',
-            'id_number' => 'número de identificación',
-            'is_active' => 'estado de la cuenta',
-        ];
-
-        // Obtener los cambios reales
-        $dirty = $user->getDirty();
-        foreach ($dirty as $key => $value) {
-            if ($key !== 'updated_at' && isset($oldValues[$key])) {
-                $label = $fieldLabels[$key] ?? $key;
-                $oldVal = $oldValues[$key] ?? 'vacío';
-                $newVal = $value ?? 'vacío';
-                $changes[] = "{$label}: '{$oldVal}' → '{$newVal}'";
+            if (!empty($changes)) {
+                $this->logUpdated($user, $oldValues, $changes);
             }
-        }
 
-        if (!empty($changes)) {
-            $this->logUpdated($user, $oldValues, $changes);
-        }
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Usuario actualizado exitosamente.');
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar usuario', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Usuario actualizado exitosamente.');
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Hubo un problema al actualizar el usuario.']);
+        }
     }
 
     public function destroy(User $user)
@@ -251,66 +284,101 @@ class UserController extends Controller
                 ->with('error', 'No puedes eliminarte a ti mismo.');
         }
 
-        //  AUDITORÍA - ELIMINACIÓN DE USUARIO (ANTES DE ELIMINAR)
-        $this->logDeleted($user, (Auth::user()?->full_name ?? 'Sistema') . ' ELIMINÓ al usuario ' . $user->full_name);
+        try {
+            $this->logDeleted($user, (Auth::user()?->full_name ?? 'Sistema') . ' ELIMINÓ al usuario ' . $user->full_name);
 
-        $user->delete();
+            //  ELIMINAR FOTO DE PERFIL SI EXISTE
+            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Usuario eliminado exitosamente.');
+            $user->delete();
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Usuario eliminado exitosamente.');
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar usuario', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->withErrors(['error' => 'Hubo un problema al eliminar el usuario.']);
+        }
     }
 
+    /**
+     *  RESPONSE SEGURO - SIN EXPONER DATOS SENSIBLES
+     */
     public function toggleStatus(User $user)
     {
         if ($user->id === Auth::id()) {
             return response()->json(['error' => 'No puedes desactivarte a ti mismo.'], 403);
         }
 
-        $wasActive = $user->is_active;
-        $oldValues = $user->toArray();
-        $user->is_active = !$user->is_active;
-        $user->save();
+        try {
+            $wasActive = $user->is_active;
+            $oldValues = $user->toArray();
+            $user->is_active = !$user->is_active;
+            $user->save();
 
-        $status = $user->is_active ? 'activado' : 'desactivado';
+            $status = $user->is_active ? 'activado' : 'desactivado';
 
-        //  AUDITORÍA - CAMBIO DE ESTADO
-        $this->logAudit('updated', $user, $oldValues, $user->toArray(),
-            (Auth::user()?->full_name ?? 'Sistema') . ' ' . ($user->is_active ? 'ACTIVÓ' : 'DESACTIVÓ') . ' al usuario ' . $user->full_name
-        );
+            $this->logAudit('updated', $user, $oldValues, $user->toArray(),
+                (Auth::user()?->full_name ?? 'Sistema') . ' ' . ($user->is_active ? 'ACTIVÓ' : 'DESACTIVÓ') . ' al usuario ' . $user->full_name
+            );
 
-        if (!$user->is_active && $wasActive) {
-            try {
-                Mail::send('emails.account-deactivated', ['user' => $user], function($message) use ($user) {
-                    $message->to($user->email, $user->full_name)
-                            ->subject('Tu cuenta ha sido desactivada - ' . config('app.name'));
-                });
-            } catch (\Exception $e) {
-                Log::error('Error al enviar correo de desactivación: ' . $e->getMessage());
+            if (!$user->is_active && $wasActive) {
+                try {
+                    Mail::send('emails.account-deactivated', ['user' => $user], function($message) use ($user) {
+                        $message->to($user->email, $user->full_name)
+                                ->subject('Tu cuenta ha sido desactivada - ' . config('app.name'));
+                    });
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar correo de desactivación: ' . $e->getMessage());
+                }
             }
-        }
 
-        if (request()->ajax()) {
-            return response()->json([
-                'success' => "Usuario {$status} exitosamente.",
-                'is_active' => $user->is_active
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Usuario {$status} exitosamente.",
+                    'data' => [
+                        'id' => $user->id,
+                        'is_active' => $user->is_active,
+                        'full_name' => $user->full_name
+                    ]
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Usuario {$status} exitosamente.");
+        } catch (\Exception $e) {
+            Log::error('Error al cambiar estado de usuario', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
             ]);
-        }
 
-        return redirect()->back()->with('success', "Usuario {$status} exitosamente.");
+            if (request()->ajax()) {
+                return response()->json(['error' => 'Error al cambiar el estado del usuario.'], 500);
+            }
+
+            return redirect()->back()->withErrors(['error' => 'Error al cambiar el estado del usuario.']);
+        }
     }
 
     public function export(Request $request)
     {
+        //  LIMITAR EXPORTACIÓN A 1000 REGISTROS PARA EVITAR SOBRECARGA
         $query = User::query()->with(['country', 'state', 'userCity']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('last_name', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%")
-                  ->orWhere('id_number', 'LIKE', "%{$search}%")
-                  ->orWhere('address', 'LIKE', "%{$search}%");
+                $q->where('name', 'LIKE', $search)
+                  ->orWhere('last_name', 'LIKE', $search)
+                  ->orWhere('email', 'LIKE', $search)
+                  ->orWhere('id_number', 'LIKE', $search)
+                  ->orWhere('address', 'LIKE', $search);
             });
         }
 
@@ -318,7 +386,8 @@ class UserController extends Controller
             $query->role($request->role);
         }
 
-        $users = $query->get();
+        //  LIMITAR A 1000 REGISTROS
+        $users = $query->limit(1000)->get();
 
         $filename = "usuarios_" . date('Y-m-d_His') . ".csv";
         $handle = fopen('php://temp', 'w+');

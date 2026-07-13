@@ -16,16 +16,16 @@ return new class extends Migration
             $table->string('price_currency')->default('USD');
 
             // Sistema de ubicación jerárquico
-            $table->foreignId('country_id')->nullable()->constrained('countries');
-            $table->foreignId('state_id')->nullable()->constrained('states');
-            $table->foreignId('municipality_id')->nullable()->constrained('municipalities');
-            $table->foreignId('parish_id')->nullable()->constrained('parishes');
-            $table->foreignId('city_id')->nullable()->constrained('cities');
+            $table->foreignId('country_id')->nullable()->constrained('countries')->cascadeOnDelete();
+            $table->foreignId('state_id')->nullable()->constrained('states')->cascadeOnDelete();
+            $table->foreignId('municipality_id')->nullable()->constrained('municipalities')->cascadeOnDelete();
+            $table->foreignId('parish_id')->nullable()->constrained('parishes')->cascadeOnDelete();
+            $table->foreignId('city_id')->nullable()->constrained('cities')->cascadeOnDelete();
 
             $table->string('address')->nullable();
             $table->string('location')->nullable();
 
-            // Campos antiguos (compatibilidad)
+            // Campos antiguos (compatibilidad) - marcados para deprecación
             $table->string('sector')->nullable();
             $table->string('city')->nullable();
             $table->string('state')->nullable();
@@ -49,12 +49,12 @@ return new class extends Migration
             $table->json('features')->nullable();
 
             // Geolocalización
-            $table->string('latitude')->nullable();
-            $table->string('longitude')->nullable();
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
 
             // Relaciones
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('category_id')->nullable()->constrained();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
 
             // Métricas
             $table->integer('views')->default(0);
@@ -65,14 +65,24 @@ return new class extends Migration
             // Metadatos
             $table->json('meta_data')->nullable();
 
+            // Timestamps y SoftDeletes
             $table->timestamps();
             $table->softDeletes();
 
-            // Índices para optimizar búsquedas
+            // Índices para optimizar búsquedas (incorporados directamente)
             $table->index(['status', 'type', 'price']);
             $table->index('user_id');
             $table->index('category_id');
             $table->index(['country_id', 'state_id', 'municipality_id']);
+            $table->index(['title', 'description']); // Full-text search podría ser mejor
+            $table->index(['is_featured', 'featured_until']);
+            $table->index(['created_at', 'status']);
+            $table->index('price');
+            $table->index('status');
+            $table->index('type');
+
+            // Índice compuesto para búsquedas comunes
+            $table->index(['status', 'type', 'price', 'created_at']);
         });
     }
 

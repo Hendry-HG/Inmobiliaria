@@ -104,6 +104,10 @@
     .btn-login:active {
         transform: scale(0.98);
     }
+    .btn-login:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
     .link-tab {
         font-size: 0.875rem;
         font-weight: 700;
@@ -116,6 +120,7 @@
         border-left: none;
         border-right: none;
         cursor: pointer;
+        text-decoration: none;
     }
     .link-tab-inactive {
         font-size: 0.875rem;
@@ -126,6 +131,7 @@
         background: none;
         border: none;
         cursor: pointer;
+        text-decoration: none;
     }
     .link-tab-inactive:hover {
         color: #0f172a;
@@ -226,6 +232,20 @@
     .gap-3 {
         gap: 0.75rem;
     }
+    .select-none {
+        user-select: none;
+    }
+
+    /* SOLUCIÓN PARA EL AUTORELLENADO */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+        -webkit-text-fill-color: #0f172a !important;
+        border-bottom-color: #c5a059 !important;
+        background-color: #ffffff !important;
+    }
 </style>
 @endpush
 
@@ -252,13 +272,14 @@
             </div>
             @endif
 
-            <form method="POST" action="{{ route('login') }}" novalidate>
+            <form method="POST" action="{{ route('login') }}" novalidate id="login-form">
                 @csrf
 
                 {{-- Campo: Email --}}
                 <div class="form-group">
                     <label for="email">Correo Electrónico</label>
-                    <input id="email" name="email" type="email" autocomplete="email" required
+                    <input id="email" name="email" type="email" 
+                           autocomplete="email" required
                            class="form-input @error('email') form-input-error @enderror"
                            placeholder="ejemplo@correo.com"
                            value="{{ old('email') }}">
@@ -270,7 +291,8 @@
                 {{-- Campo: Contraseña --}}
                 <div class="form-group">
                     <label for="password">Contraseña</label>
-                    <input id="password" name="password" type="password" autocomplete="current-password" required
+                    <input id="password" name="password" type="password" 
+                           autocomplete="current-password" required
                            class="form-input @error('password') form-input-error @enderror"
                            placeholder="••••••••">
                     @error('password')
@@ -281,14 +303,14 @@
                 {{-- Recordarme y Olvidé contraseña --}}
                 <div class="flex">
                     <div class="flex">
-                        <input id="remember" name="remember" type="checkbox" class="checkbox-custom">
+                        <input id="remember" name="remember" type="checkbox" class="checkbox-custom" {{ old('remember') ? 'checked' : '' }}>
                         <label for="remember" class="text-xs text-slate-600 select-none" style="margin-left: 0.5rem;">Recordarme</label>
                     </div>
-                    <a href="#" class="link-forgot">¿Olvidaste tu contraseña?</a>
+                    <a href="{{ route('password.request') }}" class="link-forgot">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 {{-- Botón --}}
-                <button type="submit" class="btn-login">
+                <button type="submit" id="login-submit" class="btn-login">
                     INICIAR SESIÓN
                 </button>
 
@@ -309,7 +331,7 @@
             </form>
         </div>
 
-        {{-- Footer con tabs (igual que el modal) --}}
+        {{-- Footer con tabs --}}
         <div class="auth-footer">
             <button class="link-tab">
                 Iniciar Sesión
@@ -320,4 +342,52 @@
         </div>
     </div>
 </div>
+
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        //  PREVENCIÓN DE DOBLE CLIC EN LOGIN
+        // ============================================
+        const loginForm = document.getElementById('login-form');
+        let isSubmitting = false;
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                isSubmitting = true;
+                const submitBtn = document.getElementById('login-submit');
+                const originalText = submitBtn.textContent;
+
+                submitBtn.textContent = '⏳ INICIANDO SESIÓN...';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+                submitBtn.style.cursor = 'wait';
+
+                console.log('📤 Enviando formulario de login...');
+                return true;
+            });
+        }
+
+        // ============================================
+        //  VALIDACIÓN DE EMAIL EN TIEMPO REAL
+        // ============================================
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+            emailInput.addEventListener('input', function() {
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (this.value && !emailPattern.test(this.value)) {
+                    this.style.borderBottomColor = '#ef4444';
+                } else {
+                    this.style.borderBottomColor = '';
+                }
+            });
+        }
+    });
+</script>
+@endpush
 @endsection

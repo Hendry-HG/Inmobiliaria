@@ -2,6 +2,41 @@
 
 @section('title', 'Recuperar Contraseña - Preguntas de Seguridad')
 
+@push('css')
+<style>
+    .bg-mso-gold {
+        background-color: #c5a059;
+    }
+    .bg-mso-gold:hover {
+        background-color: #b8923f;
+    }
+    .text-mso-gold {
+        color: #c5a059;
+    }
+    .text-mso-gold:hover {
+        color: #b8923f;
+    }
+    .text-mso-blue {
+        color: #1a2a3a;
+    }
+    .text-mso-blue:hover {
+        color: #c5a059;
+    }
+    .bg-mso-blue {
+        background-color: #1a2a3a;
+    }
+    .bg-mso-blue:hover {
+        background-color: #0f172a;
+    }
+    .focus\:ring-mso-gold:focus {
+        --tw-ring-color: #c5a059;
+    }
+    .border-mso-gold {
+        border-color: #c5a059;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 pt-24">
     <div class="max-w-md w-full space-y-8">
@@ -36,7 +71,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('security.verify.email') }}" method="POST" class="space-y-6">
+            <form action="{{ route('security.verify.email') }}" method="POST" class="space-y-6" novalidate>
                 @csrf
 
                 <div>
@@ -47,9 +82,12 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-envelope text-gray-400"></i>
                         </div>
-                        <input type="email" name="email" id="email" value="{{ old('email') }}"
+                        <input type="email" name="email" id="email" 
+                               value="{{ old('email') }}"
                                class="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none @error('email') border-red-500 @enderror"
-                               placeholder="tucorreo@ejemplo.com" required autofocus>
+                               placeholder="tucorreo@ejemplo.com" 
+                               autocomplete="email"
+                               required autofocus>
                     </div>
                     @error('email')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>

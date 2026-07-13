@@ -12,6 +12,24 @@
         </a>
     </div>
 
+    @if(session('success'))
+    <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+        <span><i class="ph ph-check-circle mr-2"></i>{{ session('success') }}</span>
+        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
+            <i class="ph ph-x"></i>
+        </button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+        <span><i class="ph ph-warning-circle mr-2"></i>{{ session('error') }}</span>
+        <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900">
+            <i class="ph ph-x"></i>
+        </button>
+    </div>
+    @endif
+
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -36,14 +54,21 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         @if($role->name !== 'Super Admin')
-                            <a href="{{ route('super-admin.roles.edit', $role) }}" class="text-mso-blue hover:text-mso-gold mr-3">Editar Permisos</a>
-                            <form action="{{ route('super-admin.roles.destroy', $role) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro?');">
+                            <a href="{{ route('super-admin.roles.edit', $role) }}" class="text-mso-blue hover:text-mso-gold mr-3">
+                                <i class="ph ph-pencil"></i> Editar
+                            </a>
+                            <form action="{{ route('super-admin.roles.destroy', $role) }}" method="POST" class="inline" 
+                                  onsubmit="return confirm('¿Estás seguro de eliminar el rol "{{ addslashes($role->name) }}"?');">
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-red-500 hover:text-red-700">Eliminar</button>
+                                <button class="text-red-500 hover:text-red-700">
+                                    <i class="ph ph-trash"></i> Eliminar
+                                </button>
                             </form>
                         @else
-                            <span class="text-gray-400 italic text-xs">Protegido</span>
+                            <span class="text-gray-400 italic text-xs">
+                                <i class="ph ph-shield-check"></i> Protegido
+                            </span>
                         @endif
                     </td>
                 </tr>

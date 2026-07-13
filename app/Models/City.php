@@ -15,4 +15,9 @@ class City extends Model
     {
         return $this->belongsTo(Parish::class);
     }
+
+     public function properties()
+    {
+        return $this->hasMany(Property::class, 'city_id');
+    }
 }

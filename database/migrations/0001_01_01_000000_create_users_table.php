@@ -1,4 +1,5 @@
 <?php
+// database/migrations/2026_01_15_000001_create_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -10,56 +11,75 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-
-            // CAMPO NUEVO: apellido
-            $table->string('last_name')->nullable();
+            
+            // ============ DATOS PERSONALES ============
             $table->string('name');
-
+            $table->string('last_name')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-
-            // Campos adicionales
+            $table->rememberToken();
             $table->string('phone')->nullable();
+
+            // ============ PERFIL ============
             $table->string('profile_photo')->nullable();
             $table->text('bio')->nullable();
             $table->string('specialization')->nullable();
             $table->json('social_links')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->string('id_type')->nullable();
+            
+            // ============ IDENTIFICACIÓN ============
+            $table->string('id_type')->nullable()->comment('V, E, J, P');
             $table->string('id_number')->nullable();
+            $table->index(['id_type', 'id_number']);
 
-            // Campos de ubicación
+            // ============ UBICACIÓN ============
             $table->unsignedBigInteger('country_id')->nullable();
             $table->unsignedBigInteger('state_id')->nullable();
             $table->unsignedBigInteger('municipality_id')->nullable();
             $table->unsignedBigInteger('parish_id')->nullable();
             $table->unsignedBigInteger('city_id')->nullable();
+            $table->text('address')->nullable();
 
-            // CAMPO NUEVO: dirección
-            $table->text('address')->nullable()->after('city_id');
+            // ============================================================
+            // ============ SEGURIDAD - PREGUNTAS Y RESPUESTAS ============
+            // ============================================================
+            
+            
+            $table->json('security_questions')->nullable();
+            
+            
+            $table->string('security_answer_1')->nullable();
+            $table->string('security_answer_2')->nullable();
+            $table->string('security_answer_3')->nullable();
+            
+          
+            $table->timestamp('security_questions_set_at')->nullable();
 
-            // Estado en línea
+            // ============ ESTADO ============
+            $table->boolean('is_active')->default(true);
             $table->boolean('is_online')->default(false);
             $table->timestamp('last_seen_at')->nullable();
 
-            $table->rememberToken();
+            // ============ TIMESTAMPS ============
             $table->timestamps();
             $table->softDeletes();
 
-            // Índices
-            $table->index(['country_id']);
-            $table->index(['state_id']);
-            $table->index(['municipality_id']);
-            $table->index(['parish_id']);
-            $table->index(['city_id']);
-            $table->index(['is_active']);
-            $table->index(['is_online']);
-            $table->index(['id_type', 'id_number']);
-            $table->index(['last_name']);
-
-            // 👇 Índice opcional para búsqueda por dirección
-            $table->index(['address']);
+            // ============ ÍNDICES OPTIMIZADOS ============
+            $table->index('email');
+            $table->index('phone');
+            $table->index('is_active');
+            $table->index('is_online');
+            $table->index('last_seen_at');
+            $table->index('created_at');
+            $table->index('deleted_at');
+            $table->index(['name', 'last_name']);
+            $table->index(['country_id', 'state_id', 'city_id']);
+            $table->index(['is_active', 'created_at']);
+            
+            // Índices para seguridad
+            $table->index('security_answer_1');
+            $table->index('security_answer_2');
+            $table->index('security_answer_3');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

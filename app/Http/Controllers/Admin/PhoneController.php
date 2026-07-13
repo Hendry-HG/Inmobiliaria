@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/PhoneController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -6,15 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class PhoneController extends Controller
 {
-    const CACHE_DURATION = 3600;
+    const CACHE_DURATION = 86400; // 24 horas
 
     public function __construct()
     {
-        // SOLO aplicar middleware a métodos que NO son públicos
-        // Los métodos públicos (getPresets, getPhoneCodes, getPhoneConfig) NO deben tener auth
         $this->middleware(['auth', 'role:Super Admin|Administrador'])->except([
             'getPresets',
             'getPhoneCodes',
@@ -24,7 +25,7 @@ class PhoneController extends Controller
 
     public function index()
     {
-        $countries = Country::orderBy('id', 'asc')->paginate(20);
+        $countries = Country::orderBy('name')->paginate(20);
         return view('modulos.phones.index', compact('countries'));
     }
 
@@ -36,66 +37,114 @@ class PhoneController extends Controller
     public function update(Request $request, Country $country)
     {
         $validated = $request->validate([
-            'code' => 'nullable|string|max:3',
-            'phone_code' => 'required|string|max:5',
-            'phone_format' => 'required|string|max:50',
+            'code' => [
+                'nullable',
+                'string',
+                'max:3',
+                'regex:/^[A-Z]{3}$/',
+                Rule::unique('countries')->ignore($country->id)
+            ],
+            'phone_code' => [
+                'required',
+                'string',
+                'max:5',
+                'regex:/^\+[0-9]{1,4}$/',
+                Rule::unique('countries')->ignore($country->id)
+            ],
+            'phone_format' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[0-9\-\(\)\s\+]+$/'
+            ],
             'phone_min_length' => 'required|integer|min:5|max:15',
             'phone_max_length' => 'required|integer|min:5|max:15|gte:phone_min_length',
         ], [
-            'code.max' => 'El código ISO debe tener máximo 3 caracteres',
-            'phone_code.required' => 'El código telefónico es obligatorio',
-            'phone_format.required' => 'El formato de teléfono es obligatorio',
-            'phone_min_length.required' => 'La longitud mínima es obligatoria',
-            'phone_max_length.required' => 'La longitud máxima es obligatoria',
-            'phone_max_length.gte' => 'La longitud máxima debe ser mayor o igual a la mínima',
+            'code.unique' => 'Este código ISO ya está en uso por otro país.',
+            'code.regex' => 'El código ISO debe tener 3 letras mayúsculas.',
+            'phone_code.unique' => 'Este código telefónico ya está en uso por otro país.',
+            'phone_code.regex' => 'El código telefónico debe comenzar con + seguido de números.',
+            'phone_format.regex' => 'El formato solo puede contener números, guiones, paréntesis y espacios.',
+            'phone_max_length.gte' => 'La longitud máxima debe ser mayor o igual a la mínima.',
         ]);
 
-        if (!str_starts_with($validated['phone_code'], '+')) {
-            $validated['phone_code'] = '+' . $validated['phone_code'];
+        try {
+            // Sanitizar entrada
+            if (isset($validated['code'])) {
+                $validated['code'] = strtoupper(preg_replace('/[^A-Z]/', '', $validated['code']));
+            }
+
+            if (!str_starts_with($validated['phone_code'], '+')) {
+                $validated['phone_code'] = '+' . $validated['phone_code'];
+            }
+
+            $country->update($validated);
+
+            // Limpiar caché
+            Cache::forget('api_phone_presets');
+            Cache::forget('api_phone_codes');
+            Cache::forget("api_phone_config_{$country->id}");
+
+            return redirect()->route('admin.phones.index')
+                ->with('success', "Configuración de {$country->name} actualizada correctamente.");
+        } catch (\Exception $e) {
+            Log::error('Error actualizando configuración telefónica', [
+                'country_id' => $country->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al actualizar la configuración.');
         }
-
-        if (isset($validated['code'])) {
-            $validated['code'] = strtoupper($validated['code']);
-        }
-
-        $country->update($validated);
-
-        Cache::forget('api_phone_presets');
-        Cache::forget('api_phone_codes');
-
-        return redirect()->route('admin.phones.index')
-            ->with('success', "Configuración de {$country->name} actualizada correctamente.");
     }
 
     public function bulkUpdate(Request $request)
     {
+        if (!auth()->user()->hasPermissionTo('actualizar configuracion telefonica')) {
+            abort(403, 'No tienes permiso para realizar esta acción.');
+        }
+
         $validated = $request->validate([
-            'countries' => 'required|array',
+            'countries' => 'required|array|max:50',
             'countries.*.id' => 'required|exists:countries,id',
-            'countries.*.code' => 'nullable|string|max:3',
-            'countries.*.phone_code' => 'required|string|max:5',
-            'countries.*.phone_format' => 'required|string|max:50',
+            'countries.*.code' => 'nullable|string|max:3|regex:/^[A-Z]{3}$/',
+            'countries.*.phone_code' => 'required|string|max:5|regex:/^\+[0-9]{1,4}$/',
+            'countries.*.phone_format' => 'required|string|max:50|regex:/^[0-9\-\(\)\s\+]+$/',
             'countries.*.phone_min_length' => 'required|integer|min:5|max:15',
-            'countries.*.phone_max_length' => 'required|integer|min:5|max:15',
+            'countries.*.phone_max_length' => 'required|integer|min:5|max:15|gte:countries.*.phone_min_length',
         ]);
 
         $updated = 0;
+        $errors = [];
+
         foreach ($validated['countries'] as $data) {
-            $country = Country::find($data['id']);
-            if ($country) {
-                if (!str_starts_with($data['phone_code'], '+')) {
-                    $data['phone_code'] = '+' . $data['phone_code'];
+            try {
+                $country = Country::find($data['id']);
+                if ($country) {
+                    if (isset($data['code'])) {
+                        $data['code'] = strtoupper(preg_replace('/[^A-Z]/', '', $data['code']));
+                    }
+                    if (!str_starts_with($data['phone_code'], '+')) {
+                        $data['phone_code'] = '+' . $data['phone_code'];
+                    }
+                    $country->update($data);
+                    $updated++;
                 }
-                if (isset($data['code'])) {
-                    $data['code'] = strtoupper($data['code']);
-                }
-                $country->update($data);
-                $updated++;
+            } catch (\Exception $e) {
+                $errors[] = "Error actualizando país ID {$data['id']}: " . $e->getMessage();
             }
         }
 
         Cache::forget('api_phone_presets');
         Cache::forget('api_phone_codes');
+
+        if (!empty($errors)) {
+            return response()->json([
+                'success' => false,
+                'message' => "{$updated} países actualizados, pero hubo errores.",
+                'errors' => $errors
+            ], 207);
+        }
 
         return response()->json([
             'success' => true,
@@ -148,47 +197,43 @@ class PhoneController extends Controller
         });
     }
 
-    /**
-     * API pública para obtener todos los códigos telefónicos - SIN AUTENTICACIÓN
-     */
     public function getPhoneCodes()
     {
         return Cache::remember('api_phone_codes', self::CACHE_DURATION, function () {
             $countries = Country::whereNotNull('phone_code')
                 ->where('phone_code', '!=', '')
-                ->orderBy('id', 'asc')
+                ->orderBy('name')
                 ->get(['id', 'name', 'code as iso', 'phone_code', 'phone_format', 'phone_min_length', 'phone_max_length']);
 
             return response()->json($countries);
         });
     }
 
-    /**
-     * API pública para obtener configuración telefónica de un país específico - SIN AUTENTICACIÓN
-     */
     public function getPhoneConfig($countryId)
     {
-        $country = Country::find($countryId);
+        $cacheKey = "api_phone_config_{$countryId}";
+        
+        return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($countryId) {
+            $country = Country::find($countryId);
 
-        if (!$country || !$country->phone_code) {
+            if (!$country || !$country->phone_code) {
+                return response()->json([
+                    'code' => '+58',
+                    'mask' => '000-0000000',
+                    'minLength' => 10,
+                    'maxLength' => 10,
+                    'placeholder' => '412 1234567'
+                ]);
+            }
+
             return response()->json([
-                'code' => '+58',
-                'mask' => '000-0000000',
-                'minLength' => 10,
-                'maxLength' => 10,
-                'placeholder' => '412 1234567'
+                'code' => $country->phone_code,
+                'mask' => $country->phone_format ?? '000-0000000',
+                'minLength' => $country->phone_min_length ?? 10,
+                'maxLength' => $country->phone_max_length ?? 10,
+                'placeholder' => $this->generatePlaceholder($country->phone_format ?? '000-0000000')
             ]);
-        }
-
-        $placeholder = $this->generatePlaceholder($country->phone_format ?? '000-0000000');
-
-        return response()->json([
-            'code' => $country->phone_code,
-            'mask' => $country->phone_format ?? '000-0000000',
-            'minLength' => $country->phone_min_length ?? 10,
-            'maxLength' => $country->phone_max_length ?? 10,
-            'placeholder' => $placeholder
-        ]);
+        });
     }
 
     private function generatePlaceholder($mask)

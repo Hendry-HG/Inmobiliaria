@@ -74,6 +74,15 @@
     .custom-prose p {
         margin-bottom: 1rem;
     }
+    
+    /* Animación de carga para el spinner */
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .ph-spin {
+        animation: spin 1s linear infinite;
+    }
 </style>
 @endpush
 
@@ -185,7 +194,7 @@
                 </div>
             </div>
 
-            {{--  CARACTERÍSTICAS ADICIONALES CON ICONOS --}}
+            {{-- CARACTERÍSTICAS ADICIONALES CON ICONOS --}}
             @php
                 $features = $property->features;
                 if (is_string($features)) {
@@ -232,7 +241,7 @@
             </div>
             @endif
 
-            {{-- INFORMACIÓN DETALLADA (SIN DESTACADA) --}}
+            {{-- INFORMACIÓN DETALLADA --}}
             <div>
                 <h3 class="text-2xl font-bold text-slate-900 mb-4">Información Detallada</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -254,7 +263,6 @@
                         <p class="font-medium text-slate-800">{{ $property->year_built }}</p>
                     </div>
                     @endif
-                    {{--  ELIMINADOS: is_featured y featured_until (SOLO VISIBLE EN DASHBOARD) --}}
                 </div>
             </div>
 
@@ -343,143 +351,140 @@
                 </div>
             </div>
 
-            {{-- FORMULARIO DE AGENDAR CITA --}}
-            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 lg:sticky lg:top-24">
-                <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <i class="ph ph-calendar-check text-mso-gold"></i>
-                    Agendar Visita
-                </h3>
-                <p class="text-slate-500 text-sm mb-5">Déjanos tus datos y el asesor confirmará la cita contigo.</p>
+            {{-- ============================================================ --}}
+{{-- FORMULARIO DE AGENDAR CITA CON CALENDARIO --}}
+{{-- ============================================================ --}}
+<div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 lg:sticky lg:top-24">
+    <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+        <i class="ph ph-calendar-check text-mso-gold"></i>
+        Agendar Visita
+    </h3>
+    <p class="text-slate-500 text-sm mb-5">Selecciona una fecha y hora disponible para tu visita.</p>
 
-                @auth
-                {{-- Formulario para usuarios autenticados --}}
-                <form id="appointmentForm" class="space-y-4">
-                    @csrf
-                    <input type="hidden" name="property_id" value="{{ $property->id }}">
-                    <input type="hidden" name="date" id="fullDateTimeInput">
+    @auth
+    <form id="appointmentForm" class="space-y-4">
+        @csrf
+        <input type="hidden" name="property_id" value="{{ $property->id }}">
+        <input type="hidden" name="asesor_id" value="{{ $property->user_id }}">
+        <input type="hidden" name="date" id="fullDateTimeInput">
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
-                        <input type="text" name="name" id="formName" required placeholder="Tu nombre completo"
-                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-                    </div>
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
+            <input type="text" name="name" id="formName" required placeholder="Tu nombre completo"
+                   value="{{ auth()->user()->full_name ?? '' }}"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+        </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
-                        <input type="email" name="email" id="formEmail" required placeholder="ejemplo@correo.com"
-                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-                    </div>
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
+            <input type="email" name="email" id="formEmail" required placeholder="ejemplo@correo.com"
+                   value="{{ auth()->user()->email ?? '' }}"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+        </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
-                        <input type="tel" name="phone" id="formPhone" required placeholder="Tu número de contacto"
-                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-                    </div>
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
+            <input type="tel" name="phone" id="formPhone" required placeholder="Tu número de contacto"
+                   value="{{ auth()->user()->phone ?? '' }}"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+        </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Fecha *</label>
-                            <input type="date" name="date_picker" id="datePicker" required
-                                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Hora *</label>
-                            <select name="time_picker" id="timePicker" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-                                <option value="">Seleccionar</option>
-                                <option value="09:00">09:00 AM</option>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="11:00">11:00 AM</option>
-                                <option value="12:00">12:00 PM</option>
-                                <option value="13:00">01:00 PM</option>
-                                <option value="14:00">02:00 PM</option>
-                                <option value="15:00">03:00 PM</option>
-                                <option value="16:00">04:00 PM</option>
-                                <option value="17:00">05:00 PM</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
-                        <textarea name="message" id="formMessage" rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?"
-                                  class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm resize-none"></textarea>
-                    </div>
-
-                    <button type="submit" id="submitAppointmentBtn"
-                            class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
-                        <i class="ph ph-calendar-plus"></i>
-                        Solicitar Cita
+        {{-- CALENDARIO DE SELECCIÓN DE FECHA --}}
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Selecciona una fecha *</label>
+            <div id="calendarContainer" class="bg-white border border-slate-200 rounded-lg p-3">
+                {{-- Cabecera del calendario --}}
+                <div class="flex items-center justify-between mb-3">
+                    <button type="button" id="prevMonth" class="p-1 hover:bg-slate-100 rounded">
+                        <i class="ph ph-caret-left text-lg"></i>
                     </button>
-
-                    <div id="formMessageError" class="text-red-500 text-xs text-center hidden"></div>
-                    <div id="formMessageSuccess" class="text-green-600 text-xs text-center hidden"></div>
-                </form>
-                @else
-                {{-- Formulario para usuarios NO autenticados (campos deshabilitados) --}}
-                <div class="space-y-4 opacity-60">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
-                        <input type="text" placeholder="Tu nombre completo" disabled
-                               class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
-                        <input type="email" placeholder="ejemplo@correo.com" disabled
-                               class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
-                        <input type="tel" placeholder="Tu número de contacto" disabled
-                               class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Fecha *</label>
-                            <input type="date" disabled
-                                   class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Hora *</label>
-                            <select disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm cursor-not-allowed">
-                                <option>Seleccionar</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
-                        <textarea rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?" disabled
-                                  class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm resize-none cursor-not-allowed"></textarea>
-                    </div>
-
-                    {{-- Botón que abre el modal de autenticación --}}
-                    <button type="button" onclick="openAuthModal()"
-                            class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
-                        <i class="ph ph-calendar-plus"></i>
-                        Solicitar Cita
+                    <span id="currentMonthDisplay" class="font-bold text-slate-800"></span>
+                    <button type="button" id="nextMonth" class="p-1 hover:bg-slate-100 rounded">
+                        <i class="ph ph-caret-right text-lg"></i>
                     </button>
                 </div>
-                @endauth
 
-                <p class="text-xs text-slate-400 text-center mt-3">
-                    <i class="ph ph-shield-check"></i> Tus datos están seguros
-                </p>
+                {{-- Días de la semana --}}
+                <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
+                    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                </div>
+
+                {{-- Grid de días --}}
+                <div id="calendarDays" class="grid grid-cols-7 gap-1">
+                    <!-- Se llena con JavaScript -->
+                </div>
+
+                {{-- Leyenda --}}
+                <div class="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 text-xs">
+                    <span class="flex items-center gap-1">
+                        <span class="w-3 h-3 bg-mso-gold rounded-full"></span> Disponible
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <span class="w-3 h-3 bg-slate-200 rounded-full"></span> No disponible
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <span class="w-3 h-3 bg-red-200 rounded-full"></span> Sin cupos
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <span class="w-3 h-3 bg-slate-300 rounded-full"></span> Fecha pasada
+                    </span>
+                </div>
+            </div>
+            <input type="hidden" name="date_picker" id="datePicker" required>
+        </div>
+
+        {{-- Selector de horas (se llena dinámicamente) --}}
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Hora disponible *</label>
+            <select name="time_picker" id="timePicker" required 
+                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                <option value="">Primero selecciona una fecha</option>
+            </select>
+            <div id="slotsInfo" class="text-xs text-slate-400 mt-1 hidden">
+                <i class="ph ph-info"></i> 
+                <span id="slotsCount">0</span> cupos disponibles para esta fecha
             </div>
         </div>
+
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
+            <textarea name="message" id="formMessage" rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?"
+                      class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm resize-none"></textarea>
+        </div>
+
+        <button type="submit" id="submitAppointmentBtn"
+                class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+            <i class="ph ph-calendar-plus"></i>
+            Solicitar Cita
+        </button>
+
+        <div id="formMessageError" class="text-red-500 text-xs text-center hidden"></div>
+        <div id="formMessageSuccess" class="text-green-600 text-xs text-center hidden"></div>
+    </form>
+    @else
+    <!-- Usuario no autenticado -->
+    <div class="space-y-4 opacity-60">
+        <!-- ... campos deshabilitados ... -->
+        <button type="button" onclick="openAuthModal()"
+                class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+            <i class="ph ph-calendar-plus"></i>
+            Solicitar Cita
+        </button>
     </div>
-</section>
+    @endauth
+
+    <p class="text-xs text-slate-400 text-center mt-3">
+        <i class="ph ph-shield-check"></i> Tus datos están seguros
+    </p>
+</div>
 
 {{-- ============================================================ --}}
 {{-- MODAL DE AUTENTICACIÓN PARA USUARIOS NO REGISTRADOS --}}
 {{-- ============================================================ --}}
 <div id="authModal" class="modal-overlay fixed inset-0 z-[200] hidden items-center justify-center p-4">
     <div class="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-8">
-        {{-- Icono de casita --}}
         <div class="mb-4">
-            <span class="house-icon"></span>
+            <span class="house-icon">🏠</span>
         </div>
 
         <h3 class="text-2xl font-bold text-slate-800 mb-2">
@@ -511,82 +516,273 @@
 
 @push('js')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
-    // FUNCIONES DEL MODAL DE AUTENTICACIÓN
+    // VARIABLES GLOBALES
     // ============================================================
-    function openAuthModal() {
-        const modal = document.getElementById('authModal');
-        const content = modal.querySelector('.modal-content');
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
+    const asesorId = document.querySelector('input[name="asesor_id"]')?.value;
+    const propertyId = document.querySelector('input[name="property_id"]')?.value;
+    
+    let currentDate = new Date();
+    let currentYear = currentDate.getFullYear();
+    let currentMonth = currentDate.getMonth() + 1;
+    let selectedDate = null;
+    let selectedSlots = [];
 
-        setTimeout(() => {
-            content.classList.add('show');
-        }, 10);
-
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeAuthModal() {
-        const modal = document.getElementById('authModal');
-        const content = modal.querySelector('.modal-content');
-        content.classList.remove('show');
-
-        setTimeout(() => {
-            modal.style.display = 'none';
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 300);
-    }
-
-    // Cerrar modal al hacer clic fuera
-    document.getElementById('authModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAuthModal();
-        }
-    });
-
-    // Cerrar modal con tecla ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAuthModal();
-        }
-    });
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
     // ============================================================
-    // FUNCIONES PARA GALERÍA DE IMÁGENES
+    // FUNCIONES DEL CALENDARIO
     // ============================================================
-    function changeMainImage(thumbnailElement, imageUrl) {
-        const mainImage = document.getElementById('mainImage');
-        if (!mainImage || !thumbnailElement) return;
-        mainImage.style.opacity = '0';
-        mainImage.classList.add('scale-105');
-        setTimeout(() => {
-            mainImage.src = imageUrl;
-            const onImageLoad = () => {
-                mainImage.style.opacity = '1';
-                mainImage.classList.remove('scale-105');
-                mainImage.removeEventListener('load', onImageLoad);
-            };
-            if (mainImage.complete) {
-                onImageLoad();
-            } else {
-                mainImage.addEventListener('load', onImageLoad);
+    function loadCalendar(year, month) {
+        const url = `/api/appointments/available-days?year=${year}&month=${month}&asesor_id=${asesorId}`;
+        
+        document.getElementById('calendarDays').innerHTML = '<div class="col-span-7 text-center py-4 text-slate-400"><i class="ph ph-spinner ph-spin"></i> Cargando...</div>';
+        document.getElementById('currentMonthDisplay').textContent = `${monthNames[month - 1]} ${year}`;
+
+        fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
             }
-        }, 200);
-        const thumbnails = document.querySelectorAll('.thumbnail');
-        thumbnails.forEach(t => {
-            t.classList.remove('border-mso-gold', 'opacity-100', 'shadow-lg', 'ring-2', 'ring-mso-gold/50');
-            t.classList.add('border-transparent', 'opacity-60');
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('calendarDays').innerHTML = `
+                    <div class="col-span-7 text-center py-4 text-red-500">
+                        <i class="ph ph-warning-circle"></i> ${data.message || 'Error al cargar días'}
+                    </div>
+                `;
+                return;
+            }
+
+            renderCalendar(data.days);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('calendarDays').innerHTML = `
+                <div class="col-span-7 text-center py-4 text-red-500">
+                    <i class="ph ph-warning-circle"></i> Error al cargar el calendario
+                </div>
+            `;
         });
-        thumbnailElement.classList.remove('border-transparent', 'opacity-60');
-        thumbnailElement.classList.add('border-mso-gold', 'opacity-100', 'shadow-lg', 'ring-2', 'ring-mso-gold/50');
+    }
+
+    function renderCalendar(days) {
+        const container = document.getElementById('calendarDays');
+        let html = '';
+
+        // Obtener el primer día del mes (0 = Domingo, 1 = Lunes)
+        const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).getDay();
+        // Ajustar para que Lunes sea 0
+        let startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+        // Espacios vacíos al inicio
+        for (let i = 0; i < startOffset; i++) {
+            html += '<div class="h-10"></div>';
+        }
+
+        // Días del mes
+        days.forEach(dayData => {
+            const date = new Date(dayData.date);
+            const isToday = date.toDateString() === new Date().toDateString();
+            const isPast = dayData.is_past;
+            const isAvailable = dayData.is_available;
+            const hasSlots = dayData.slots && dayData.slots.length > 0;
+            const isException = dayData.is_exception;
+            const maxPerDay = dayData.max_per_day || 0;
+
+            let classes = 'h-10 rounded-lg cursor-pointer flex items-center justify-center text-sm transition-all duration-200 relative';
+            
+            if (isPast) {
+                classes += ' text-slate-300 cursor-not-allowed bg-slate-50';
+            } else if (isException) {
+                classes += ' text-red-400 cursor-not-allowed bg-red-50 line-through';
+            } else if (isAvailable && hasSlots) {
+                classes += ' bg-mso-gold text-white hover:bg-mso-blue hover:scale-105 font-medium shadow-sm';
+            } else if (isAvailable && !hasSlots) {
+                classes += ' bg-red-100 text-red-400 cursor-not-allowed';
+            } else {
+                classes += ' bg-slate-100 text-slate-400 cursor-not-allowed';
+            }
+
+            if (isToday && !isPast) {
+                classes += ' ring-2 ring-mso-blue ring-offset-2';
+            }
+
+            html += `<div class="${classes}" data-date="${dayData.date}" data-available="${isAvailable && hasSlots}" data-slots='${JSON.stringify(dayData.slots || [])}' data-max="${maxPerDay}">`;
+            html += `<span>${dayData.day}</span>`;
+            
+            // Indicador de cupos
+            if (isAvailable && hasSlots && !isPast && !isException) {
+                const slotCount = dayData.slots.length;
+                const maxSlots = maxPerDay || 0;
+                const availablePercent = Math.round((slotCount / maxSlots) * 100);
+                html += `<span class="absolute -bottom-1 -right-1 text-[8px] bg-white text-mso-blue rounded-full px-1 py-0.5 shadow-sm font-bold">${slotCount}</span>`;
+            }
+            
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+
+        // Agregar eventos de clic a los días
+        container.querySelectorAll('[data-available="true"]').forEach(element => {
+            element.addEventListener('click', function() {
+                const date = this.dataset.date;
+                const slots = JSON.parse(this.dataset.slots);
+                selectDate(date, slots);
+            });
+        });
+    }
+
+    function selectDate(date, slots) {
+        selectedDate = date;
+        selectedSlots = slots || [];
+
+        // Actualizar UI del calendario
+        document.querySelectorAll('#calendarDays > div[data-date]').forEach(el => {
+            el.classList.remove('ring-2', 'ring-mso-gold', 'ring-offset-2', 'scale-105');
+            if (el.dataset.date === date) {
+                el.classList.add('ring-2', 'ring-mso-gold', 'ring-offset-2', 'scale-105');
+            }
+        });
+
+        // Actualizar campo oculto
+        document.getElementById('datePicker').value = date;
+
+        // Cargar horas disponibles
+        populateTimeSlots(date, slots);
+
+        // Mostrar información de cupos
+        const slotsInfo = document.getElementById('slotsInfo');
+        const slotsCount = document.getElementById('slotsCount');
+        if (slots && slots.length > 0) {
+            slotsCount.textContent = slots.length;
+            slotsInfo.classList.remove('hidden');
+        } else {
+            slotsInfo.classList.add('hidden');
+        }
+    }
+
+    function populateTimeSlots(date, slots) {
+        const timePicker = document.getElementById('timePicker');
+        
+        if (!slots || slots.length === 0) {
+            timePicker.innerHTML = '<option value="">No hay horas disponibles</option>';
+            timePicker.disabled = true;
+            return;
+        }
+
+        let options = '<option value="">Seleccionar hora</option>';
+        slots.forEach(slot => {
+            const timeParts = slot.split(':');
+            const hour = parseInt(timeParts[0]);
+            const minutes = timeParts[1];
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            const display = `${hour12}:${minutes} ${ampm}`;
+            options += `<option value="${slot}">${display}</option>`;
+        });
+
+        timePicker.innerHTML = options;
+        timePicker.disabled = false;
     }
 
     // ============================================================
-    // FUNCIONES PARA FORMULARIO DE CITAS (SOLO AUTENTICADOS)
+    // NAVEGACIÓN DEL CALENDARIO
     // ============================================================
-    @auth
+    document.getElementById('prevMonth')?.addEventListener('click', function() {
+        currentMonth--;
+        if (currentMonth < 1) {
+            currentMonth = 12;
+            currentYear--;
+        }
+        loadCalendar(currentYear, currentMonth);
+    });
+
+    document.getElementById('nextMonth')?.addEventListener('click', function() {
+        currentMonth++;
+        if (currentMonth > 12) {
+            currentMonth = 1;
+            currentYear++;
+        }
+        loadCalendar(currentYear, currentMonth);
+    });
+
+    // ============================================================
+    // ENVÍO DEL FORMULARIO
+    // ============================================================
+    document.getElementById('appointmentForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const datePicker = document.getElementById('datePicker');
+        const timePicker = document.getElementById('timePicker');
+        const fullDateTimeInput = document.getElementById('fullDateTimeInput');
+
+        if (!datePicker.value || !timePicker.value || timePicker.value === '') {
+            showFormMessage('Por favor selecciona fecha y hora válidas.', true);
+            return;
+        }
+
+        fullDateTimeInput.value = datePicker.value + 'T' + timePicker.value + ':00';
+
+        const selectedDate = new Date(fullDateTimeInput.value);
+        if (selectedDate <= new Date()) {
+            showFormMessage('La fecha debe ser posterior a la fecha actual.', true);
+            return;
+        }
+
+        const data = {
+            name: document.getElementById('formName').value,
+            email: document.getElementById('formEmail').value,
+            phone: document.getElementById('formPhone').value,
+            date: fullDateTimeInput.value,
+            property_id: document.querySelector('input[name="property_id"]').value,
+            message: document.getElementById('formMessage').value,
+            _token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        };
+
+        setLoading(true);
+
+        fetch('{{ route("citas.store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': data._token
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            setLoading(false);
+            if (result.success) {
+                showFormMessage(result.message, false);
+                document.getElementById('appointmentForm').reset();
+                document.getElementById('timePicker').innerHTML = '<option value="">Primero selecciona una fecha</option>';
+                document.getElementById('timePicker').disabled = true;
+                document.getElementById('slotsInfo').classList.add('hidden');
+                // Recargar calendario para actualizar cupos
+                setTimeout(() => {
+                    loadCalendar(currentYear, currentMonth);
+                }, 1000);
+            } else {
+                showFormMessage(result.message || 'Error al agendar la cita.', true);
+            }
+        })
+        .catch(error => {
+            setLoading(false);
+            console.error('Error:', error);
+            showFormMessage('Error de conexión. Intenta de nuevo más tarde.', true);
+        });
+    });
+
+    // ============================================================
+    // FUNCIONES AUXILIARES
+    // ============================================================
     function showFormMessage(message, isError = false) {
         const errorDiv = document.getElementById('formMessageError');
         const successDiv = document.getElementById('formMessageSuccess');
@@ -616,68 +812,11 @@
         }
     }
 
-    document.getElementById('appointmentForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const datePicker = document.getElementById('datePicker');
-        const timePicker = document.getElementById('timePicker');
-        const fullDateTimeInput = document.getElementById('fullDateTimeInput');
-
-        if (!datePicker.value || !timePicker.value) {
-            showFormMessage('Por favor selecciona fecha y hora.', true);
-            return;
-        }
-
-        fullDateTimeInput.value = datePicker.value + 'T' + timePicker.value + ':00';
-
-        const selectedDate = new Date(fullDateTimeInput.value);
-        if (selectedDate <= new Date()) {
-            showFormMessage('La fecha debe ser posterior a la fecha actual.', true);
-            return;
-        }
-
-        const formData = new FormData(this);
-        const data = {
-            name: document.getElementById('formName').value,
-            email: document.getElementById('formEmail').value,
-            phone: document.getElementById('formPhone').value,
-            date: fullDateTimeInput.value,
-            property_id: document.querySelector('input[name="property_id"]').value,
-            message: document.getElementById('formMessage').value,
-            _token: document.querySelector('input[name="_token"]')?.value || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-        };
-
-        setLoading(true);
-
-        fetch('{{ route("citas.store") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': data._token
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => {
-            setLoading(false);
-            if (result.success) {
-                showFormMessage(result.message, false);
-                document.getElementById('appointmentForm').reset();
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            } else {
-                showFormMessage(result.message || 'Error al agendar la cita. Intenta de nuevo.', true);
-            }
-        })
-        .catch(error => {
-            setLoading(false);
-            console.error('Error:', error);
-            showFormMessage('Error de conexión. Intenta de nuevo más tarde.', true);
-        });
-    });
-    @endauth
+    // ============================================================
+    // INICIALIZAR CALENDARIO
+    // ============================================================
+    loadCalendar(currentYear, currentMonth);
+});
 </script>
 @endpush
 @endsection

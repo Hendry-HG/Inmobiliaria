@@ -1,4 +1,5 @@
 <?php
+// routes/web.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -23,7 +24,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\Admin\SiteConfigController;
 use App\Http\Controllers\LeadController;
-use App\Http\Controllers\AppointmentSettingController;
+use App\Http\Controllers\Api\AppointmentSettingController;
 use App\Http\Controllers\Admin\ServiceController;
 
 // =====================================================
@@ -45,7 +46,7 @@ Route::get('/api/properties/count', [PropertyController::class, 'countProperties
 Route::get('/servicios', [ServiceController::class, 'publicIndex'])->name('servicios.public');
 
 // =====================================================
-// RUTAS PÚBLICAS PARA CITAS (MANEJA REDIRECCIÓN)
+// RUTAS PÚBLICAS PARA CITAS
 // =====================================================
 Route::get('/citas/create', [AppointmentController::class, 'createPublic'])->name('citas.create');
 
@@ -55,99 +56,121 @@ Route::get('/citas/create', [AppointmentController::class, 'createPublic'])->nam
 Route::post('/solicitar-valoracion', [LeadController::class, 'storePublic'])->name('lead.store.public');
 
 // =====================================================
-// RUTAS DE AUTENTICACIÓN (GUEST)
+// RUTAS DE AUTENTICACIÓN (GUEST) CON RATE LIMITING
 // =====================================================
 Route::middleware('guest')->group(function () {
-    // Login
+    // Login - 10 intentos por minuto
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])
+        ->middleware('throttle:10,1');
     
-    // Register
+    // ✅ REGISTER CORREGIDO - 5 intentos por minuto
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
+    Route::post('/register', [RegisterController::class, 'register'])
+        ->middleware('throttle:5,1');
     
-    // ============================================
-    // RUTAS PARA RECUPERACIÓN DE CONTRASEÑA (LARAVEL)
-    // ============================================
+    // Recuperación de contraseña - 3 intentos cada 5 minutos
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])
         ->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
-        ->name('password.email');
+        ->name('password.email')
+        ->middleware('throttle:3,5');
+    
     Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
         ->name('password.reset');
     Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
-        ->name('password.update');
+        ->name('password.update')
+        ->middleware('throttle:5,1');
     
     // Cuenta inactiva
     Route::get('/account/inactive', [LoginController::class, 'showInactiveAccount'])->name('account.inactive');
-    Route::post('/account/reactivation/request', [LoginController::class, 'requestReactivation'])->name('account.reactivation.request');
+    Route::post('/account/reactivation/request', [LoginController::class, 'requestReactivation'])
+        ->name('account.reactivation.request')
+        ->middleware('throttle:3,5');
     Route::get('/account/reactivate', [LoginController::class, 'reactivateAccount'])->name('account.reactivate');
 });
 
+// Logout - SIN RATE LIMITING
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // =====================================================
-// RUTAS DE SEGURIDAD (PÚBLICAS)
+// RUTAS DE SEGURIDAD (PÚBLICAS) CON RATE LIMITING
 // =====================================================
 
 // Recuperación con preguntas de seguridad
 Route::get('/recuperar-preguntas', [SecurityQuestionsController::class, 'showRecoveryForm'])
     ->name('security.recovery.form');
 Route::post('/recuperar-verificar-email', [SecurityQuestionsController::class, 'verifyEmail'])
-    ->name('security.verify.email');
+    ->name('security.verify.email')
+    ->middleware('throttle:3,5');
 Route::get('/preguntas-seguridad', [SecurityQuestionsController::class, 'showQuestions'])
     ->name('security.questions.show');
 Route::post('/verificar-respuestas', [SecurityQuestionsController::class, 'verifyAnswers'])
-    ->name('security.verify.answers');
+    ->name('security.verify.answers')
+    ->middleware('throttle:5,1');
 
 // Reactivación con preguntas de seguridad
 Route::get('/reactivar-cuenta', [SecurityQuestionsController::class, 'showReactivationForm'])
     ->name('security.reactivation.form');
 Route::post('/reactivar-verificar-email', [SecurityQuestionsController::class, 'reactivateAccount'])
-    ->name('security.reactivation.verify.email');
+    ->name('security.reactivation.verify.email')
+    ->middleware('throttle:3,5');
 Route::get('/reactivar-preguntas', [SecurityQuestionsController::class, 'showReactivationQuestions'])
     ->name('security.reactivation.questions');
 Route::post('/reactivar-verificar-respuestas', [SecurityQuestionsController::class, 'verifyReactivationAnswers'])
-    ->name('security.reactivation.verify.answers');
+    ->name('security.reactivation.verify.answers')
+    ->middleware('throttle:5,1');
 
 // =====================================================
-// API PÚBLICA - SIN AUTENTICACIÓN
+// API PÚBLICA - SIN AUTENTICACIÓN (CON CACHÉ)
 // =====================================================
 
-// API de Ubicaciones - PÚBLICA
+// API de Ubicaciones - CON CACHÉ IMPLÍCITO
 Route::prefix('api/locations')->name('api.locations.')->group(function () {
     Route::get('/countries', [ApiLocationController::class, 'getCountries']);
     Route::get('/states/{countryId}', [ApiLocationController::class, 'getStates']);
     Route::get('/municipalities/{stateId}', [ApiLocationController::class, 'getMunicipalities']);
     Route::get('/parishes/{municipalityId}', [ApiLocationController::class, 'getParishes']);
     Route::get('/cities/{parishId}', [ApiLocationController::class, 'getCities']);
-});
+})->middleware('throttle:60,1'); // 60 peticiones por minuto
 
-// API de Registro (compatibilidad) - PÚBLICA
+// API de Registro
 Route::prefix('api/register')->group(function () {
     Route::get('/countries', [LocationController::class, 'getCountriesForRegister']);
     Route::get('/states/{countryId}', [LocationController::class, 'getStatesForRegister']);
     Route::get('/municipalities/{stateId}', [LocationController::class, 'getMunicipalitiesForRegister']);
     Route::get('/parishes/{municipalityId}', [LocationController::class, 'getParishesForRegister']);
     Route::get('/cities/{parishId}', [LocationController::class, 'getCitiesForRegister']);
-});
+})->middleware('throttle:60,1');
 
-// API de Teléfonos - PÚBLICA
+// API de Teléfonos
 Route::get('/api/phone-presets', [PhoneController::class, 'getPresets'])->name('api.phone-presets');
 Route::get('/api/phone-codes', [PhoneController::class, 'getPhoneCodes'])->name('api.phone-codes');
 Route::get('/api/phone-config/{countryId}', [PhoneController::class, 'getPhoneConfig'])->name('api.phone-config');
-
 
 // =====================================================
 // RUTAS PROTEGIDAS (AUTH)
 // =====================================================
 Route::middleware(['auth', 'check.account.active'])->group(function () {
 
-    // Dashboard General (redirige según rol)
+    // =====================================================
+    // API PARA OBTENER SLOTS DISPONIBLES (USANDO API CONTROLLER)
+    // =====================================================
+    Route::prefix('api/appointments')->name('api.appointments.')->group(function () {
+        Route::get('/available-slots', [AppointmentSettingController::class, 'getAvailableSlots'])
+            ->name('slots')
+            ->middleware('throttle:60,1');
+
+        Route::get('/available-days', [AppointmentSettingController::class, 'getAvailableDays'])
+            ->name('days')
+            ->middleware('throttle:60,1');
+    });
+
+    // Dashboard General
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // =====================================================
-    // MÓDULO DE FAVORITOS (TODOS LOS ROLES AUTENTICADOS)
+    // MÓDULO DE FAVORITOS (TODOS LOS ROLES)
     // =====================================================
     Route::prefix('favorites')->name('favorites.')->group(function () {
         Route::get('/', [FavoriteController::class, 'index'])->name('index');
@@ -159,7 +182,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
     });
 
     // =====================================================
-    // MÓDULO DE LEADS (SOLO PARA USUARIOS AUTENTICADOS)
+    // MÓDULO DE LEADS
     // =====================================================
     Route::prefix('leads')->name('leads.')->group(function () {
         Route::get('/', [LeadController::class, 'index'])->name('index');
@@ -184,7 +207,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
     });
 
     // =====================================================
-    // MÓDULO DE CITAS (CON CONFIGURACIÓN)
+    // MÓDULO DE CITAS
     // =====================================================
     Route::prefix('citas')->name('citas.')->group(function () {
         Route::get('/', [AppointmentController::class, 'index'])->name('index');
@@ -192,16 +215,15 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::post('/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('update-status');
         Route::post('/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('reschedule');
 
-        // CONFIGURACIÓN DE AGENDA
+        // Configuración (solo admin)
         Route::get('/configuracion', [AppointmentSettingController::class, 'index'])->name('configuracion');
         Route::post('/configuracion', [AppointmentSettingController::class, 'update'])->name('configuracion.update');
-        Route::get('/available-slots', [AppointmentSettingController::class, 'getAvailableSlots'])->name('available-slots');
         Route::post('/exceptions', [AppointmentSettingController::class, 'addException'])->name('exceptions.add');
         Route::delete('/exceptions', [AppointmentSettingController::class, 'removeException'])->name('exceptions.remove');
     });
 
     // =====================================================
-    // MÓDULO DE CHAT EN TIEMPO REAL
+    // MÓDULO DE CHAT
     // =====================================================
     Route::prefix('chat')->name('chat.')->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('index');
@@ -230,7 +252,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
     });
 
     // =====================================================
-    // RUTAS POR ROL (USANDO MIDDLEWARE DE SPATIE)
+    // RUTAS POR ROL
     // =====================================================
 
     // Cliente
@@ -265,7 +287,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
     });
 
     // =====================================================
-    // ADMIN (Super Admin Y Administrador)
+    // ADMIN
     // =====================================================
     Route::middleware(['role:Super Admin|Administrador'])->prefix('admin')->name('admin.')->group(function () {
 
@@ -316,9 +338,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
 
         Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites');
 
-        // =====================================================
-        // CONFIGURACIÓN DEL SITIO (RUTAS COMPLETAS)
-        // =====================================================
+        // Configuración del sitio
         Route::prefix('config')->name('config.')->group(function () {
             Route::get('/', [SiteConfigController::class, 'index'])->name('index');
             Route::put('/', [SiteConfigController::class, 'update'])->name('update');
@@ -326,9 +346,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
             Route::delete('/delete-image/{index}', [SiteConfigController::class, 'deleteImage'])->name('delete-image');
         });
 
-        // =====================================================
-        // MÓDULO DE SERVICIOS - NUEVO
-        // =====================================================
+        // Servicios
         Route::prefix('servicios')->name('servicios.')->group(function () {
             Route::get('/', [ServiceController::class, 'index'])->name('index');
             Route::get('/create', [ServiceController::class, 'create'])->name('create');
@@ -341,34 +359,21 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
     });
 
     // =====================================================
-    // MÓDULO DE AUDITORÍA - RUTAS COMPLETAS (ACTUALIZADO)
+    // MÓDULO DE AUDITORÍA
     // =====================================================
     Route::middleware(['permission:ver logs de auditoria'])->prefix('audit-logs')->name('audit-logs.')->group(function () {
-        // Dashboard principal
         Route::get('/', [AuditLogController::class, 'index'])->name('index');
-
-        // LOGS POR MÓDULO
         Route::get('/users', [AuditLogController::class, 'userLogs'])->name('user-logs');
         Route::get('/properties', [AuditLogController::class, 'propertyLogs'])->name('property-logs');
         Route::get('/appointments', [AuditLogController::class, 'appointmentLogs'])->name('appointment-logs');
         Route::get('/leads', [AuditLogController::class, 'leadLogs'])->name('lead-logs');
         Route::get('/system', [AuditLogController::class, 'systemLogs'])->name('system-logs');
-
-        // BUSCAR USUARIOS PARA AUTOCOMPLETAR
         Route::get('/search-users', [AuditLogController::class, 'searchUsers'])->name('search-users');
-
-        // BUSCAR PROPIEDADES PARA AUTOCOMPLETAR
         Route::get('/search-properties', [AuditLogController::class, 'searchProperties'])->name('search-properties');
-
-        // Reportes y exportación
         Route::get('/reports', [AuditLogController::class, 'reports'])->name('reports');
         Route::get('/reports/data', [AuditLogController::class, 'getReportData'])->name('reports.data');
         Route::get('/export/csv', [AuditLogController::class, 'export'])->name('export');
-
-        // API para dashboard (AJAX)
         Route::get('/api/dashboard-data', [AuditLogController::class, 'getDashboardData'])->name('api.data');
-
-        // Detalle de log (SIEMPRE AL FINAL)
         Route::get('/{id}', [AuditLogController::class, 'show'])->name('show');
     });
 
@@ -379,5 +384,4 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/datos', [ReportController::class, 'getData'])->name('data');
     });
-
 });

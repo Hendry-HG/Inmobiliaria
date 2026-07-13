@@ -3,14 +3,14 @@
     <td class="p-4">
         <div class="flex items-center gap-3">
             @php
-                $imageUrl = $property->primary_image_url ?? 'https://via.placeholder.com/100';
                 $showRoute = (isset($isAdmin) && $isAdmin)
                     ? route('admin.properties.show', $property)
                     : route('asesor.properties.show', $property);
             @endphp
             <a href="{{ $showRoute }}">
-                <img src="{{ $imageUrl }}"
-                     class="w-12 h-12 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition-opacity">
+                <img src="{{ $property->primary_image_url }}"
+                     class="w-12 h-12 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition-opacity"
+                     onerror="this.src='https://via.placeholder.com/100x100?text=Error'">
             </a>
             <div>
                 <a href="{{ $showRoute }}"
@@ -34,7 +34,7 @@
         </div>
     </td>
     <td class="p-4 font-bold text-slate-700">
-        {{ $property->formatted_price ?? '$ ' . number_format($property->price, 2) }}
+        {{ $property->formatted_price }}
     </td>
     <td class="p-4 text-slate-500">
         <div class="text-xs">
@@ -73,21 +73,18 @@
                     : route('asesor.properties.destroy', $property);
             @endphp
 
-            {{-- Botón Ver --}}
             <a href="{{ $showRoute }}"
                class="text-green-600 hover:text-green-800 font-medium p-1"
                title="Ver detalle">
                 <i class="ph ph-eye text-lg"></i>
             </a>
 
-            {{-- Botón Editar --}}
             <a href="{{ $editRoute }}"
                class="text-blue-600 hover:text-blue-800 font-medium p-1"
                title="Editar">
                 <i class="ph ph-pencil text-lg"></i>
             </a>
 
-            {{-- Botón Eliminar --}}
             <form action="{{ $deleteRoute }}" method="POST" class="inline"
                   onsubmit="return confirm('¿Eliminar esta propiedad?');">
                 @csrf

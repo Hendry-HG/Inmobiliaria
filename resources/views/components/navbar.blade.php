@@ -1,4 +1,3 @@
-{{-- resources/views/components/navbar.blade.php --}}
 <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-500" id="navbar"
      x-data="{ mobileMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

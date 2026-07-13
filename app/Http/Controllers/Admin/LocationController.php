@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/LocationController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -10,15 +11,15 @@ use App\Models\Parish;
 use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class LocationController extends Controller
 {
-    // Cache duration: 1 hora para datos de ubicación (casi no cambian)
-    const CACHE_DURATION = 3600;
+    const CACHE_DURATION = 86400; // 24 horas para datos de ubicación
 
     public function __construct()
     {
-        // Los métodos de API para registro NO requieren autenticación
         $this->middleware(['auth', 'role:Super Admin|Administrador'])->except([
             'getCountriesForRegister',
             'getStatesForRegister',
@@ -28,11 +29,8 @@ class LocationController extends Controller
         ]);
     }
 
-    // ================== MÉTODOS PARA API (SELECTS DINÁMICOS) OPTIMIZADOS ==================
+    // ================== MÉTODOS PARA API (SELECTS DINÁMICOS) ==================
 
-    /**
-     * Obtener todos los países (con caché)
-     */
     public function getCountriesForRegister()
     {
         return Cache::remember('api_countries_list', self::CACHE_DURATION, function () {
@@ -40,13 +38,9 @@ class LocationController extends Controller
         });
     }
 
-    /**
-     * Obtener estados por país (con caché)
-     */
     public function getStatesForRegister($countryId)
     {
         $cacheKey = "api_states_country_{$countryId}";
-
         return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($countryId) {
             return State::where('country_id', $countryId)
                 ->orderBy('name')
@@ -54,13 +48,9 @@ class LocationController extends Controller
         });
     }
 
-    /**
-     * Obtener municipios por estado (con caché)
-     */
     public function getMunicipalitiesForRegister($stateId)
     {
         $cacheKey = "api_municipalities_state_{$stateId}";
-
         return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($stateId) {
             return Municipality::where('state_id', $stateId)
                 ->orderBy('name')
@@ -68,13 +58,9 @@ class LocationController extends Controller
         });
     }
 
-    /**
-     * Obtener parroquias por municipio (con caché)
-     */
     public function getParishesForRegister($municipalityId)
     {
         $cacheKey = "api_parishes_municipality_{$municipalityId}";
-
         return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($municipalityId) {
             return Parish::where('municipality_id', $municipalityId)
                 ->orderBy('name')
@@ -82,13 +68,9 @@ class LocationController extends Controller
         });
     }
 
-    /**
-     * Obtener ciudades por parroquia (con caché)
-     */
     public function getCitiesForRegister($parishId)
     {
         $cacheKey = "api_cities_parish_{$parishId}";
-
         return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($parishId) {
             return City::where('parish_id', $parishId)
                 ->orderBy('name')
@@ -100,41 +82,62 @@ class LocationController extends Controller
 
     public function indexCountries()
     {
-         $countries = Country::orderBy('id', 'asc')->paginate(10);
+        $countries = Country::orderBy('name')->paginate(10);
         return view('modulos.locations.index', compact('countries'));
     }
 
     public function storeCountry(Request $request)
     {
-        $request->validate(['name' => 'required|string|max:100']);
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-zA-ZáéíóúñÑ\s\-\.]+$/',
+                'unique:countries,name'
+            ]
+        ]);
 
-        // Verificar si ya existe
-        $existingCountry = Country::where('name', $request->name)->first();
+        try {
+            $name = trim(strip_tags($request->name));
+            Country::create(['name' => $name]);
 
-        if ($existingCountry) {
-            return redirect()->back()->with('error', 'Este país ya existe.');
+            $this->clearLocationCache();
+
+            return redirect()->back()->with('success', 'País creado correctamente.');
+        } catch (\Exception $e) {
+            Log::error('Error creando país', [
+                'name' => $request->name,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()->with('error', 'Error al crear el país.');
         }
-
-        Country::create($request->only('name'));
-
-        // Limpiar caché de países
-        Cache::forget('api_countries_list');
-
-        return redirect()->back()->with('success', 'País creado correctamente.');
     }
 
     public function destroyCountry(Country $country)
     {
+        if (!auth()->user()->hasPermissionTo('eliminar paises')) {
+            abort(403, 'No tienes permiso para eliminar países.');
+        }
+
         if ($country->states()->exists()) {
             return back()->with('error', 'No se puede eliminar el país porque tiene estados asignados.');
         }
 
-        $country->delete();
+        try {
+            $countryName = $country->name;
+            $country->delete();
 
-        // Limpiar caché de países
-        Cache::forget('api_countries_list');
+            $this->clearLocationCache();
 
-        return back()->with('success', 'País eliminado.');
+            return back()->with('success', "País '{$countryName}' eliminado correctamente.");
+        } catch (\Exception $e) {
+            Log::error('Error eliminando país', [
+                'country_id' => $country->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al eliminar el país.');
+        }
     }
 
     // ================== ESTADO ==================
@@ -142,8 +145,9 @@ class LocationController extends Controller
     public function indexStates($countryId)
     {
         $parent = Country::findOrFail($countryId);
-        // CORREGIDO: Ordenar por ID ascendente
-        $items = State::where('country_id', $countryId)->orderBy('id', 'asc')->paginate(10);
+        $items = State::where('country_id', $countryId)
+            ->orderBy('name')
+            ->paginate(10);
 
         return view('modulos.locations.nested', [
             'parent' => $parent,
@@ -160,41 +164,71 @@ class LocationController extends Controller
     public function storeState(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100',
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-zA-ZáéíóúñÑ\s\-\.]+$/',
+                Rule::unique('states')->where('country_id', $request->country_id)
+            ],
             'country_id' => 'required|exists:countries,id'
         ]);
 
-        State::create($request->all());
+        try {
+            $name = trim(strip_tags($request->name));
+            State::create([
+                'name' => $name,
+                'country_id' => $request->country_id
+            ]);
 
-        // Limpiar caché de estados de este país
-        Cache::forget("api_states_country_{$request->country_id}");
+            $this->clearLocationCache($request->country_id);
 
-        return back()->with('success', 'Estado agregado.');
+            return back()->with('success', 'Estado agregado correctamente.');
+        } catch (\Exception $e) {
+            Log::error('Error creando estado', [
+                'name' => $request->name,
+                'country_id' => $request->country_id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al crear el estado.');
+        }
     }
 
     public function destroyState(State $state)
     {
-        $countryId = $state->country_id;
+        if (!auth()->user()->hasPermissionTo('eliminar estados')) {
+            abort(403, 'No tienes permiso para eliminar estados.');
+        }
 
         if ($state->municipalities()->exists()) {
             return back()->with('error', 'No se puede eliminar el estado porque tiene municipios asignados.');
         }
 
-        $state->delete();
+        try {
+            $countryId = $state->country_id;
+            $stateName = $state->name;
+            $state->delete();
 
-        // Limpiar caché de estados
-        Cache::forget("api_states_country_{$countryId}");
+            $this->clearLocationCache($countryId);
 
-        return back()->with('success', 'Estado eliminado.');
+            return back()->with('success', "Estado '{$stateName}' eliminado correctamente.");
+        } catch (\Exception $e) {
+            Log::error('Error eliminando estado', [
+                'state_id' => $state->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al eliminar el estado.');
+        }
     }
 
     // ================== MUNICIPIO ==================
 
     public function indexMunicipalities($stateId)
     {
-         $parent = State::findOrFail($stateId);
-        // CORREGIDO: Ordenar por ID ascendente
-        $items = Municipality::where('state_id', $stateId)->orderBy('id', 'asc')->paginate(10);
+        $parent = State::findOrFail($stateId);
+        $items = Municipality::where('state_id', $stateId)
+            ->orderBy('name')
+            ->paginate(10);
 
         return view('modulos.locations.nested', [
             'parent' => $parent,
@@ -211,41 +245,71 @@ class LocationController extends Controller
     public function storeMunicipality(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100',
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-zA-ZáéíóúñÑ\s\-\.]+$/',
+                Rule::unique('municipalities')->where('state_id', $request->state_id)
+            ],
             'state_id' => 'required|exists:states,id'
         ]);
 
-        Municipality::create($request->all());
+        try {
+            $name = trim(strip_tags($request->name));
+            Municipality::create([
+                'name' => $name,
+                'state_id' => $request->state_id
+            ]);
 
-        // Limpiar caché de municipios de este estado
-        Cache::forget("api_municipalities_state_{$request->state_id}");
+            $this->clearLocationCache(null, $request->state_id);
 
-        return back()->with('success', 'Municipio agregado.');
+            return back()->with('success', 'Municipio agregado correctamente.');
+        } catch (\Exception $e) {
+            Log::error('Error creando municipio', [
+                'name' => $request->name,
+                'state_id' => $request->state_id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al crear el municipio.');
+        }
     }
 
     public function destroyMunicipality(Municipality $municipality)
     {
-        $stateId = $municipality->state_id;
+        if (!auth()->user()->hasPermissionTo('eliminar municipios')) {
+            abort(403, 'No tienes permiso para eliminar municipios.');
+        }
 
         if ($municipality->parishes()->exists()) {
             return back()->with('error', 'No se puede eliminar el municipio porque tiene parroquias asignadas.');
         }
 
-        $municipality->delete();
+        try {
+            $stateId = $municipality->state_id;
+            $municipalityName = $municipality->name;
+            $municipality->delete();
 
-        // Limpiar caché de municipios
-        Cache::forget("api_municipalities_state_{$stateId}");
+            $this->clearLocationCache(null, $stateId);
 
-        return back()->with('success', 'Municipio eliminado.');
+            return back()->with('success', "Municipio '{$municipalityName}' eliminado correctamente.");
+        } catch (\Exception $e) {
+            Log::error('Error eliminando municipio', [
+                'municipality_id' => $municipality->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al eliminar el municipio.');
+        }
     }
 
     // ================== PARROQUIA ==================
 
     public function indexParishes($municipalityId)
     {
-         $parent = Municipality::findOrFail($municipalityId);
-        // CORREGIDO: Ordenar por ID ascendente
-        $items = Parish::where('municipality_id', $municipalityId)->orderBy('id', 'asc')->paginate(10);
+        $parent = Municipality::findOrFail($municipalityId);
+        $items = Parish::where('municipality_id', $municipalityId)
+            ->orderBy('name')
+            ->paginate(10);
 
         return view('modulos.locations.nested', [
             'parent' => $parent,
@@ -262,41 +326,71 @@ class LocationController extends Controller
     public function storeParish(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100',
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-zA-ZáéíóúñÑ\s\-\.]+$/',
+                Rule::unique('parishes')->where('municipality_id', $request->municipality_id)
+            ],
             'municipality_id' => 'required|exists:municipalities,id'
         ]);
 
-        Parish::create($request->all());
+        try {
+            $name = trim(strip_tags($request->name));
+            Parish::create([
+                'name' => $name,
+                'municipality_id' => $request->municipality_id
+            ]);
 
-        // Limpiar caché de parroquias de este municipio
-        Cache::forget("api_parishes_municipality_{$request->municipality_id}");
+            $this->clearLocationCache(null, null, $request->municipality_id);
 
-        return back()->with('success', 'Parroquia agregada.');
+            return back()->with('success', 'Parroquia agregada correctamente.');
+        } catch (\Exception $e) {
+            Log::error('Error creando parroquia', [
+                'name' => $request->name,
+                'municipality_id' => $request->municipality_id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al crear la parroquia.');
+        }
     }
 
     public function destroyParish(Parish $parish)
     {
-        $municipalityId = $parish->municipality_id;
+        if (!auth()->user()->hasPermissionTo('eliminar parroquias')) {
+            abort(403, 'No tienes permiso para eliminar parroquias.');
+        }
 
         if ($parish->cities()->exists()) {
             return back()->with('error', 'No se puede eliminar la parroquia porque tiene ciudades asignadas.');
         }
 
-        $parish->delete();
+        try {
+            $municipalityId = $parish->municipality_id;
+            $parishName = $parish->name;
+            $parish->delete();
 
-        // Limpiar caché de parroquias
-        Cache::forget("api_parishes_municipality_{$municipalityId}");
+            $this->clearLocationCache(null, null, $municipalityId);
 
-        return back()->with('success', 'Parroquia eliminada.');
+            return back()->with('success', "Parroquia '{$parishName}' eliminada correctamente.");
+        } catch (\Exception $e) {
+            Log::error('Error eliminando parroquia', [
+                'parish_id' => $parish->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al eliminar la parroquia.');
+        }
     }
 
     // ================== CIUDAD ==================
 
     public function indexCities($parishId)
     {
-       $parent = Parish::findOrFail($parishId);
-        // CORREGIDO: Ordenar por ID ascendente
-        $items = City::where('parish_id', $parishId)->orderBy('id', 'asc')->paginate(10);
+        $parent = Parish::findOrFail($parishId);
+        $items = City::where('parish_id', $parishId)
+            ->orderBy('name')
+            ->paginate(10);
 
         return view('modulos.locations.nested', [
             'parent' => $parent,
@@ -313,26 +407,86 @@ class LocationController extends Controller
     public function storeCity(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100',
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-zA-ZáéíóúñÑ\s\-\.]+$/',
+                Rule::unique('cities')->where('parish_id', $request->parish_id)
+            ],
             'parish_id' => 'required|exists:parishes,id'
         ]);
 
-        City::create($request->all());
+        try {
+            $name = trim(strip_tags($request->name));
+            City::create([
+                'name' => $name,
+                'parish_id' => $request->parish_id
+            ]);
 
-        // Limpiar caché de ciudades de esta parroquia
-        Cache::forget("api_cities_parish_{$request->parish_id}");
+            $this->clearLocationCache(null, null, null, $request->parish_id);
 
-        return back()->with('success', 'Ciudad agregada.');
+            return back()->with('success', 'Ciudad agregada correctamente.');
+        } catch (\Exception $e) {
+            Log::error('Error creando ciudad', [
+                'name' => $request->name,
+                'parish_id' => $request->parish_id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al crear la ciudad.');
+        }
     }
 
     public function destroyCity(City $city)
     {
-        $parishId = $city->parish_id;
-        $city->delete();
+        if (!auth()->user()->hasPermissionTo('eliminar ciudades')) {
+            abort(403, 'No tienes permiso para eliminar ciudades.');
+        }
 
-        // Limpiar caché de ciudades
-        Cache::forget("api_cities_parish_{$parishId}");
+        try {
+            $parishId = $city->parish_id;
+            $cityName = $city->name;
+            $city->delete();
 
-        return back()->with('success', 'Ciudad eliminada.');
+            $this->clearLocationCache(null, null, null, $parishId);
+
+            return back()->with('success', "Ciudad '{$cityName}' eliminada correctamente.");
+        } catch (\Exception $e) {
+            Log::error('Error eliminando ciudad', [
+                'city_id' => $city->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error al eliminar la ciudad.');
+        }
+    }
+
+    // ================== LIMPIEZA DE CACHÉ ==================
+
+    private function clearLocationCache($countryId = null, $stateId = null, $municipalityId = null, $parishId = null)
+    {
+        if ($countryId) {
+            Cache::forget("api_states_country_{$countryId}");
+            Cache::forget("api_states_{$countryId}");
+        }
+
+        if ($stateId) {
+            Cache::forget("api_municipalities_state_{$stateId}");
+            Cache::forget("api_municipalities_{$stateId}");
+        }
+
+        if ($municipalityId) {
+            Cache::forget("api_parishes_municipality_{$municipalityId}");
+            Cache::forget("api_parishes_{$municipalityId}");
+        }
+
+        if ($parishId) {
+            Cache::forget("api_cities_parish_{$parishId}");
+            Cache::forget("api_cities_{$parishId}");
+        }
+
+        Cache::forget('api_countries_list');
+        Cache::forget('api_countries_all');
+        Cache::forget('api_phone_presets');
+        Cache::forget('api_phone_codes');
     }
 }

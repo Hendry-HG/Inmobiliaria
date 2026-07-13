@@ -1,11 +1,12 @@
 <?php
+// app/Http/Middleware/RoleMiddleware.php
 
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class RoleMiddleware
 {
@@ -17,29 +18,19 @@ class RoleMiddleware
 
         $user = Auth::user();
 
-        // Verificar si el usuario está activo
+        //  Verificar si el usuario está activo
         if (!$user->is_active) {
             Auth::logout();
-            return redirect()->route('login')->withErrors(['email' => 'Tu cuenta está desactivada.']);
+            return redirect()->route('login')
+                ->withErrors(['email' => 'Tu cuenta está desactivada.']);
         }
 
-        // Obtener roles del usuario directamente de la base de datos
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        //  OBTENER ROLES DEL USUARIO (USANDO RELACIÓN)
+        $userRoles = $user->roles->pluck('name')->toArray();
 
-        // Si no se especificaron roles, permitir acceso
-        if (empty($roles) || (count($roles) === 1 && $roles[0] === '')) {
-            return $next($request);
-        }
-
-        // Procesar roles (pueden venir como "Super Admin,Administrador" o como argumentos separados)
+        //  PROCESAR ROLES REQUERIDOS
         $allowedRoles = [];
         foreach ($roles as $role) {
-            // Si el rol contiene coma, dividirlo
             if (str_contains($role, ',')) {
                 $splitRoles = explode(',', $role);
                 foreach ($splitRoles as $splitRole) {
@@ -50,14 +41,38 @@ class RoleMiddleware
             }
         }
 
-        // Verificar si tiene alguno de los roles requeridos
+        //  ELIMINAR ROLES VACÍOS
+        $allowedRoles = array_filter($allowedRoles, function($role) {
+            return !empty($role);
+        });
+
+        //  VALIDAR QUE HAYA ROLES REQUERIDOS
+        if (empty($allowedRoles)) {
+            Log::warning('Intento de acceso sin roles especificados', [
+                'user' => $user->email,
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip()
+            ]);
+            abort(403, 'No se especificaron roles para esta ruta.');
+        }
+
+        //  VERIFICAR SI EL USUARIO TIENE ALGUNO DE LOS ROLES REQUERIDOS
         foreach ($allowedRoles as $role) {
             if (in_array($role, $userRoles)) {
                 return $next($request);
             }
         }
 
-        // Redirigir según el rol del usuario
+        //  LOG DE ACCESO DENEGADO
+        Log::warning('Acceso denegado por rol', [
+            'user' => $user->email,
+            'user_roles' => $userRoles,
+            'required_roles' => $allowedRoles,
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip()
+        ]);
+
+        //  REDIRIGIR SEGÚN EL ROL DEL USUARIO
         if (in_array('Super Admin', $userRoles)) {
             return redirect()->route('super-admin.dashboard');
         } elseif (in_array('Administrador', $userRoles)) {

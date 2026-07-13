@@ -103,10 +103,16 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+                <i class="ph ph-warning-circle text-xl"></i>
+                {{ session('error') }}
+            </div>
+        @endif
+
         <form action="{{ route('citas.configuracion.update') }}" method="POST" class="p-6 space-y-6">
             @csrf
 
-            {{-- Estado de la agenda --}}
             <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
                 <input type="checkbox" name="is_active" id="is_active" value="1"
                     {{ $settings->is_active ? 'checked' : '' }}
@@ -117,7 +123,6 @@
                 </label>
             </div>
 
-            {{-- Período de validez --}}
             <div class="period-card">
                 <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b">
                     <i class="ph ph-calendar text-slate-400 mr-2"></i> Período de Validez de la Agenda
@@ -148,7 +153,6 @@
                 </div>
             </div>
 
-            {{-- Configuración Global --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">
@@ -191,7 +195,6 @@
                 </div>
             </div>
 
-            {{-- Configuración por Día --}}
             <div>
                 <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b flex items-center justify-between">
                     <span><i class="ph ph-calendar text-slate-400 mr-2"></i> Configuración por Día</span>
@@ -222,7 +225,6 @@
                     @endphp
                     <div class="day-card {{ $isActive ? 'active' : 'inactive' }}" data-day="{{ $key }}">
                         <div class="flex flex-col gap-3">
-                            {{-- Cabecera del día --}}
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-4">
                                     <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -249,15 +251,15 @@
                                 </span>
                             </div>
 
-                            {{-- Horas disponibles --}}
                             <div class="pl-8">
                                 <div class="flex flex-wrap gap-1.5" id="hours-container-{{ $key }}">
                                     @foreach($hours as $hour)
-                                    <span class="hour-tag active-hour">
+                                    <span class="hour-tag active-hour" data-hour="{{ $hour }}">
                                         {{ $hour }}
                                         <span class="remove-hour" onclick="removeHour('{{ $key }}', '{{ $hour }}')">
                                             <i class="ph ph-x"></i>
                                         </span>
+                                        <input type="hidden" name="daily_config[{{ $key }}][hours][]" value="{{ $hour }}">
                                     </span>
                                     @endforeach
                                     <span class="hour-tag add-hour" onclick="showAddHourInput('{{ $key }}')">
@@ -287,7 +289,6 @@
                 </div>
             </div>
 
-            {{-- Excepciones --}}
             <div>
                 <div class="flex justify-between items-center mb-3">
                     <h4 class="font-bold text-slate-700 pb-2 border-b flex-1">
@@ -318,7 +319,6 @@
                 </div>
             </div>
 
-            {{-- Notificaciones --}}
             <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
                 <input type="checkbox" name="notify_client" id="notify_client" value="1"
                     {{ $settings->notify_client ? 'checked' : '' }}
@@ -329,7 +329,6 @@
                 </label>
             </div>
 
-            {{-- Botones --}}
             <div class="flex justify-end gap-4 pt-4 border-t">
                 <a href="{{ route('citas.index') }}" class="px-6 py-2.5 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
                     Cancelar
@@ -344,9 +343,6 @@
 
 @push('js')
 <script>
-    // ============================================
-    // PERÍODO DE VALIDEZ
-    // ============================================
     function togglePeriodFields(checked) {
         const periodFields = document.getElementById('periodFields');
         if (checked) {
@@ -356,9 +352,6 @@
         }
     }
 
-    // ============================================
-    // FUNCIONES PARA DÍAS
-    // ============================================
     function toggleDay(day, checked) {
         const card = document.querySelector(`.day-card[data-day="${day}"]`);
         const maxInput = document.getElementById(`max-input-${day}`);
@@ -399,9 +392,6 @@
         }
     }
 
-    // ============================================
-    // FUNCIONES PARA HORAS
-    // ============================================
     function showAddHourInput(day) {
         document.getElementById(`add-hour-input-${day}`).classList.remove('hidden');
         document.getElementById(`new-hour-${day}`).focus();
@@ -442,11 +432,13 @@
 
         const tag = document.createElement('span');
         tag.className = 'hour-tag active-hour';
+        tag.dataset.hour = hour;
         tag.innerHTML = `
             ${hour}
             <span class="remove-hour" onclick="removeHour('${day}', '${hour}')">
                 <i class="ph ph-x"></i>
             </span>
+            <input type="hidden" name="daily_config[${day}][hours][]" value="${hour}">
         `;
 
         const addBtn = container.querySelector('.add-hour');
@@ -463,7 +455,7 @@
         const container = document.getElementById(`hours-container-${day}`);
         const tags = container.querySelectorAll('.hour-tag:not(.add-hour)');
         for (let tag of tags) {
-            if (tag.textContent.trim() === hour) {
+            if (tag.dataset.hour === hour) {
                 tag.remove();
                 break;
             }
@@ -472,9 +464,6 @@
         document.getElementById(`hours-count-${day}`).textContent = `${count} horas configuradas`;
     }
 
-    // ============================================
-    // EXCEPCIONES
-    // ============================================
     function addExceptionRow() {
         const container = document.getElementById('exceptions-container');
         const rowCount = container.querySelectorAll('.exception-row').length;

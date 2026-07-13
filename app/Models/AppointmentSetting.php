@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -8,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class AppointmentSetting extends Model
 {
     use HasFactory;
+
+    protected $table = 'appointment_settings';
 
     protected $fillable = [
         'user_id',
@@ -33,17 +36,11 @@ class AppointmentSetting extends Model
         'notify_client' => 'boolean',
     ];
 
-    /**
-     * Relación con el usuario (asesor)
-     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Obtener la configuración de un asesor
-     */
     public static function getForUser($userId)
     {
         $setting = self::where('user_id', $userId)->first();
@@ -77,17 +74,12 @@ class AppointmentSetting extends Model
         return $setting;
     }
 
-    /**
-     * Verificar si la configuración es válida para una fecha específica
-     */
     public function isValidForDate($date)
     {
-        // Si apply_always es true, siempre válido
         if ($this->apply_always) {
             return true;
         }
 
-        // Verificar rango de fechas
         if ($this->valid_from && $date < $this->valid_from) {
             return false;
         }
@@ -99,70 +91,49 @@ class AppointmentSetting extends Model
         return true;
     }
 
-    /**
-     * Obtener la configuración de un día específico
-     */
     public function getDayConfig($dayName)
     {
         $config = $this->daily_config ?? [];
         return $config[$dayName] ?? ['max' => 0, 'hours' => []];
     }
 
-    /**
-     * Obtener el máximo de citas para un día
-     */
     public function getMaxForDay($dayName)
     {
         $config = $this->getDayConfig($dayName);
-        return $config['max'] ?? 0;
+        return (int) ($config['max'] ?? 0);
     }
 
-    /**
-     * Obtener las horas disponibles para un día
-     */
     public function getHoursForDay($dayName)
     {
         $config = $this->getDayConfig($dayName);
-        return $config['hours'] ?? [];
+        $hours = $config['hours'] ?? [];
+        return is_array($hours) ? array_values($hours) : [];
     }
 
-    /**
-     * Verificar si un día está activo (tiene citas disponibles)
-     */
     public function isDayActive($dayName)
     {
         return $this->getMaxForDay($dayName) > 0;
     }
 
-    /**
-     * Verificar si una hora está disponible para un día
-     */
     public function isHourAvailableForDay($dayName, $hour)
     {
         $hours = $this->getHoursForDay($dayName);
         return in_array($hour, $hours);
     }
 
-    /**
-     * Verificar si una fecha es una excepción
-     */
     public function isException($date)
     {
         $exceptions = $this->exceptions ?? [];
         foreach ($exceptions as $exception) {
-            if ($exception['date'] === $date && !$exception['active']) {
+            if (isset($exception['date']) && $exception['date'] === $date && !($exception['active'] ?? false)) {
                 return true;
             }
         }
         return false;
     }
 
-    /**
-     * Obtener slots disponibles para una fecha específica
-     */
     public function getAvailableSlotsForDate($date)
     {
-        // Verificar si la configuración es válida para esta fecha
         if (!$this->isValidForDate($date)) {
             return [];
         }
@@ -171,7 +142,6 @@ class AppointmentSetting extends Model
         $hours = $this->getHoursForDay($dayName);
         $maxPerDay = $this->getMaxForDay($dayName);
 
-        // Verificar excepción
         if ($this->isException($date)) {
             return [];
         }
@@ -180,7 +150,6 @@ class AppointmentSetting extends Model
             return [];
         }
 
-        // Obtener citas ya agendadas
         $appointments = Appointment::where('asesor_id', $this->user_id)
             ->whereDate('scheduled_date', $date)
             ->whereIn('status', ['pending', 'confirmed'])
@@ -190,12 +159,10 @@ class AppointmentSetting extends Model
             return $app->scheduled_date->format('H:i');
         })->toArray();
 
-        // Verificar si ya se alcanzó el límite
         if (count($bookedSlots) >= $maxPerDay) {
             return [];
         }
 
-        // Filtrar horas disponibles
         $availableSlots = [];
         foreach ($hours as $hour) {
             if (!in_array($hour, $bookedSlots)) {
@@ -203,12 +170,9 @@ class AppointmentSetting extends Model
             }
         }
 
-        return $availableSlots;
+        return array_values($availableSlots);
     }
 
-    /**
-     * Verificar si se puede agendar una cita
-     */
     public function canSchedule($date, $time)
     {
         $dayName = strtolower(date('l', strtotime($date)));
@@ -217,12 +181,10 @@ class AppointmentSetting extends Model
             return ['available' => false, 'reason' => 'El asesor no está disponible para citas en este momento.'];
         }
 
-        // Verificar si la configuración es válida para esta fecha
         if (!$this->isValidForDate($date)) {
             return ['available' => false, 'reason' => 'El asesor no tiene agenda disponible para esta fecha.'];
         }
 
-        // Verificar excepción
         if ($this->isException($date)) {
             return ['available' => false, 'reason' => 'El asesor no está disponible en esta fecha.'];
         }
@@ -241,7 +203,6 @@ class AppointmentSetting extends Model
             return ['available' => false, 'reason' => 'Hora no disponible para este día.'];
         }
 
-        // Contar citas existentes
         $appointmentsCount = Appointment::where('asesor_id', $this->user_id)
             ->whereDate('scheduled_date', $date)
             ->whereIn('status', ['pending', 'confirmed'])
@@ -251,7 +212,6 @@ class AppointmentSetting extends Model
             return ['available' => false, 'reason' => 'Límite de citas diarias alcanzado (máximo ' . $maxPerDay . ').'];
         }
 
-        // Verificar si la hora ya está ocupada
         $existingAppointment = Appointment::where('asesor_id', $this->user_id)
             ->whereDate('scheduled_date', $date)
             ->whereTime('scheduled_date', $time)
@@ -265,9 +225,6 @@ class AppointmentSetting extends Model
         return ['available' => true];
     }
 
-    /**
-     * Obtener nombre del día en español
-     */
     private function getDayNameSpanish($dayName)
     {
         $days = [
@@ -282,9 +239,6 @@ class AppointmentSetting extends Model
         return $days[$dayName] ?? $dayName;
     }
 
-    /**
-     * Obtener todos los días configurados
-     */
     public function getConfiguredDays()
     {
         $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -303,9 +257,9 @@ class AppointmentSetting extends Model
             $config = $this->getDayConfig($day);
             $result[$day] = [
                 'name' => $dayNames[$day],
-                'max' => $config['max'] ?? 0,
-                'hours' => $config['hours'] ?? [],
-                'is_active' => ($config['max'] ?? 0) > 0,
+                'max' => (int) ($config['max'] ?? 0),
+                'hours' => $this->getHoursForDay($day),
+                'is_active' => ((int) ($config['max'] ?? 0)) > 0,
             ];
         }
         return $result;

@@ -1,5 +1,5 @@
 <?php
-
+// app/Http/Controllers/PropertyController.php
 
 namespace App\Http\Controllers;
 
@@ -16,6 +16,9 @@ use App\Traits\AuditTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class PropertyController extends Controller
 {
@@ -24,6 +27,7 @@ class PropertyController extends Controller
     public function __construct()
     {
         $this->middleware('auth')->except(['catalog', 'showPublic', 'countProperties', 'showById']);
+        $this->middleware('throttle:60,1')->only(['catalog', 'showPublic']);
     }
 
     public function index(Request $request)
@@ -35,7 +39,11 @@ class PropertyController extends Controller
             return redirect()->route('login');
         }
 
-        $query = Property::with(['user', 'category', 'primaryImage', 'countryRelation', 'stateRelation', 'municipalityRelation', 'parishRelation', 'cityRelation']);
+        $query = Property::with([
+            'user', 'category', 'primaryImage',
+            'countryRelation', 'stateRelation', 'municipalityRelation',
+            'parishRelation', 'cityRelation'
+        ]);
 
         if ($user->hasRole('Asesor Inmobiliario')) {
             $query->where('user_id', $user->id);
@@ -49,12 +57,13 @@ class PropertyController extends Controller
             $query->where('type', $request->type);
         }
 
+        //  CORREGIDO: Inyección SQL
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
-                $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhere('address', 'LIKE', "%{$search}%");
+                $q->where('title', 'LIKE', $search)
+                  ->orWhere('description', 'LIKE', $search)
+                  ->orWhere('address', 'LIKE', $search);
             });
         }
 
@@ -92,8 +101,11 @@ class PropertyController extends Controller
 
         $properties = $query->latest()->paginate(10)->withQueryString();
 
+        //  OPTIMIZADO: Cachear ubicaciones
         $categories = Category::all();
-        $countries = Country::orderBy('name')->get();
+        $countries = Cache::remember('countries_list', 86400, function() {
+            return Country::orderBy('name')->get();
+        });
 
         $states = collect();
         $municipalities = collect();
@@ -101,19 +113,27 @@ class PropertyController extends Controller
         $cities = collect();
 
         if ($request->filled('country_id')) {
-            $states = State::where('country_id', $request->country_id)->orderBy('name')->get();
+            $states = Cache::remember("states_country_{$request->country_id}", 86400, function() use ($request) {
+                return State::where('country_id', $request->country_id)->orderBy('name')->get();
+            });
         }
 
         if ($request->filled('state_id')) {
-            $municipalities = Municipality::where('state_id', $request->state_id)->orderBy('name')->get();
+            $municipalities = Cache::remember("municipalities_state_{$request->state_id}", 86400, function() use ($request) {
+                return Municipality::where('state_id', $request->state_id)->orderBy('name')->get();
+            });
         }
 
         if ($request->filled('municipality_id')) {
-            $parishes = Parish::where('municipality_id', $request->municipality_id)->orderBy('name')->get();
+            $parishes = Cache::remember("parishes_municipality_{$request->municipality_id}", 86400, function() use ($request) {
+                return Parish::where('municipality_id', $request->municipality_id)->orderBy('name')->get();
+            });
         }
 
         if ($request->filled('parish_id')) {
-            $cities = City::where('parish_id', $request->parish_id)->orderBy('name')->get();
+            $cities = Cache::remember("cities_parish_{$request->parish_id}", 86400, function() use ($request) {
+                return City::where('parish_id', $request->parish_id)->orderBy('name')->get();
+            });
         }
 
         $asesores = collect();
@@ -127,24 +147,17 @@ class PropertyController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'html' => view('modulos.propiedades._rows', compact(
-                    'properties',
-                    'isAdmin',
-                    'isAsesor'
-                ))->render()
+                    'properties', 'isAdmin', 'isAsesor'
+                ))->render(),
+                'pagination' => $properties->links()->toHtml(),
+                'total' => $properties->total()
             ]);
         }
 
         return view('modulos.propiedades.index', compact(
-            'properties',
-            'categories',
-            'countries',
-            'states',
-            'municipalities',
-            'parishes',
-            'cities',
-            'asesores',
-            'isAdmin',
-            'isAsesor'
+            'properties', 'categories', 'countries', 'states',
+            'municipalities', 'parishes', 'cities', 'asesores',
+            'isAdmin', 'isAsesor'
         ));
     }
 
@@ -152,9 +165,10 @@ class PropertyController extends Controller
     {
         $venezuelaId = 1;
 
-        $query = Property::with(['user', 'category', 'primaryImage', 'countryRelation', 'stateRelation', 'municipalityRelation', 'cityRelation'])
-            ->where('status', 'publicada')
-            ->where('country_id', $venezuelaId);
+        $query = Property::with([
+            'user', 'category', 'primaryImage',
+            'countryRelation', 'stateRelation', 'municipalityRelation', 'cityRelation'
+        ])->where('status', 'publicada')->where('country_id', $venezuelaId);
 
         if ($request->filled('type')) {
             $query->where('type', $request->type);
@@ -164,12 +178,13 @@ class PropertyController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
+        //  CORREGIDO: Inyección SQL
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
-                $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhere('address', 'LIKE', "%{$search}%");
+                $q->where('title', 'LIKE', $search)
+                  ->orWhere('description', 'LIKE', $search)
+                  ->orWhere('address', 'LIKE', $search);
             });
         }
 
@@ -215,58 +230,42 @@ class PropertyController extends Controller
 
         $orderBy = $request->get('order_by', 'latest');
         switch ($orderBy) {
-            case 'price_asc':
-                $query->orderBy('price', 'asc');
-                break;
-            case 'price_desc':
-                $query->orderBy('price', 'desc');
-                break;
-            case 'oldest':
-                $query->oldest();
-                break;
-            default:
-                $query->latest();
-                break;
+            case 'price_asc': $query->orderBy('price', 'asc'); break;
+            case 'price_desc': $query->orderBy('price', 'desc'); break;
+            case 'oldest': $query->oldest(); break;
+            default: $query->latest(); break;
         }
 
         $properties = $query->paginate(12)->withQueryString();
 
         $categories = Category::orderBy('name')->get();
 
+        //  OPTIMIZADO: withCount en lugar de N+1
         $states = State::where('country_id', $venezuelaId)
+            ->withCount(['properties' => function($q) {
+                $q->where('status', 'publicada');
+            }])
             ->orderBy('name')
-            ->get()
-            ->map(function($state) {
-                $state->properties_count = Property::where('status', 'publicada')
-                    ->where('state_id', $state->id)
-                    ->count();
-                return $state;
-            });
+            ->get();
 
         $municipalities = collect();
         if ($request->filled('state_id')) {
             $municipalities = Municipality::where('state_id', $request->state_id)
+                ->withCount(['properties' => function($q) {
+                    $q->where('status', 'publicada');
+                }])
                 ->orderBy('name')
-                ->get()
-                ->map(function($municipality) {
-                    $municipality->properties_count = Property::where('status', 'publicada')
-                        ->where('municipality_id', $municipality->id)
-                        ->count();
-                    return $municipality;
-                });
+                ->get();
         }
 
         $cities = collect();
         if ($request->filled('municipality_id')) {
             $cities = City::where('municipality_id', $request->municipality_id)
+                ->withCount(['properties' => function($q) {
+                    $q->where('status', 'publicada');
+                }])
                 ->orderBy('name')
-                ->get()
-                ->map(function($city) {
-                    $city->properties_count = Property::where('status', 'publicada')
-                        ->where('city_id', $city->id)
-                        ->count();
-                    return $city;
-                });
+                ->get();
         }
 
         $totalProperties = Property::where('status', 'publicada')
@@ -274,12 +273,8 @@ class PropertyController extends Controller
             ->count();
 
         return view('modulos.catalogo.index', compact(
-            'properties',
-            'categories',
-            'states',
-            'municipalities',
-            'cities',
-            'totalProperties'
+            'properties', 'categories', 'states',
+            'municipalities', 'cities', 'totalProperties'
         ));
     }
 
@@ -290,14 +285,9 @@ class PropertyController extends Controller
         }
 
         $property->load([
-            'images',
-            'user',
-            'category',
-            'countryRelation',
-            'stateRelation',
-            'municipalityRelation',
-            'parishRelation',
-            'cityRelation'
+            'images', 'user', 'category',
+            'countryRelation', 'stateRelation',
+            'municipalityRelation', 'parishRelation', 'cityRelation'
         ]);
 
         $property->incrementViews();
@@ -319,8 +309,10 @@ class PropertyController extends Controller
 
     public function showById($id)
     {
-        $property = Property::with(['images', 'user', 'category', 'stateRelation', 'municipalityRelation', 'cityRelation'])
-            ->findOrFail($id);
+        $property = Property::with([
+            'images', 'user', 'category',
+            'stateRelation', 'municipalityRelation', 'cityRelation'
+        ])->findOrFail($id);
 
         if ($property->status !== 'publicada') {
             abort(404, 'La propiedad no está disponible públicamente.');
@@ -347,9 +339,7 @@ class PropertyController extends Controller
             $query->where('city_id', $request->city_id);
         }
 
-        $count = $query->count();
-
-        return response()->json(['count' => $count]);
+        return response()->json(['count' => $query->count()]);
     }
 
     public function create()
@@ -362,7 +352,9 @@ class PropertyController extends Controller
         }
 
         $categories = Category::all();
-        $countries = Country::orderBy('name')->get();
+        $countries = Cache::remember('countries_list', 86400, function() {
+            return Country::orderBy('name')->get();
+        });
 
         $states = collect();
         $municipalities = collect();
@@ -373,14 +365,9 @@ class PropertyController extends Controller
         $isAsesor = $user->hasRole('Asesor Inmobiliario');
 
         return view('modulos.propiedades.create', compact(
-            'categories',
-            'countries',
-            'states',
-            'municipalities',
-            'parishes',
-            'cities',
-            'isAdmin',
-            'isAsesor'
+            'categories', 'countries', 'states',
+            'municipalities', 'parishes', 'cities',
+            'isAdmin', 'isAsesor'
         ));
     }
 
@@ -397,8 +384,8 @@ class PropertyController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'type' => 'required|in:venta,alquiler,venta/alquiler',
-            'status' => 'required|in:borrador,pendiente,publicada,vendida,alquilada,inactiva',
+            'type' => ['required', Rule::in(['venta', 'alquiler', 'venta/alquiler'])],
+            'status' => ['required', Rule::in(['borrador', 'pendiente', 'publicada', 'vendida', 'alquilada', 'inactiva'])],
             'country_id' => 'required|exists:countries,id',
             'state_id' => 'required|exists:states,id',
             'municipality_id' => 'required|exists:municipalities,id',
@@ -420,51 +407,77 @@ class PropertyController extends Controller
             'images.*.max' => 'Cada imagen debe pesar menos de 2MB.',
         ]);
 
-        $data = $request->except(['images', 'deleted_images']);
-        $data['user_id'] = $user->id;
-        $data['features'] = $request->input('features', []);
-        $data['location'] = $this->buildLocationString($data);
+        try {
+            $data = $request->except(['images', 'deleted_images']);
+            $data['user_id'] = $user->id;
+            $data['features'] = $request->input('features', []);
+            $data['location'] = $this->buildLocationString($data);
 
-        $property = Property::create($data);
+            //  SANITIZAR DESCRIPCIÓN
+            $data['description'] = strip_tags($data['description'], '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4>');
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $file) {
-                $path = $file->store('properties', 'public');
+            $property = Property::create($data);
 
-                PropertyImage::create([
-                    'property_id' => $property->id,
-                    'image_path' => $path,
-                    'is_primary' => ($index === 0),
-                    'order' => $index,
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize(),
-                ]);
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $file) {
+                    $path = $file->store('properties', 'public');
+
+                    //  GENERAR THUMBNAIL
+                    $thumbnailPath = null;
+                    try {
+                        $image = \Intervention\Image\Facades\Image::make($file);
+                        $thumbnail = $image->fit(300, 200);
+                        $thumbnailName = 'thumb_' . uniqid() . '.jpg';
+                        $thumbnailPath = 'properties/thumbnails/' . $thumbnailName;
+                        Storage::disk('public')->put($thumbnailPath, (string) $thumbnail->encode('jpg', 80));
+                    } catch (\Exception $e) {
+                        Log::warning('Error generando thumbnail: ' . $e->getMessage());
+                    }
+
+                    PropertyImage::create([
+                        'property_id' => $property->id,
+                        'image_path' => $path,
+                        'thumbnail_path' => $thumbnailPath,
+                        'is_primary' => ($index === 0),
+                        'order' => $index,
+                        'mime_type' => $file->getClientMimeType(),
+                        'size' => $file->getSize(),
+                    ]);
+                }
             }
+
+            $this->logCreated($property, (Auth::user()?->full_name ?? 'Sistema') . ' CREÓ la propiedad "' . $property->title . '"');
+
+            $notifyRoles = ['Super Admin', 'Administrador', 'Auditor'];
+            $usersToNotify = User::role($notifyRoles)->get();
+
+            foreach ($usersToNotify as $u) {
+                if ($u->id === $user->id) continue;
+                $u->createNotification(
+                    'Nueva Propiedad Creada',
+                    "El asesor {$user->name} ha creado una nueva propiedad: {$property->title}",
+                    'info',
+                    route('asesor.properties.show', $property->id),
+                    ['property_id' => $property->id]
+                );
+            }
+
+            $redirectRoute = $user->hasRole('Asesor Inmobiliario')
+                ? route('asesor.properties.index')
+                : route('admin.properties.index');
+
+            return redirect($redirectRoute)->with('success', 'Propiedad creada exitosamente.');
+
+        } catch (\Exception $e) {
+            Log::error('Error al crear propiedad', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Hubo un problema al crear la propiedad.']);
         }
-
-        //  AUDITORÍA - CREACIÓN
-        $this->logCreated($property, (Auth::user()?->full_name ?? 'Sistema') . ' CREÓ la propiedad "' . $property->title . '" por ' . $property->formatted_price);
-
-        $notifyRoles = ['Super Admin', 'Administrador', 'Auditor'];
-        $usersToNotify = User::role($notifyRoles)->get();
-
-        foreach ($usersToNotify as $u) {
-            if ($u->id === $user->id) continue;
-
-            $u->createNotification(
-                'Nueva Propiedad Creada',
-                "El asesor {$user->name} ha creado una nueva propiedad: {$property->title}",
-                'info',
-                route('asesor.properties.show', $property->id),
-                ['property_id' => $property->id]
-            );
-        }
-
-        $redirectRoute = $user->hasRole('Asesor Inmobiliario')
-            ? route('asesor.properties.index')
-            : route('admin.properties.index');
-
-        return redirect($redirectRoute)->with('success', 'Propiedad creada exitosamente.');
     }
 
     public function edit(Property $property)
@@ -483,7 +496,9 @@ class PropertyController extends Controller
         $property->load(['images', 'countryRelation', 'stateRelation', 'municipalityRelation', 'parishRelation', 'cityRelation']);
 
         $categories = Category::all();
-        $countries = Country::orderBy('name')->get();
+        $countries = Cache::remember('countries_list', 86400, function() {
+            return Country::orderBy('name')->get();
+        });
 
         $states = State::where('country_id', $property->country_id)->orderBy('name')->get();
         $municipalities = Municipality::where('state_id', $property->state_id)->orderBy('name')->get();
@@ -494,15 +509,9 @@ class PropertyController extends Controller
         $isAsesor = $user->hasRole('Asesor Inmobiliario');
 
         return view('modulos.propiedades.create', compact(
-            'property',
-            'categories',
-            'countries',
-            'states',
-            'municipalities',
-            'parishes',
-            'cities',
-            'isAdmin',
-            'isAsesor'
+            'property', 'categories', 'countries', 'states',
+            'municipalities', 'parishes', 'cities',
+            'isAdmin', 'isAsesor'
         ));
     }
 
@@ -519,7 +528,17 @@ class PropertyController extends Controller
             abort(403, 'No tienes permiso para actualizar propiedades.');
         }
 
-        $deletedImages = $request->input('deleted_images') ? explode(',', $request->input('deleted_images')) : [];
+        //  VALIDAR IMÁGENES ELIMINADAS
+        $deletedImages = [];
+        if ($request->filled('deleted_images')) {
+            $ids = explode(',', $request->input('deleted_images'));
+            // Validar que los IDs pertenezcan a esta propiedad
+            $deletedImages = $property->images()
+                ->whereIn('id', $ids)
+                ->pluck('id')
+                ->toArray();
+        }
+
         $existingImagesCount = $property->images()->whereNotIn('id', $deletedImages)->count();
         $newImagesCount = $request->hasFile('images') ? count($request->file('images')) : 0;
         $totalImages = $existingImagesCount + $newImagesCount;
@@ -528,8 +547,8 @@ class PropertyController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'type' => 'required|in:venta,alquiler,venta/alquiler',
-            'status' => 'required|in:borrador,pendiente,publicada,vendida,alquilada,inactiva',
+            'type' => ['required', Rule::in(['venta', 'alquiler', 'venta/alquiler'])],
+            'status' => ['required', Rule::in(['borrador', 'pendiente', 'publicada', 'vendida', 'alquilada', 'inactiva'])],
             'country_id' => 'required|exists:countries,id',
             'state_id' => 'required|exists:states,id',
             'municipality_id' => 'required|exists:municipalities,id',
@@ -553,98 +572,116 @@ class PropertyController extends Controller
             return back()->withErrors(['images' => 'La propiedad debe tener al menos 1 imagen.'])->withInput();
         }
 
-        // Guardar valores antiguos para auditoría
-        $oldValues = $property->toArray();
+        try {
+            $oldValues = $property->toArray();
 
-        $data = $request->except(['images', 'deleted_images']);
-        $data['features'] = $request->input('features', []);
-        $data['location'] = $this->buildLocationString($data);
-        $property->update($data);
+            $data = $request->except(['images', 'deleted_images']);
+            $data['features'] = $request->input('features', []);
+            $data['location'] = $this->buildLocationString($data);
 
-        //  AUDITORÍA - ACTUALIZACIÓN
-        $changes = [];
-        $fieldLabels = [
-            'title' => 'título',
-            'description' => 'descripción',
-            'price' => 'precio',
-            'status' => 'estado',
-            'type' => 'tipo',
-            'location' => 'ubicación',
-            'address' => 'dirección',
-            'bedrooms' => 'habitaciones',
-            'bathrooms' => 'baños',
-            'parking_spaces' => 'estacionamientos',
-            'area' => 'área',
-            'land_area' => 'área de terreno',
-            'floors' => 'pisos',
-            'year_built' => 'año de construcción',
-            'is_featured' => 'destacada',
-        ];
+            //  SANITIZAR DESCRIPCIÓN
+            $data['description'] = strip_tags($data['description'], '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4>');
 
-        foreach ($data as $key => $value) {
-            if (isset($oldValues[$key]) && $oldValues[$key] != $value && $key !== 'updated_at') {
-                $label = $fieldLabels[$key] ?? $key;
-                $oldVal = $oldValues[$key] ?? 'vacío';
-                $newVal = $value ?? 'vacío';
-                $changes[] = "{$label}: '{$oldVal}' → '{$newVal}'";
-            }
-        }
+            $property->update($data);
 
-        if (!empty($changes)) {
-            $this->logUpdated($property, $oldValues, $changes);
-        } else {
-            // Si no hay cambios visibles, al menos registrar que se actualizó
-            $this->logAudit('updated', $property, $oldValues, $property->toArray(),
-                (Auth::user()?->full_name ?? 'Sistema') . ' ACTUALIZÓ la propiedad "' . $property->title . '" (sin cambios visibles)'
-            );
-        }
-
-        $auditors = User::role('Auditor')->get();
-        foreach ($auditors as $auditor) {
-            if ($auditor->id === $user->id) continue;
-
-            $auditor->createNotification(
-                'Propiedad Actualizada',
-                "La propiedad {$property->title} ha sido actualizada por {$user->name}",
-                'warning',
-                route('asesor.properties.show', $property->id),
-                ['property_id' => $property->id]
-            );
-        }
-
-        if (!empty($deletedImages)) {
-            $imagesToDelete = $property->images()->whereIn('id', $deletedImages)->get();
-            foreach ($imagesToDelete as $image) {
-                if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
-                    Storage::disk('public')->delete($image->image_path);
+            //  ELIMINAR IMÁGENES SELECCIONADAS
+            if (!empty($deletedImages)) {
+                $imagesToDelete = $property->images()->whereIn('id', $deletedImages)->get();
+                foreach ($imagesToDelete as $image) {
+                    if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
+                        Storage::disk('public')->delete($image->image_path);
+                    }
+                    if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
+                        Storage::disk('public')->delete($image->thumbnail_path);
+                    }
+                    $image->delete();
                 }
-                $image->delete();
             }
-        }
 
-        if ($request->hasFile('images')) {
-            $hasPrimary = $property->images()->where('is_primary', true)->exists();
-            $currentMaxOrder = $property->images()->max('order') ?? 0;
+            //  SUBIR NUEVAS IMÁGENES
+            if ($request->hasFile('images')) {
+                $hasPrimary = $property->images()->where('is_primary', true)->exists();
+                $currentMaxOrder = $property->images()->max('order') ?? 0;
 
-            foreach ($request->file('images') as $index => $file) {
-                $path = $file->store('properties', 'public');
+                foreach ($request->file('images') as $index => $file) {
+                    $path = $file->store('properties', 'public');
 
-                PropertyImage::create([
-                    'property_id' => $property->id,
-                    'image_path' => $path,
-                    'is_primary' => !$hasPrimary && $index === 0 && $existingImagesCount === 0,
-                    'order' => $currentMaxOrder + $index + 1,
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize(),
-                ]);
+                    //  GENERAR THUMBNAIL
+                    $thumbnailPath = null;
+                    try {
+                        $image = \Intervention\Image\Facades\Image::make($file);
+                        $thumbnail = $image->fit(300, 200);
+                        $thumbnailName = 'thumb_' . uniqid() . '.jpg';
+                        $thumbnailPath = 'properties/thumbnails/' . $thumbnailName;
+                        Storage::disk('public')->put($thumbnailPath, (string) $thumbnail->encode('jpg', 80));
+                    } catch (\Exception $e) {
+                        Log::warning('Error generando thumbnail: ' . $e->getMessage());
+                    }
+
+                    PropertyImage::create([
+                        'property_id' => $property->id,
+                        'image_path' => $path,
+                        'thumbnail_path' => $thumbnailPath,
+                        'is_primary' => !$hasPrimary && $index === 0 && $existingImagesCount === 0,
+                        'order' => $currentMaxOrder + $index + 1,
+                        'mime_type' => $file->getClientMimeType(),
+                        'size' => $file->getSize(),
+                    ]);
+                }
             }
+
+            // Auditoría
+            $changes = [];
+            $fieldLabels = [
+                'title' => 'título', 'description' => 'descripción',
+                'price' => 'precio', 'status' => 'estado', 'type' => 'tipo',
+                'location' => 'ubicación', 'address' => 'dirección',
+                'bedrooms' => 'habitaciones', 'bathrooms' => 'baños',
+                'parking_spaces' => 'estacionamientos', 'area' => 'área',
+                'land_area' => 'área de terreno', 'floors' => 'pisos',
+                'year_built' => 'año de construcción', 'is_featured' => 'destacada',
+            ];
+
+            foreach ($data as $key => $value) {
+                if (isset($oldValues[$key]) && $oldValues[$key] != $value && $key !== 'updated_at') {
+                    $label = $fieldLabels[$key] ?? $key;
+                    $changes[] = "{$label}: '{$oldValues[$key]}' → '{$value}'";
+                }
+            }
+
+            if (!empty($changes)) {
+                $this->logUpdated($property, $oldValues, $changes);
+            }
+
+            $auditors = User::role('Auditor')->get();
+            foreach ($auditors as $auditor) {
+                if ($auditor->id === $user->id) continue;
+                $auditor->createNotification(
+                    'Propiedad Actualizada',
+                    "La propiedad {$property->title} ha sido actualizada por {$user->name}",
+                    'warning',
+                    route('asesor.properties.show', $property->id),
+                    ['property_id' => $property->id]
+                );
+            }
+
+            $redirectRoute = $user->hasRole('Asesor Inmobiliario')
+                ? route('asesor.properties.index')
+                : route('admin.properties.index');
+
+            return redirect($redirectRoute)->with('success', 'Propiedad actualizada exitosamente.');
+
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar propiedad', [
+                'property_id' => $property->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Hubo un problema al actualizar la propiedad.']);
         }
-
-        $redirectRoute = $user->hasRole('Asesor Inmobiliario')
-            ? route('asesor.properties.index')
-            : route('admin.properties.index');
-
-        return redirect($redirectRoute)->with('success', 'Propiedad actualizada exitosamente.');
     }
 
     public function show(Property $property)
@@ -657,14 +694,9 @@ class PropertyController extends Controller
         }
 
         $property->load([
-            'images',
-            'user',
-            'category',
-            'countryRelation',
-            'stateRelation',
-            'municipalityRelation',
-            'parishRelation',
-            'cityRelation'
+            'images', 'user', 'category',
+            'countryRelation', 'stateRelation',
+            'municipalityRelation', 'parishRelation', 'cityRelation'
         ]);
 
         $property->incrementViews();
@@ -688,27 +720,36 @@ class PropertyController extends Controller
             abort(403, 'No tienes permiso para eliminar propiedades.');
         }
 
-        //  AUDITORÍA - ELIMINACIÓN (ANTES DE ELIMINAR)
-        $this->logDeleted($property, (Auth::user()?->full_name ?? 'Sistema') . ' ELIMINÓ la propiedad "' . $property->title . '" (ID: ' . $property->id . ')');
+        try {
+            $this->logDeleted($property, (Auth::user()?->full_name ?? 'Sistema') . ' ELIMINÓ la propiedad "' . $property->title . '"');
 
-        foreach ($property->images as $image) {
-            if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
-                Storage::disk('public')->delete($image->image_path);
+            foreach ($property->images as $image) {
+                if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
+                    Storage::disk('public')->delete($image->image_path);
+                }
+                if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
+                    Storage::disk('public')->delete($image->thumbnail_path);
+                }
+                $image->delete();
             }
-            if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
-                Storage::disk('public')->delete($image->thumbnail_path);
-            }
+
+            $property->delete();
+
+            $route = $user->hasRole('Asesor Inmobiliario')
+                ? route('asesor.properties.index')
+                : route('admin.properties.index');
+
+            return redirect($route)->with('success', 'Propiedad eliminada exitosamente.');
+
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar propiedad', [
+                'property_id' => $property->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()->withErrors(['error' => 'Hubo un problema al eliminar la propiedad.']);
         }
-
-        $property->delete();
-
-        if ($user->hasRole('Asesor Inmobiliario')) {
-            return redirect()->route('asesor.properties.index')
-                ->with('success', 'Propiedad eliminada exitosamente.');
-        }
-
-        return redirect()->route('admin.properties.index')
-            ->with('success', 'Propiedad eliminada exitosamente.');
     }
 
     private function buildLocationString($data)
@@ -721,23 +762,23 @@ class PropertyController extends Controller
         }
 
         if (!empty($data['state_id'])) {
-            $s = State::find($data['state_id']);
-            if ($s) $parts[] = $s->name;
+            $state = State::find($data['state_id']);
+            if ($state) $parts[] = $state->name;
         }
 
         if (!empty($data['municipality_id'])) {
-            $m = Municipality::find($data['municipality_id']);
-            if ($m) $parts[] = $m->name;
+            $municipality = Municipality::find($data['municipality_id']);
+            if ($municipality) $parts[] = $municipality->name;
         }
 
         if (!empty($data['parish_id'])) {
-            $p = Parish::find($data['parish_id']);
-            if ($p) $parts[] = $p->name;
+            $parish = Parish::find($data['parish_id']);
+            if ($parish) $parts[] = $parish->name;
         }
 
         if (!empty($data['city_id'])) {
-            $ci = City::find($data['city_id']);
-            if ($ci) $parts[] = $ci->name;
+            $city = City::find($data['city_id']);
+            if ($city) $parts[] = $city->name;
         }
 
         if (!empty($data['address'])) {
@@ -747,27 +788,40 @@ class PropertyController extends Controller
         return implode(', ', $parts);
     }
 
+    //  CON CACHÉ
     public function getStates($countryId)
     {
-        $states = State::where('country_id', $countryId)->orderBy('name')->get();
-        return response()->json($states);
+        return Cache::remember("states_country_{$countryId}", 86400, function() use ($countryId) {
+            return State::where('country_id', $countryId)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        });
     }
 
     public function getMunicipalities($stateId)
     {
-        $municipalities = Municipality::where('state_id', $stateId)->orderBy('name')->get();
-        return response()->json($municipalities);
+        return Cache::remember("municipalities_state_{$stateId}", 86400, function() use ($stateId) {
+            return Municipality::where('state_id', $stateId)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        });
     }
 
     public function getParishes($municipalityId)
     {
-        $parishes = Parish::where('municipality_id', $municipalityId)->orderBy('name')->get();
-        return response()->json($parishes);
+        return Cache::remember("parishes_municipality_{$municipalityId}", 86400, function() use ($municipalityId) {
+            return Parish::where('municipality_id', $municipalityId)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        });
     }
 
     public function getCities($parishId)
     {
-        $cities = City::where('parish_id', $parishId)->orderBy('name')->get();
-        return response()->json($cities);
+        return Cache::remember("cities_parish_{$parishId}", 86400, function() use ($parishId) {
+            return City::where('parish_id', $parishId)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        });
     }
 }

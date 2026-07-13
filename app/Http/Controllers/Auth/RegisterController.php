@@ -8,11 +8,12 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class RegisterController extends Controller
 {
-    // Lista de preguntas de seguridad predefinidas
     private $securityQuestions = [
         '¿Cuál es el nombre de tu primera mascota?',
         '¿Cuál es el apellido de soltera de tu madre?',
@@ -49,23 +50,30 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
+        // 🔍 LOG PARA DEPURACIÓN
+        Log::info('🔵 Registro iniciado', [
+            'email' => $request->email,
+            'has_phone' => $request->has('phone'),
+        ]);
+
+        // ✅ VALIDACIÓN SIMPLE PERO SEGURA (COMO EL VIEJO)
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'], // ✅ 8 caracteres como el viejo
+            'phone' => ['nullable', 'string', 'max:20'], // ✅ NULLABLE como el viejo
             'address' => ['nullable', 'string', 'max:500'],
             'id_type' => ['nullable', 'string', 'in:V,E,J'],
-            'id_number' => ['nullable', 'string', 'max:20', 'unique:users,id_number'],
+            'id_number' => ['nullable', 'string', 'max:20', Rule::unique('users', 'id_number')->whereNull('deleted_at')],
             'country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'state_id' => ['nullable', 'integer', 'exists:states,id'],
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'parish_id' => ['nullable', 'integer', 'exists:parishes,id'],
             'city_id' => ['nullable', 'integer', 'exists:cities,id'],
-            'terms' => ['required', 'accepted'],
+            'terms' => ['required', 'accepted'], // ✅ COMO EL VIEJO
 
-            // Validación de preguntas de seguridad
+            // ✅ PREGUNTAS DE SEGURIDAD (COMO EL VIEJO)
             'security_question_1' => ['required', 'string', 'in:' . implode(',', $this->securityQuestions)],
             'security_answer_1' => ['required', 'string', 'min:2', 'max:255'],
             'security_question_2' => ['required', 'string', 'in:' . implode(',', $this->securityQuestions)],
@@ -74,7 +82,7 @@ class RegisterController extends Controller
             'security_answer_3' => ['required', 'string', 'min:2', 'max:255'],
         ]);
 
-        // Validar que las preguntas sean diferentes
+        // ✅ VALIDAR QUE LAS PREGUNTAS SEAN DIFERENTES
         $questions = [
             $validated['security_question_1'],
             $validated['security_question_2'],
@@ -82,24 +90,27 @@ class RegisterController extends Controller
         ];
 
         if (count(array_unique($questions)) < 3) {
+            Log::warning('⚠️ Preguntas de seguridad duplicadas', ['email' => $validated['email']]);
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['security_question' => 'Debes seleccionar 3 preguntas de seguridad diferentes.']);
         }
 
         try {
+            // ✅ PROCESAR TELÉFONO (SIMPLE)
             $phone = $validated['phone'] ?? null;
             if ($phone) {
                 $phone = preg_replace('/[^0-9]/', '', $phone);
             }
 
-            // Hash de las respuestas de seguridad
+            // ✅ HASH DE RESPUESTAS DE SEGURIDAD
             $hashedAnswers = [
                 Hash::make($validated['security_answer_1']),
                 Hash::make($validated['security_answer_2']),
                 Hash::make($validated['security_answer_3'])
             ];
 
+            // ✅ CREAR USUARIO (SIMPLE)
             $user = User::create([
                 'name' => $validated['name'],
                 'last_name' => $validated['last_name'] ?? null,
@@ -115,28 +126,68 @@ class RegisterController extends Controller
                 'parish_id' => $validated['parish_id'] ?? null,
                 'city_id' => $validated['city_id'] ?? null,
                 'is_active' => true,
-
-                // Guardar preguntas y respuestas de seguridad
-                'security_questions' => json_encode($questions),
+                'security_questions' => json_encode($questions, JSON_UNESCAPED_UNICODE),
                 'security_answer_1' => $hashedAnswers[0],
                 'security_answer_2' => $hashedAnswers[1],
                 'security_answer_3' => $hashedAnswers[2],
                 'security_questions_set_at' => now(),
             ]);
 
+            Log::info('✅ Usuario creado', ['user_id' => $user->id, 'email' => $user->email]);
+
+            // ✅ ASIGNAR ROL
             $clienteRole = Role::firstOrCreate(
                 ['name' => 'Cliente', 'guard_name' => 'web']
             );
             $user->assignRole($clienteRole);
 
+            // ✅ INICIAR SESIÓN
             Auth::login($user);
 
-            return redirect()->route('cliente.dashboard');
+            Log::info('✅ Registro completado', ['user_id' => $user->id]);
 
-        } catch (\Exception $e) {
+            return redirect()->route('cliente.dashboard')
+                ->with('success', '¡Bienvenido ' . $user->full_name . '!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('❌ Error DB en registro', [
+                'email' => $validated['email'] ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+
+            $errorMessage = 'Hubo un problema al crear la cuenta. ';
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                if (str_contains($e->getMessage(), 'id_number')) {
+                    $errorMessage = 'El número de identificación ya está registrado.';
+                } elseif (str_contains($e->getMessage(), 'email')) {
+                    $errorMessage = 'El correo electrónico ya está registrado.';
+                } else {
+                    $errorMessage .= 'Datos duplicados.';
+                }
+            } else {
+                $errorMessage .= 'Por favor, intenta nuevamente.';
+            }
+
             return redirect()->back()
                 ->withInput()
-                ->withErrors(['error' => 'Hubo un problema al crear la cuenta: ' . $e->getMessage()]);
+                ->withErrors(['error' => $errorMessage]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error general en registro', [
+                'email' => $validated['email'] ?? 'unknown',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Hubo un problema al crear la cuenta. Por favor, intenta nuevamente.']);
         }
+    }
+
+    public function getSecurityQuestions()
+    {
+        return response()->json($this->securityQuestions);
     }
 }
