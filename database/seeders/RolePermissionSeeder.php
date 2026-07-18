@@ -100,21 +100,17 @@ class RolePermissionSeeder extends Seeder
 
     public function run(): void
     {
-        // ✅ USAR TRANSACCIÓN PARA CONSISTENCIA
         DB::beginTransaction();
 
         try {
-            $this->command->info('🚀 Iniciando RolePermissionSeeder...');
+            $this->command->info(' Iniciando RolePermissionSeeder...');
 
-            // =============================================
-            // 1. RESETEAR CACHÉ DE PERMISOS
-            // =============================================
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
             // =============================================
             // 2. CREAR TODOS LOS PERMISOS
             // =============================================
-            $this->command->info('📝 Creando permisos...');
+            $this->command->info(' Creando permisos...');
 
             $permissions = [
                 // Panel de control
@@ -126,6 +122,9 @@ class RolePermissionSeeder extends Seeder
                 // Roles
                 'ver roles', 'crear rol', 'editar rol', 'eliminar rol',
 
+                // Categorías - NUEVO
+                'ver categorias', 'crear categoria', 'editar categoria', 'eliminar categoria',
+
                 // Ubicaciones
                 'ver paises', 'crear paises', 'eliminar paises',
                 'ver estados', 'crear estados', 'eliminar estados',
@@ -134,7 +133,7 @@ class RolePermissionSeeder extends Seeder
                 'ver ciudades', 'crear ciudades', 'eliminar ciudades',
 
                 // Propiedades
-                'ver propiedades', 'crear propiedad', 'editar propiedad', 
+                'ver propiedades', 'crear propiedad', 'editar propiedad',
                 'eliminar propiedad', 'publicar propiedad',
 
                 // Citas
@@ -163,7 +162,7 @@ class RolePermissionSeeder extends Seeder
                 ]);
             }
 
-            $this->command->info('✅ Permisos creados: ' . count($permissions));
+            $this->command->info(' Permisos creados: ' . count($permissions));
 
             // =============================================
             // 3. CREAR ROLES Y ASIGNAR PERMISOS
@@ -173,13 +172,15 @@ class RolePermissionSeeder extends Seeder
             // SUPER ADMIN - TODOS los permisos
             $superAdmin = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
             $superAdmin->syncPermissions(Permission::all());
-            $this->command->info('✅ Super Admin: todos los permisos');
+            $this->command->info(' Super Admin: todos los permisos');
 
             // ADMINISTRADOR
             $admin = Role::firstOrCreate(['name' => 'Administrador', 'guard_name' => 'web']);
             $adminPermissions = [
                 'ver panel de control',
                 'ver usuarios', 'crear usuario', 'editar usuario',
+                // Categorías
+                'ver categorias', 'crear categoria', 'editar categoria', 'eliminar categoria',
                 'ver paises', 'ver estados', 'ver municipios', 'ver parroquias', 'ver ciudades',
                 'ver propiedades', 'crear propiedad', 'editar propiedad', 'eliminar propiedad', 'publicar propiedad',
                 'ver citas', 'crear cita', 'editar cita', 'eliminar cita',
@@ -190,7 +191,7 @@ class RolePermissionSeeder extends Seeder
                 'actualizar configuracion telefonica',
             ];
             $admin->syncPermissions($adminPermissions);
-            $this->command->info('✅ Administrador: permisos asignados');
+            $this->command->info(' Administrador: permisos asignados');
 
             // ASESOR INMOBILIARIO
             $asesor = Role::firstOrCreate(['name' => 'Asesor Inmobiliario', 'guard_name' => 'web']);
@@ -201,13 +202,14 @@ class RolePermissionSeeder extends Seeder
                 'ver leads', 'crear lead', 'editar lead',
             ];
             $asesor->syncPermissions($asesorPermissions);
-            $this->command->info('✅ Asesor Inmobiliario: permisos asignados');
+            $this->command->info(' Asesor Inmobiliario: permisos asignados');
 
             // AUDITOR - SOLO LECTURA
             $auditor = Role::firstOrCreate(['name' => 'Auditor', 'guard_name' => 'web']);
             $auditorPermissions = [
                 'ver panel de control',
                 'ver usuarios',
+                'ver categorias',
                 'ver propiedades',
                 'ver citas',
                 'ver leads',
@@ -217,19 +219,18 @@ class RolePermissionSeeder extends Seeder
                 'exportar reportes',
             ];
             $auditor->syncPermissions($auditorPermissions);
-            $this->command->info('✅ Auditor: permisos de solo lectura');
+            $this->command->info(' Auditor: permisos de solo lectura');
 
             // CLIENTE
             $cliente = Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
             $cliente->syncPermissions(['ver citas', 'crear cita']);
-            $this->command->info('✅ Cliente: permisos asignados');
+            $this->command->info(' Cliente: permisos asignados');
 
             // =============================================
             // 4. CREAR UBICACIONES DE PRUEBA
             // =============================================
-            $this->command->info('📍 Creando ubicaciones de prueba...');
+            $this->command->info(' Creando ubicaciones de prueba...');
 
-            // PAÍS: Venezuela
             $venezuela = Country::firstOrCreate(
                 ['name' => 'Venezuela'],
                 [
@@ -241,7 +242,6 @@ class RolePermissionSeeder extends Seeder
                 ]
             );
 
-            // ESTADOS
             $distritoCapital = State::firstOrCreate([
                 'country_id' => $venezuela->id,
                 'name' => 'Distrito Capital'
@@ -257,7 +257,6 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'Carabobo'
             ]);
 
-            // MUNICIPIOS
             $libertador = Municipality::firstOrCreate([
                 'state_id' => $distritoCapital->id,
                 'name' => 'Libertador'
@@ -273,7 +272,6 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'Valencia'
             ]);
 
-            // PARROQUIAS
             $altagracia = Parish::firstOrCreate([
                 'municipality_id' => $libertador->id,
                 'name' => 'Altagracia'
@@ -294,7 +292,6 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'San José'
             ]);
 
-            // CIUDADES
             $caracas = City::firstOrCreate([
                 'parish_id' => $altagracia->id,
                 'name' => 'Caracas'
@@ -315,7 +312,7 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'Valencia'
             ]);
 
-            $this->command->info('✅ Ubicaciones creadas correctamente.');
+            $this->command->info(' Ubicaciones creadas correctamente.');
 
             // =============================================
             // 5. FUNCIÓN AUXILIAR PARA PREGUNTAS ÚNICAS
@@ -323,11 +320,10 @@ class RolePermissionSeeder extends Seeder
             $getUniqueQuestions = function(): array {
                 $shuffled = $this->securityQuestions;
                 shuffle($shuffled);
-                
-                // ✅ Asegurar que sean 3 preguntas diferentes
+
                 $selected = [];
                 $usedKeys = [];
-                
+
                 while (count($selected) < 3) {
                     $randomKey = array_rand($shuffled);
                     if (!in_array($randomKey, $usedKeys)) {
@@ -335,7 +331,7 @@ class RolePermissionSeeder extends Seeder
                         $selected[] = $shuffled[$randomKey];
                     }
                 }
-                
+
                 return $selected;
             };
 
@@ -455,19 +451,16 @@ class RolePermissionSeeder extends Seeder
                 ],
             ];
 
-            // ✅ CREAR CADA USUARIO
             foreach ($this->testUsers as $key => $userCredentials) {
                 $userData = $usersData[$key];
                 $questions = $getUniqueQuestions();
                 $answers = $this->securityAnswers[$key];
 
-                // ✅ VERIFICAR SI EL USUARIO YA EXISTE
                 $existingUser = User::where('email', $userCredentials['email'])->first();
 
                 if ($existingUser) {
-                    $this->command->info("⚠️ Usuario {$userCredentials['email']} ya existe, actualizando...");
-                    
-                    // ✅ ACTUALIZAR USUARIO EXISTENTE
+                    $this->command->info(" Usuario {$userCredentials['email']} ya existe, actualizando...");
+
                     $existingUser->update([
                         'name' => $userData['name'],
                         'last_name' => $userData['last_name'],
@@ -491,12 +484,10 @@ class RolePermissionSeeder extends Seeder
                         'security_questions_set_at' => now(),
                     ]);
 
-                    // ✅ SINCRONIZAR ROL
                     $existingUser->syncRoles([$userCredentials['role']]);
-                    
-                    $this->command->info("✅ Usuario actualizado: {$userCredentials['email']}");
+
+                    $this->command->info(" Usuario actualizado: {$userCredentials['email']}");
                 } else {
-                    // ✅ CREAR NUEVO USUARIO
                     $user = User::create([
                         'name' => $userData['name'],
                         'last_name' => $userData['last_name'],
@@ -522,10 +513,9 @@ class RolePermissionSeeder extends Seeder
                         'security_questions_set_at' => now(),
                     ]);
 
-                    // ✅ ASIGNAR ROL
                     $user->assignRole($userCredentials['role']);
-                    
-                    $this->command->info("✅ Usuario creado: {$userCredentials['email']}");
+
+                    $this->command->info(" Usuario creado: {$userCredentials['email']}");
                 }
             }
 
@@ -534,25 +524,24 @@ class RolePermissionSeeder extends Seeder
             // =============================================
             $this->command->newLine();
             $this->command->info('========================================');
-            $this->command->info('     🎯 CREDENCIALES DE ACCESO');
+            $this->command->info('      CREDENCIALES DE ACCESO');
             $this->command->info('========================================');
-            
+
             foreach ($this->testUsers as $key => $user) {
                 $role = $user['role'];
                 $email = $user['email'];
                 $password = $user['password'];
-                
+
                 $this->command->info(" {$role}:");
-                $this->command->info("   📧 {$email}");
-                $this->command->info("   🔑 {$password}");
+                $this->command->info("    {$email}");
+                $this->command->info("    {$password}");
                 $this->command->info('');
             }
-            
+
             $this->command->info('========================================');
             $this->command->info('');
-            
-            // ✅ MOSTRAR RESPUESTAS DE SEGURIDAD
-            $this->command->info('🔐 RESPUESTAS DE SEGURIDAD (para recuperación):');
+
+            $this->command->info(' RESPUESTAS DE SEGURIDAD:');
             $this->command->info('========================================');
             foreach ($this->securityAnswers as $key => $answers) {
                 $userData = $this->testUsers[$key];
@@ -566,31 +555,26 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('========================================');
             $this->command->info('');
 
-            // =============================================
-            // 8. CONFIRMAR Y COMMIT
-            // =============================================
             DB::commit();
 
-            $this->command->info('✅ RolePermissionSeeder completado exitosamente!');
-            $this->command->info('🎉 Todos los usuarios tienen preguntas de seguridad configuradas.');
-            $this->command->info('📊 Total de usuarios creados/actualizados: ' . count($this->testUsers));
+            $this->command->info(' RolePermissionSeeder completado exitosamente!');
+            $this->command->info(' Todos los usuarios tienen preguntas de seguridad configuradas.');
+            $this->command->info(' Total de usuarios creados/actualizados: ' . count($this->testUsers));
 
         } catch (\Exception $e) {
-            // ✅ ROLLBACK EN CASO DE ERROR
             DB::rollBack();
-            
-            $this->command->error('❌ Error en RolePermissionSeeder:');
+
+            $this->command->error(' Error en RolePermissionSeeder:');
             $this->command->error('   ' . $e->getMessage());
             $this->command->error('   Archivo: ' . $e->getFile() . ':' . $e->getLine());
-            
-            // ✅ REGISTRAR EN LOG
+
             Log::error('Error en RolePermissionSeeder', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             throw $e;
         }
     }
@@ -602,10 +586,10 @@ class RolePermissionSeeder extends Seeder
     {
         $shuffled = $this->securityQuestions;
         shuffle($shuffled);
-        
+
         $selected = [];
         $usedKeys = [];
-        
+
         while (count($selected) < 3) {
             $randomKey = array_rand($shuffled);
             if (!in_array($randomKey, $usedKeys)) {
@@ -613,7 +597,7 @@ class RolePermissionSeeder extends Seeder
                 $selected[] = $shuffled[$randomKey];
             }
         }
-        
+
         return $selected;
     }
 }

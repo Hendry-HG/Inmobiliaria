@@ -85,14 +85,11 @@
                 <i class="ph ph-pencil text-lg"></i>
             </a>
 
-            <form action="{{ $deleteRoute }}" method="POST" class="inline"
-                  onsubmit="return confirm('¿Eliminar esta propiedad?');">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="text-red-500 hover:text-red-700 font-medium p-1" title="Eliminar">
-                    <i class="ph ph-trash text-lg"></i>
-                </button>
-            </form>
+            <button onclick="openDeleteModal({{ $property->id }}, '{{ addslashes($property->title) }}', '{{ $deleteRoute }}')"
+                    class="text-red-500 hover:text-red-700 font-medium p-1"
+                    title="Eliminar">
+                <i class="ph ph-trash text-lg"></i>
+            </button>
         </div>
     </td>
 </tr>

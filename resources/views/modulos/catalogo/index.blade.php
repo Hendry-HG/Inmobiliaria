@@ -61,7 +61,6 @@
         opacity: 0;
     }
 
-    /* Modal de Autenticación - Mismo estilo que el detalle */
     .modal-overlay {
         background: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(4px);
@@ -89,7 +88,6 @@
         50% { transform: translateY(-10px); }
     }
 
-    /* Estilos de tarjetas mejorados */
     .property-card {
         transition: all 0.3s ease;
     }
@@ -107,12 +105,10 @@
         transform: scale(1.05);
     }
 
-    /* Badge de estado en la tarjeta */
     .status-badge {
         backdrop-filter: blur(4px);
     }
 
-    /* Feature tags en la tarjeta */
     .feature-tag {
         display: inline-flex;
         align-items: center;
@@ -170,16 +166,22 @@
                             </select>
                         </div>
 
-                        {{-- Categoría --}}
+                        {{-- CATEGORÍA --}}
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                                <i class="ph ph-buildings mr-1 text-mso-gold"></i>Categoría
+                                <i class="ph ph-folder mr-1 text-mso-gold"></i>Categoría
                             </label>
                             <select name="category_id" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                                 <option value="">Todas las categorías</option>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                        @if($category->icon)
+                                            <i class="{{ $category->icon }} mr-1"></i>
+                                        @endif
                                         {{ $category->name }}
+                                        @if(isset($category->properties_count) && $category->properties_count > 0)
+                                            ({{ $category->properties_count }})
+                                        @endif
                                     </option>
                                 @endforeach
                             </select>
@@ -320,7 +322,7 @@
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
                     <p class="text-slate-600 text-sm">
                         <span class="font-bold text-slate-800">{{ $properties->total() }}</span> propiedades encontradas
-                        @if(request('state_id') || request('municipality_id') || request('city_id'))
+                        @if(request('state_id') || request('municipality_id') || request('city_id') || request('category_id'))
                             <span class="text-xs text-slate-500 block sm:inline sm:ml-2">
                                 (Filtros activos)
                             </span>
@@ -360,13 +362,13 @@
                         $city = $cities->firstWhere('id', request('city_id'));
                         if($city) $activeFilters[] = ['label' => 'Ciudad: ' . $city->name, 'param' => 'city_id'];
                     }
-                    if(request('min_price')) $activeFilters[] = ['label' => 'Desde: $' . number_format(request('min_price'), 0, ',', '.'), 'param' => 'min_price'];
-                    if(request('max_price')) $activeFilters[] = ['label' => 'Hasta: $' . number_format(request('max_price'), 0, ',', '.'), 'param' => 'max_price'];
-                    if(request('type')) $activeFilters[] = ['label' => 'Tipo: ' . ucfirst(request('type')), 'param' => 'type'];
                     if(request('category_id')) {
                         $category = $categories->firstWhere('id', request('category_id'));
                         if($category) $activeFilters[] = ['label' => 'Categoría: ' . $category->name, 'param' => 'category_id'];
                     }
+                    if(request('min_price')) $activeFilters[] = ['label' => 'Desde: $' . number_format(request('min_price'), 0, ',', '.'), 'param' => 'min_price'];
+                    if(request('max_price')) $activeFilters[] = ['label' => 'Hasta: $' . number_format(request('max_price'), 0, ',', '.'), 'param' => 'max_price'];
+                    if(request('type')) $activeFilters[] = ['label' => 'Tipo: ' . ucfirst(request('type')), 'param' => 'type'];
                     if(request('bedrooms')) $activeFilters[] = ['label' => request('bedrooms') . '+ habitaciones', 'param' => 'bedrooms'];
                     if(request('bathrooms')) $activeFilters[] = ['label' => request('bathrooms') . '+ baños', 'param' => 'bathrooms'];
                     if(request('parking_spaces')) $activeFilters[] = ['label' => request('parking_spaces') . '+ estacionamientos', 'param' => 'parking_spaces'];
@@ -418,6 +420,18 @@
                                     {{ $property->type == 'venta' ? 'VENTA' : ($property->type == 'alquiler' ? 'ALQUILER' : 'VENTA/ALQ.') }}
                                 </span>
                             </div>
+
+                            {{-- Badge de Categoría --}}
+                            @if($property->category)
+                            <div class="absolute top-3 left-1/2 -translate-x-1/2">
+                                <span class="px-2.5 py-1 text-xs font-medium rounded-full shadow-md bg-black/50 text-white backdrop-blur-sm flex items-center gap-1">
+                                    @if($property->category->icon)
+                                        <i class="{{ $property->category->icon }} text-xs"></i>
+                                    @endif
+                                    {{ $property->category->name }}
+                                </span>
+                            </div>
+                            @endif
 
                             {{-- Badge de Ubicación --}}
                             <div class="absolute bottom-3 left-3">
@@ -534,7 +548,7 @@
 
         <div class="p-5">
             <form action="{{ route('catalogo.index') }}" method="GET" id="filter-form-modal" class="space-y-5">
-                {{-- Copiar todos los campos del formulario principal --}}
+                {{-- Tipo de Operación --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de Operación</label>
                     <select name="type" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
@@ -545,18 +559,23 @@
                     </select>
                 </div>
 
+                {{-- Categoría --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Categoría</label>
                     <select name="category_id" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                         <option value="">Todas las categorías</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                @if($category->icon)
+                                    <i class="{{ $category->icon }} mr-1"></i>
+                                @endif
                                 {{ $category->name }}
                             </option>
                         @endforeach
                     </select>
                 </div>
 
+                {{-- Rango de Precio --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Rango de Precio</label>
                     <div class="grid grid-cols-2 gap-2">
@@ -573,6 +592,7 @@
                     </div>
                 </div>
 
+                {{-- Ubicación --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Ubicación</label>
                     <div class="space-y-2">
@@ -605,6 +625,7 @@
                     </div>
                 </div>
 
+                {{-- Características --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Características</label>
                     <div class="space-y-2">
@@ -635,6 +656,7 @@
                     </div>
                 </div>
 
+                {{-- Área --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Área (m²)</label>
                     <div class="grid grid-cols-2 gap-2">
@@ -645,6 +667,7 @@
                     </div>
                 </div>
 
+                {{-- Búsqueda --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Buscar</label>
                     <input type="text" name="search" value="{{ request('search') }}"
@@ -660,11 +683,11 @@
     </div>
 </div>
 
-{{-- MODAL DE AUTENTICACIÓN PARA FAVORITOS - Mismo estilo que el detalle --}}
+{{-- MODAL DE AUTENTICACIÓN --}}
 <div id="authModal" class="modal-overlay fixed inset-0 z-[200] hidden items-center justify-center p-4">
     <div class="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-8">
         <div class="mb-4">
-            <span class="house-icon"></span>
+            <span class="house-icon">🏠</span>
         </div>
 
         <h3 class="text-2xl font-bold text-slate-800 mb-2">
@@ -699,262 +722,260 @@
 
 @push('js')
 <script>
-    // ============================================================
-    // MODAL DE AUTENTICACIÓN
-    // ============================================================
-    function openAuthModal() {
-        const modal = document.getElementById('authModal');
-        const content = modal.querySelector('.modal-content');
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
+// ============================================================
+// MODAL DE AUTENTICACIÓN
+// ============================================================
+function openAuthModal() {
+    const modal = document.getElementById('authModal');
+    const content = modal.querySelector('.modal-content');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
 
-        setTimeout(() => {
-            content.classList.add('show');
-        }, 10);
+    setTimeout(() => {
+        content.classList.add('show');
+    }, 10);
 
-        document.body.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAuthModal() {
+    const modal = document.getElementById('authModal');
+    const content = modal.querySelector('.modal-content');
+    content.classList.remove('show');
+
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }, 300);
+}
+
+document.getElementById('authModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAuthModal();
     }
+});
 
-    function closeAuthModal() {
-        const modal = document.getElementById('authModal');
-        const content = modal.querySelector('.modal-content');
-        content.classList.remove('show');
-
-        setTimeout(() => {
-            modal.style.display = 'none';
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 300);
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAuthModal();
     }
+});
 
-    document.getElementById('authModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAuthModal();
-        }
-    });
+// ============================================================
+// FAVORITOS
+// ============================================================
+function handleFavoriteClick(btn, propertyId) {
+    @if(auth()->check())
+        toggleFavorite(btn, propertyId);
+    @else
+        openAuthModal();
+    @endif
+}
 
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAuthModal();
-        }
-    });
+function toggleFavorite(btn, propertyId) {
+    const icon = btn.querySelector('.favorite-icon');
+    const isFavorite = icon.classList.contains('ph-fill');
+    const originalIconClass = icon.className;
 
-    // ============================================================
-    // FAVORITOS
-    // ============================================================
-    function handleFavoriteClick(btn, propertyId) {
-        @if(auth()->check())
-            toggleFavorite(btn, propertyId);
-        @else
-            openAuthModal();
-        @endif
-    }
+    icon.className = 'favorite-icon ph ph-spinner ph-spin text-lg text-slate-500';
 
-    function toggleFavorite(btn, propertyId) {
-        const icon = btn.querySelector('.favorite-icon');
-        const isFavorite = icon.classList.contains('ph-fill');
-        const originalIconClass = icon.className;
-
-        icon.className = 'favorite-icon ph ph-spinner ph-spin text-lg text-slate-500';
-
-        fetch(`/favorites/${propertyId}`, {
-            method: isFavorite ? 'DELETE' : 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ property_id: propertyId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (data.is_favorite) {
-                    icon.className = 'favorite-icon ph-fill text-red-500 ph-heart text-lg';
-                    showToast('✓ Propiedad agregada a favoritos', 'success');
-                } else {
-                    icon.className = 'favorite-icon ph text-slate-500 ph-heart text-lg';
-                    showToast('✓ Propiedad eliminada de favoritos', 'success');
-                }
+    fetch(`/favorites/${propertyId}`, {
+        method: isFavorite ? 'DELETE' : 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ property_id: propertyId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.is_favorite) {
+                icon.className = 'favorite-icon ph-fill text-red-500 ph-heart text-lg';
+                showToast('✓ Propiedad agregada a favoritos', 'success');
             } else {
-                icon.className = originalIconClass;
-                showToast(data.message || 'Error al procesar la solicitud', 'error');
+                icon.className = 'favorite-icon ph text-slate-500 ph-heart text-lg';
+                showToast('✓ Propiedad eliminada de favoritos', 'success');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+        } else {
             icon.className = originalIconClass;
-            showToast('Error de conexión. Intenta nuevamente.', 'error');
-        });
+            showToast(data.message || 'Error al procesar la solicitud', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        icon.className = originalIconClass;
+        showToast('Error de conexión. Intenta nuevamente.', 'error');
+    });
+}
+
+// ============================================================
+// MODAL DE FILTROS
+// ============================================================
+function openFiltersModal() {
+    const modal = document.getElementById('filtersModal');
+    const content = document.getElementById('filtersModalContent');
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => {
+        content.classList.remove('translate-y-full');
+        content.classList.add('translate-y-0');
+    }, 10);
+}
+
+function closeFiltersModal() {
+    const modal = document.getElementById('filtersModal');
+    const content = document.getElementById('filtersModalContent');
+
+    content.classList.remove('translate-y-0');
+    content.classList.add('translate-y-full');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }, 300);
+}
+
+// ============================================================
+// FILTROS
+// ============================================================
+function limpiarTodosFiltros() {
+    if (confirm('¿Estás seguro de limpiar todos los filtros?')) {
+        window.location.href = '{{ route("catalogo.index") }}';
     }
+}
 
-    // ============================================================
-    // MODAL DE FILTROS
-    // ============================================================
-    function openFiltersModal() {
-        const modal = document.getElementById('filtersModal');
-        const content = document.getElementById('filtersModalContent');
+function eliminarFiltro(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.delete(param);
+    urlParams.delete('page');
+    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+    window.location.href = newUrl;
+}
 
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-white transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    toast.innerHTML = `
+        <i class="ph ${type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'} text-xl"></i>
+        <span class="text-sm font-medium">${message}</span>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
-        setTimeout(() => {
-            content.classList.remove('translate-y-full');
-            content.classList.add('translate-y-0');
-        }, 10);
-    }
+// ============================================================
+// UBICACIONES DINÁMICAS
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const filterState = document.getElementById('filter_state');
+    const filterMunicipality = document.getElementById('filter_municipality');
+    const filterCity = document.getElementById('filter_city');
 
-    function closeFiltersModal() {
-        const modal = document.getElementById('filtersModal');
-        const content = document.getElementById('filtersModalContent');
+    const filterStateModal = document.getElementById('filter_state_modal');
+    const filterMunicipalityModal = document.getElementById('filter_municipality_modal');
+    const filterCityModal = document.getElementById('filter_city_modal');
 
-        content.classList.remove('translate-y-0');
-        content.classList.add('translate-y-full');
-
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 300);
-    }
-
-    // ============================================================
-    // FILTROS
-    // ============================================================
-    function limpiarTodosFiltros() {
-        if (confirm('¿Estás seguro de limpiar todos los filtros?')) {
-            window.location.href = '{{ route("catalogo.index") }}';
+    function loadMunicipalities(stateId, municipalitySelect, citySelect) {
+        if (stateId) {
+            fetch(`/api/locations/municipalities/${stateId}`)
+                .then(response => response.json())
+                .then(municipalities => {
+                    municipalitySelect.disabled = false;
+                    municipalitySelect.innerHTML = '<option value="">Todos los municipios</option>';
+                    municipalities.forEach(municipality => {
+                        municipalitySelect.innerHTML += `<option value="${municipality.id}">${municipality.name}</option>`;
+                    });
+                    citySelect.disabled = true;
+                    citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
+                })
+                .catch(error => console.error('Error cargando municipios:', error));
+        } else {
+            municipalitySelect.disabled = true;
+            municipalitySelect.innerHTML = '<option value="">Todos los municipios</option>';
+            citySelect.disabled = true;
+            citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
         }
     }
 
-    function eliminarFiltro(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.delete(param);
-        urlParams.delete('page');
-        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-        window.location.href = newUrl;
-    }
-
-    // ============================================================
-    // TOAST
-    // ============================================================
-    function showToast(message, type = 'success') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-white transform transition-all duration-300 ${
-            type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        }`;
-        toast.innerHTML = `
-            <i class="ph ${type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'} text-xl"></i>
-            <span class="text-sm font-medium">${message}</span>
-        `;
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateX(100%)';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-
-    // ============================================================
-    // UBICACIONES DINÁMICAS
-    // ============================================================
-    document.addEventListener('DOMContentLoaded', function() {
-        const filterState = document.getElementById('filter_state');
-        const filterMunicipality = document.getElementById('filter_municipality');
-        const filterCity = document.getElementById('filter_city');
-
-        const filterStateModal = document.getElementById('filter_state_modal');
-        const filterMunicipalityModal = document.getElementById('filter_municipality_modal');
-        const filterCityModal = document.getElementById('filter_city_modal');
-
-        function loadMunicipalities(stateId, municipalitySelect, citySelect) {
-            if (stateId) {
-                fetch(`/api/locations/municipalities/${stateId}`)
-                    .then(response => response.json())
-                    .then(municipalities => {
-                        municipalitySelect.disabled = false;
-                        municipalitySelect.innerHTML = '<option value="">Todos los municipios</option>';
-                        municipalities.forEach(municipality => {
-                            municipalitySelect.innerHTML += `<option value="${municipality.id}">${municipality.name}</option>`;
-                        });
+    function loadCities(municipalityId, citySelect) {
+        if (municipalityId) {
+            // Obtener parroquias del municipio primero
+            fetch(`/api/locations/parishes/${municipalityId}`)
+                .then(response => response.json())
+                .then(parishes => {
+                    // Luego obtener ciudades de esas parroquias
+                    const parishIds = parishes.map(p => p.id);
+                    if (parishIds.length > 0) {
+                        // Llamar al endpoint que obtiene ciudades por parroquia
+                        // Usamos la primera parroquia para obtener ciudades
+                        fetch(`/api/locations/cities/${parishIds[0]}`)
+                            .then(response => response.json())
+                            .then(cities => {
+                                citySelect.disabled = false;
+                                citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
+                                cities.forEach(city => {
+                                    citySelect.innerHTML += `<option value="${city.id}">${city.name}</option>`;
+                                });
+                            });
+                    } else {
                         citySelect.disabled = true;
                         citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
-                    })
-                    .catch(error => console.error('Error cargando municipios:', error));
-            } else {
-                municipalitySelect.disabled = true;
-                municipalitySelect.innerHTML = '<option value="">Todos los municipios</option>';
-                citySelect.disabled = true;
-                citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
-            }
-        }
-
-        function loadCities(municipalityId, citySelect) {
-            if (municipalityId) {
-                fetch(`/api/locations/cities/${municipalityId}`)
-                    .then(response => response.json())
-                    .then(cities => {
-                        citySelect.disabled = false;
-                        citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
-                        cities.forEach(city => {
-                            citySelect.innerHTML += `<option value="${city.id}">${city.name}</option>`;
-                        });
-                    })
-                    .catch(error => console.error('Error cargando ciudades:', error));
-            } else {
-                citySelect.disabled = true;
-                citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
-            }
-        }
-
-        if (filterState) {
-            filterState.addEventListener('change', function() {
-                loadMunicipalities(this.value, filterMunicipality, filterCity);
-            });
-        }
-
-        if (filterMunicipality) {
-            filterMunicipality.addEventListener('change', function() {
-                loadCities(this.value, filterCity);
-            });
-        }
-
-        if (filterStateModal) {
-            filterStateModal.addEventListener('change', function() {
-                loadMunicipalities(this.value, filterMunicipalityModal, filterCityModal);
-            });
-        }
-
-        if (filterMunicipalityModal) {
-            filterMunicipalityModal.addEventListener('change', function() {
-                loadCities(this.value, filterCityModal);
-            });
-        }
-
-        document.querySelector('select[name="order_by"]')?.addEventListener('change', function() {
-            document.getElementById('filter-form').submit();
-        });
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const municipalityId = urlParams.get('municipality_id');
-        const cityId = urlParams.get('city_id');
-
-        if (municipalityId && filterMunicipality) {
-            fetch(`/api/locations/cities/${municipalityId}`)
-                .then(response => response.json())
-                .then(cities => {
-                    filterCity.disabled = false;
-                    filterCity.innerHTML = '<option value="">Todas las ciudades</option>';
-                    cities.forEach(city => {
-                        filterCity.innerHTML += `<option value="${city.id}" ${city.id == cityId ? 'selected' : ''}>${city.name}</option>`;
-                    });
-                    if (filterCityModal) {
-                        filterCityModal.disabled = false;
-                        filterCityModal.innerHTML = filterCity.innerHTML;
                     }
+                })
+                .catch(error => {
+                    console.error('Error cargando ciudades:', error);
+                    citySelect.disabled = true;
+                    citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
                 });
+        } else {
+            citySelect.disabled = true;
+            citySelect.innerHTML = '<option value="">Todas las ciudades</option>';
         }
+    }
+
+    if (filterState) {
+        filterState.addEventListener('change', function() {
+            loadMunicipalities(this.value, filterMunicipality, filterCity);
+        });
+    }
+
+    if (filterMunicipality) {
+        filterMunicipality.addEventListener('change', function() {
+            loadCities(this.value, filterCity);
+        });
+    }
+
+    if (filterStateModal) {
+        filterStateModal.addEventListener('change', function() {
+            loadMunicipalities(this.value, filterMunicipalityModal, filterCityModal);
+        });
+    }
+
+    if (filterMunicipalityModal) {
+        filterMunicipalityModal.addEventListener('change', function() {
+            loadCities(this.value, filterCityModal);
+        });
+    }
+
+    document.querySelector('select[name="order_by"]')?.addEventListener('change', function() {
+        document.getElementById('filter-form').submit();
     });
+});
 </script>
 @endpush
 @endsection

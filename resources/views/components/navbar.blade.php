@@ -1,15 +1,20 @@
 <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-500" id="navbar"
-     x-data="{ mobileMenuOpen: false }">
+     x-data="{ mobileMenuOpen: false, mobileProfileOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20 items-center">
-            <!-- Logo -->
-            <a href="{{ route('home') }}" class="flex items-center gap-2 group">
-                <div class="w-10 h-10 border-2 border-mso-gold flex items-center justify-center text-mso-gold font-serif font-bold text-xl group-hover:bg-mso-gold group-hover:text-white transition-all duration-300">M</div>
-                <div class="flex flex-col">
-                    <span class="font-serif font-bold text-xl text-slate-800 leading-none tracking-wide group-hover:text-mso-blue transition-colors">MSO</span>
-                    <span class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Inmobiliaria</span>
-                </div>
-            </a>
+            
+           <!-- Logo -->
+<a href="{{ route('home') }}" class="flex items-center gap-3 group">
+    <div class="w-16 h-16 border-2 border-mso-gold flex items-center justify-center overflow-hidden rounded-xl transition-all duration-300">
+        <img src="{{ asset('favicon-96x96.png') }}" 
+             alt="MSO" 
+             class="w-14 h-14 object-contain transition-all duration-300">
+    </div>
+    <div class="flex flex-col">
+        <span class="font-serif font-bold text-xl text-slate-800 leading-none tracking-wide group-hover:text-mso-blue transition-colors">MSO</span>
+        <span class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Inmobiliaria</span>
+    </div>
+</a>
 
             <!-- Desktop Menu -->
             <div class="hidden md:flex items-center space-x-8">
@@ -47,8 +52,8 @@
                             <i class="ph ph-squares-four mr-1"></i> Dashboard
                         </a>
 
-                        {{-- NOTIFICACIONES --}}
-                        <div class="relative" x-data="{
+                        {{-- NOTIFICACIONES SOLO DESKTOP --}}
+                        <div class="relative hidden md:block" x-data="{
                             open: false,
                             unreadCount: {{ Auth::user()->unreadNotificationsCount() ?? 0 }}
                         }"
@@ -140,7 +145,8 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('profile.index') }}" class="relative">
+                        {{-- FOTO DE PERFIL SOLO DESKTOP --}}
+                        <a href="{{ route('profile.index') }}" class="relative hidden md:block">
                             <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
                                  class="w-10 h-10 rounded-full border-2 border-mso-gold object-cover hover:opacity-80 transition-opacity"
                                  alt="{{ $user->name }}">
@@ -156,10 +162,85 @@
             <!-- Mobile Menu Button -->
             <div class="md:hidden flex items-center gap-3">
                 @auth
-                    <a href="{{ $dashboardRoute ?? route('dashboard') }}" class="text-mso-blue">
-                        <i class="ph ph-squares-four text-xl"></i>
-                    </a>
+                    {{-- Foto de perfil con menú desplegable en móvil --}}
+                    <div class="relative inline-block">
+                        <button @click="mobileProfileOpen = !mobileProfileOpen" 
+                                type="button"
+                                class="relative focus:outline-none">
+                            <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
+                                 class="w-9 h-9 rounded-full border-2 border-mso-gold object-cover hover:opacity-80 transition-opacity"
+                                 alt="{{ $user->name }}">
+                        </button>
+
+                        {{-- Menú desplegable móvil --}}
+                        <div x-show="mobileProfileOpen" 
+                             @click.away="mobileProfileOpen = false"
+                             x-cloak
+                             class="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-2xl z-[999]">
+                            
+                            {{-- Información del usuario --}}
+                            <div class="p-4 border-b border-slate-100 bg-slate-50 rounded-t-lg">
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
+                                         class="w-10 h-10 rounded-full border-2 border-mso-gold object-cover"
+                                         alt="{{ $user->name }}">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-bold text-slate-800 truncate">{{ $user->name }}</p>
+                                        <p class="text-[10px] text-slate-500 truncate">
+                                            @if($user->hasRole('Super Admin')) Super Admin
+                                            @elseif($user->hasRole('Administrador')) Administrador
+                                            @elseif($user->hasRole('Asesor Inmobiliario')) Asesor
+                                            @elseif($user->hasRole('Auditor')) Auditor
+                                            @else Cliente @endif
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Opciones del menú --}}
+                            <div class="p-2">
+                                <a href="{{ $dashboardRoute }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-700 hover:text-mso-gold hover:bg-slate-50 rounded-lg transition-colors">
+                                    <i class="ph ph-squares-four text-lg"></i>
+                                    Dashboard
+                                </a>
+                                <a href="{{ route('profile.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-700 hover:text-mso-gold hover:bg-slate-50 rounded-lg transition-colors">
+                                    <i class="ph ph-user text-lg"></i>
+                                    Mi Perfil
+                                </a>
+                                
+                                {{-- Notificaciones en el menú móvil --}}
+                                <a href="{{ route('profile.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-700 hover:text-mso-gold hover:bg-slate-50 rounded-lg transition-colors">
+                                    <div class="relative">
+                                        <i class="ph ph-bell text-lg"></i>
+                                        @if(Auth::user()->unreadNotificationsCount() > 0)
+                                            <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                                                <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                                                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                            </span>
+                                        @endif
+                                    </div>
+                                    Notificaciones
+                                    @if(Auth::user()->unreadNotificationsCount() > 0)
+                                        <span class="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                                            {{ Auth::user()->unreadNotificationsCount() }}
+                                        </span>
+                                    @endif
+                                </a>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                                        <i class="ph ph-sign-out text-lg"></i>
+                                        Cerrar Sesión
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 @endauth
+                
                 <button @click="mobileMenuOpen = !mobileMenuOpen"
                         class="text-slate-600 hover:text-mso-blue p-2 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none">
                     <i class="ph" :class="mobileMenuOpen ? 'ph-x text-2xl' : 'ph-list text-2xl'"></i>
@@ -184,21 +265,15 @@
             <a href="{{ route('servicios.public') }}" class="block text-sm font-medium {{ request()->routeIs('servicios.public') ? 'text-mso-gold' : 'text-slate-600' }} hover:text-mso-gold transition-colors py-2 px-3 rounded-lg hover:bg-slate-50">Servicios</a>
             <a href="#vender" class="block text-sm font-medium text-white bg-mso-blue px-5 py-2.5 rounded-full hover:bg-slate-800 transition-colors text-center">Vender/Alquilar</a>
 
-            <div class="border-t border-slate-100 pt-3 mt-2">
-                @auth
-                    <a href="{{ $dashboardRoute ?? route('dashboard') }}" class="block text-sm font-medium text-white bg-mso-gold px-5 py-2.5 rounded-full hover:bg-yellow-600 transition-colors text-center">Dashboard</a>
-                    <a href="{{ route('profile.index') }}" class="block text-sm font-medium text-slate-600 hover:text-mso-gold transition-colors py-2 px-3 rounded-lg hover:bg-slate-50 text-center">Mi Perfil</a>
-                    <form method="POST" action="{{ route('logout') }}" class="block mt-1">
-                        @csrf
-                        <button type="submit" class="w-full text-sm font-medium text-red-500 hover:text-red-700 transition-colors py-2 px-3 rounded-lg hover:bg-red-50">Cerrar Sesión</button>
-                    </form>
-                @else
+            {{-- Usuarios no autenticados --}}
+            @guest
+                <div class="border-t border-slate-100 pt-3 mt-2">
                     <button onclick="openModal('auth-modal')"
                             class="w-full text-sm font-medium text-slate-600 border border-slate-300 px-5 py-2.5 rounded-full hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all">
                         Ingresar
                     </button>
-                @endauth
-            </div>
+                </div>
+            @endguest
         </div>
     </div>
 </nav>

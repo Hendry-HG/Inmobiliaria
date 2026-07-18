@@ -43,10 +43,21 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Índices
-            $table->index(['status', 'asesor_id']);
+            // ============================================================
+            //  ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
             $table->index('email');
             $table->index('phone');
+            $table->index('status');
+            $table->index('asesor_id');
+            $table->index('user_id');
+            $table->index('property_id');
+            $table->index('created_at');
+            $table->index(['status', 'asesor_id']);
+            $table->index(['email', 'status']);
+            $table->index(['phone', 'status']);
+            $table->index(['asesor_id', 'created_at']);
+            $table->index(['status', 'created_at']);
         });
     }
 

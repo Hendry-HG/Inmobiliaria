@@ -1,11 +1,11 @@
 <?php
-// bootstrap/app.php
+
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\CheckAccountActive;
-use App\Http\Middleware\SecurityHeaders; // ✅ IMPORTAR
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VerifyCsrfToken;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -21,13 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
-
             'check.account.active' => CheckAccountActive::class,
             'VerifyCsrfToken' => VerifyCsrfToken::class,
-            'security.headers' => SecurityHeaders::class, //  REGISTRADO
+            'security.headers' => SecurityHeaders::class,
         ]);
 
-        //  AGREGAR SECURITY HEADERS A TODAS LAS RUTAS WEB
+        // Agregar Security Headers a todas las rutas web
         $middleware->append(SecurityHeaders::class);
 
         // Configurar redirección para invitados

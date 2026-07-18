@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/PropertyController.php
 
 namespace App\Http\Controllers;
 
@@ -57,7 +56,6 @@ class PropertyController extends Controller
             $query->where('type', $request->type);
         }
 
-        //  CORREGIDO: Inyección SQL
         if ($request->filled('search')) {
             $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
@@ -101,7 +99,6 @@ class PropertyController extends Controller
 
         $properties = $query->latest()->paginate(10)->withQueryString();
 
-        //  OPTIMIZADO: Cachear ubicaciones
         $categories = Category::all();
         $countries = Cache::remember('countries_list', 86400, function() {
             return Country::orderBy('name')->get();
@@ -178,7 +175,6 @@ class PropertyController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        //  CORREGIDO: Inyección SQL
         if ($request->filled('search')) {
             $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
@@ -240,7 +236,6 @@ class PropertyController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        //  OPTIMIZADO: withCount en lugar de N+1
         $states = State::where('country_id', $venezuelaId)
             ->withCount(['properties' => function($q) {
                 $q->where('status', 'publicada');
@@ -260,12 +255,16 @@ class PropertyController extends Controller
 
         $cities = collect();
         if ($request->filled('municipality_id')) {
-            $cities = City::where('municipality_id', $request->municipality_id)
-                ->withCount(['properties' => function($q) {
-                    $q->where('status', 'publicada');
-                }])
-                ->orderBy('name')
-                ->get();
+            $parishIds = Parish::where('municipality_id', $request->municipality_id)->pluck('id');
+
+            if ($parishIds->isNotEmpty()) {
+                $cities = City::whereIn('parish_id', $parishIds)
+                    ->withCount(['properties' => function($q) {
+                        $q->where('status', 'publicada');
+                    }])
+                    ->orderBy('name')
+                    ->get();
+            }
         }
 
         $totalProperties = Property::where('status', 'publicada')
@@ -413,7 +412,6 @@ class PropertyController extends Controller
             $data['features'] = $request->input('features', []);
             $data['location'] = $this->buildLocationString($data);
 
-            //  SANITIZAR DESCRIPCIÓN
             $data['description'] = strip_tags($data['description'], '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4>');
 
             $property = Property::create($data);
@@ -422,7 +420,6 @@ class PropertyController extends Controller
                 foreach ($request->file('images') as $index => $file) {
                     $path = $file->store('properties', 'public');
 
-                    //  GENERAR THUMBNAIL
                     $thumbnailPath = null;
                     try {
                         $image = \Intervention\Image\Facades\Image::make($file);
@@ -528,11 +525,9 @@ class PropertyController extends Controller
             abort(403, 'No tienes permiso para actualizar propiedades.');
         }
 
-        //  VALIDAR IMÁGENES ELIMINADAS
         $deletedImages = [];
         if ($request->filled('deleted_images')) {
             $ids = explode(',', $request->input('deleted_images'));
-            // Validar que los IDs pertenezcan a esta propiedad
             $deletedImages = $property->images()
                 ->whereIn('id', $ids)
                 ->pluck('id')
@@ -579,12 +574,10 @@ class PropertyController extends Controller
             $data['features'] = $request->input('features', []);
             $data['location'] = $this->buildLocationString($data);
 
-            //  SANITIZAR DESCRIPCIÓN
             $data['description'] = strip_tags($data['description'], '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4>');
 
             $property->update($data);
 
-            //  ELIMINAR IMÁGENES SELECCIONADAS
             if (!empty($deletedImages)) {
                 $imagesToDelete = $property->images()->whereIn('id', $deletedImages)->get();
                 foreach ($imagesToDelete as $image) {
@@ -598,7 +591,6 @@ class PropertyController extends Controller
                 }
             }
 
-            //  SUBIR NUEVAS IMÁGENES
             if ($request->hasFile('images')) {
                 $hasPrimary = $property->images()->where('is_primary', true)->exists();
                 $currentMaxOrder = $property->images()->max('order') ?? 0;
@@ -606,7 +598,6 @@ class PropertyController extends Controller
                 foreach ($request->file('images') as $index => $file) {
                     $path = $file->store('properties', 'public');
 
-                    //  GENERAR THUMBNAIL
                     $thumbnailPath = null;
                     try {
                         $image = \Intervention\Image\Facades\Image::make($file);
@@ -630,7 +621,6 @@ class PropertyController extends Controller
                 }
             }
 
-            // Auditoría
             $changes = [];
             $fieldLabels = [
                 'title' => 'título', 'description' => 'descripción',
@@ -645,7 +635,7 @@ class PropertyController extends Controller
             foreach ($data as $key => $value) {
                 if (isset($oldValues[$key]) && $oldValues[$key] != $value && $key !== 'updated_at') {
                     $label = $fieldLabels[$key] ?? $key;
-                    $changes[] = "{$label}: '{$oldValues[$key]}' → '{$value}'";
+                    $changes[] = "{$label}: '" . ($oldValues[$key] ?? 'vacío') . "' → '" . ($value ?? 'vacío') . "'";
                 }
             }
 
@@ -788,7 +778,6 @@ class PropertyController extends Controller
         return implode(', ', $parts);
     }
 
-    //  CON CACHÉ
     public function getStates($countryId)
     {
         return Cache::remember("states_country_{$countryId}", 86400, function() use ($countryId) {

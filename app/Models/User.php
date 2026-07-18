@@ -1,5 +1,4 @@
 <?php
-// app/Models/User.php
 
 namespace App\Models;
 
@@ -35,17 +34,17 @@ class User extends Authenticatable implements CanResetPasswordContract
         'email',
         'password',
         'phone',
-        
+
         // ============ PERFIL ============
         'profile_photo',
         'bio',
         'specialization',
         'social_links',
-        
+
         // ============ IDENTIFICACIÓN ============
         'id_type',
         'id_number',
-        
+
         // ============ UBICACIÓN ============
         'address',
         'country_id',
@@ -53,19 +52,19 @@ class User extends Authenticatable implements CanResetPasswordContract
         'municipality_id',
         'parish_id',
         'city_id',
-        
+
         // ============ ESTADO ============
         'is_active',
         'is_online',
         'last_seen_at',
         'email_verified_at',
-        
+
         // ============ SEGURIDAD ============
-        'security_questions',      
-        'security_answer_1',       
-        'security_answer_2',       
-        'security_answer_3',       
-        'security_questions_set_at', 
+        'security_questions',
+        'security_answer_1',
+        'security_answer_2',
+        'security_answer_3',
+        'security_questions_set_at',
     ];
 
     protected $hidden = [
@@ -83,7 +82,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         'is_active' => 'boolean',
         'is_online' => 'boolean',
         'last_seen_at' => 'datetime',
-        'security_questions' => 'array', 
+        'security_questions' => 'array',
     ];
 
     // ==========================================

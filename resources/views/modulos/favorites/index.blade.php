@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        {{-- Grid de propiedades favoritas - TARJETAS MÁS ANCHAS Y COMPACTAS --}}
+        {{-- Grid de propiedades favoritas --}}
         @if($paginatedProperties->count() > 0)
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 @foreach($paginatedProperties as $property)
@@ -66,7 +66,7 @@
                             </form>
                         </a>
 
-                        {{-- Contenido - Compacto --}}
+                        {{-- Contenido --}}
                         <div class="p-4">
                             <h3 class="font-bold text-gray-800 text-base mb-1 line-clamp-1">
                                 <a href="{{ route('catalogo.show', $property->id) }}" class="hover:text-mso-blue transition-colors">

@@ -20,7 +20,13 @@ return new class extends Migration
             $table->integer('size')->nullable();
             $table->timestamps();
 
+            // ============================================================
+            //  ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
+            $table->index('property_id');
+            $table->index('is_primary');
             $table->index(['property_id', 'is_primary']);
+            $table->index(['property_id', 'order']);
         });
     }
 

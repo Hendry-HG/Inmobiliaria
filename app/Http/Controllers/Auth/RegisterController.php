@@ -50,19 +50,19 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        // 🔍 LOG PARA DEPURACIÓN
-        Log::info('🔵 Registro iniciado', [
+        //  LOG PARA DEPURACIÓN
+        Log::info(' Registro iniciado', [
             'email' => $request->email,
             'has_phone' => $request->has('phone'),
         ]);
 
-        // ✅ VALIDACIÓN SIMPLE PERO SEGURA (COMO EL VIEJO)
+        //  VALIDACIÓN SIMPLE PERO SEGURA (COMO EL VIEJO)
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'], // ✅ 8 caracteres como el viejo
-            'phone' => ['nullable', 'string', 'max:20'], // ✅ NULLABLE como el viejo
+            'password' => ['required', 'string', 'min:8', 'confirmed'], 
+            'phone' => ['nullable', 'string', 'max:20'], 
             'address' => ['nullable', 'string', 'max:500'],
             'id_type' => ['nullable', 'string', 'in:V,E,J'],
             'id_number' => ['nullable', 'string', 'max:20', Rule::unique('users', 'id_number')->whereNull('deleted_at')],
@@ -71,9 +71,9 @@ class RegisterController extends Controller
             'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'parish_id' => ['nullable', 'integer', 'exists:parishes,id'],
             'city_id' => ['nullable', 'integer', 'exists:cities,id'],
-            'terms' => ['required', 'accepted'], // ✅ COMO EL VIEJO
+            'terms' => ['required', 'accepted'], 
 
-            // ✅ PREGUNTAS DE SEGURIDAD (COMO EL VIEJO)
+            //  PREGUNTAS DE SEGURIDAD 
             'security_question_1' => ['required', 'string', 'in:' . implode(',', $this->securityQuestions)],
             'security_answer_1' => ['required', 'string', 'min:2', 'max:255'],
             'security_question_2' => ['required', 'string', 'in:' . implode(',', $this->securityQuestions)],
@@ -82,7 +82,7 @@ class RegisterController extends Controller
             'security_answer_3' => ['required', 'string', 'min:2', 'max:255'],
         ]);
 
-        // ✅ VALIDAR QUE LAS PREGUNTAS SEAN DIFERENTES
+        //  VALIDAR QUE LAS PREGUNTAS SEAN DIFERENTES
         $questions = [
             $validated['security_question_1'],
             $validated['security_question_2'],
@@ -97,20 +97,20 @@ class RegisterController extends Controller
         }
 
         try {
-            // ✅ PROCESAR TELÉFONO (SIMPLE)
+            //  PROCESAR TELÉFONO 
             $phone = $validated['phone'] ?? null;
             if ($phone) {
                 $phone = preg_replace('/[^0-9]/', '', $phone);
             }
 
-            // ✅ HASH DE RESPUESTAS DE SEGURIDAD
+            //  HASH DE RESPUESTAS DE SEGURIDAD
             $hashedAnswers = [
                 Hash::make($validated['security_answer_1']),
                 Hash::make($validated['security_answer_2']),
                 Hash::make($validated['security_answer_3'])
             ];
 
-            // ✅ CREAR USUARIO (SIMPLE)
+            // CREAR USUARIO 
             $user = User::create([
                 'name' => $validated['name'],
                 'last_name' => $validated['last_name'] ?? null,
@@ -133,24 +133,24 @@ class RegisterController extends Controller
                 'security_questions_set_at' => now(),
             ]);
 
-            Log::info('✅ Usuario creado', ['user_id' => $user->id, 'email' => $user->email]);
+            Log::info(' Usuario creado', ['user_id' => $user->id, 'email' => $user->email]);
 
-            // ✅ ASIGNAR ROL
+            //  ASIGNAR ROL
             $clienteRole = Role::firstOrCreate(
                 ['name' => 'Cliente', 'guard_name' => 'web']
             );
             $user->assignRole($clienteRole);
 
-            // ✅ INICIAR SESIÓN
+            //  INICIAR SESIÓN
             Auth::login($user);
 
-            Log::info('✅ Registro completado', ['user_id' => $user->id]);
+            Log::info(' Registro completado', ['user_id' => $user->id]);
 
             return redirect()->route('cliente.dashboard')
                 ->with('success', '¡Bienvenido ' . $user->full_name . '!');
 
         } catch (\Illuminate\Database\QueryException $e) {
-            Log::error('❌ Error DB en registro', [
+            Log::error(' Error DB en registro', [
                 'email' => $validated['email'] ?? 'unknown',
                 'error' => $e->getMessage()
             ]);
@@ -173,7 +173,7 @@ class RegisterController extends Controller
                 ->withErrors(['error' => $errorMessage]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error general en registro', [
+            Log::error(' Error general en registro', [
                 'email' => $validated['email'] ?? 'unknown',
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),

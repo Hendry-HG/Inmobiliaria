@@ -4,7 +4,7 @@
         <!-- ============================================ -->
         <!-- BOTÓN CERRAR -->
         <!-- ============================================ -->
-        <button onclick="closeModal('auth-modal')" 
+        <button onclick="closeModal('auth-modal')"
                 class="absolute top-5 right-5 text-slate-400 hover:text-slate-800 transition-colors z-10 bg-white/80 rounded-full p-1"
                 aria-label="Cerrar modal">
             <i class="ph ph-x text-xl"></i>
@@ -16,12 +16,12 @@
         <div class="bg-slate-50 p-6 border-b border-slate-100">
             <div class="flex justify-between items-center mb-2">
                 <h3 id="modal-title" class="font-serif text-2xl font-bold text-slate-900">Bienvenido</h3>
-                <!-- ✅ INDICADOR DE PASO - SOLO VISIBLE EN REGISTRO -->
+                <!--  INDICADOR DE PASO - SOLO VISIBLE EN REGISTRO -->
                 <span id="step-indicator" class="text-sm text-slate-400 font-medium hidden">Paso 1 de 3</span>
             </div>
             <p id="modal-subtitle" class="text-slate-500 text-sm">Ingresa a tu cuenta para continuar</p>
-            
-            <!-- ✅ BARRA DE PROGRESO - SOLO VISIBLE EN REGISTRO -->
+
+            <!--  BARRA DE PROGRESO - SOLO VISIBLE EN REGISTRO -->
             <div id="progress-bar-container" class="mt-4 flex gap-1 hidden">
                 <div id="step-bar-1" class="h-1 flex-1 rounded-full bg-mso-gold transition-all duration-500"></div>
                 <div id="step-bar-2" class="h-1 flex-1 rounded-full bg-slate-200 transition-all duration-500"></div>
@@ -64,7 +64,7 @@
                 </div>
                 <div class="flex justify-between items-center">
                     <div class="flex items-center">
-                        <input type="checkbox" name="remember" id="remember" 
+                        <input type="checkbox" name="remember" id="remember"
                                class="rounded border-slate-300 text-mso-gold focus:ring-mso-gold">
                         <label for="remember" class="ml-2 text-xs text-slate-600">Recordarme</label>
                     </div>
@@ -114,7 +114,7 @@
                     <p class="text-xs text-slate-500">
                         <i class="ph ph-info mr-1 text-slate-400"></i>
                         ¿No tienes preguntas de seguridad configuradas?
-                        <a href="{{ route('security.recovery.form') }}" target="_blank" rel="noopener noreferrer" 
+                        <a href="{{ route('security.recovery.form') }}" target="_blank" rel="noopener noreferrer"
                            class="text-mso-gold hover:underline font-medium">
                             Ir a la página de recuperación
                         </a>
@@ -191,7 +191,7 @@
                     </div>
 
                     <div class="flex justify-end pt-2">
-                        <button type="button" onclick="goToStep(2)" 
+                        <button type="button" onclick="goToStep(2)"
                                 class="px-6 py-2 bg-mso-gold text-slate-900 font-medium rounded-sm hover:bg-yellow-600 transition-colors text-sm">
                             Siguiente <i class="ph ph-arrow-right ml-1"></i>
                         </button>
@@ -205,7 +205,7 @@
                     <div class="space-y-4">
                         <div>
                             <label for="reg_country_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">País *</label>
-                            <select name="country_id" id="reg_country_id" required 
+                            <select name="country_id" id="reg_country_id" required
                                     class="w-full border-b-2 border-slate-200 py-2 text-slate-900 focus:outline-none focus:border-mso-gold transition-colors bg-transparent">
                                 <option value="">Cargando países...</option>
                             </select>
@@ -213,7 +213,7 @@
 
                         <div>
                             <label for="reg_state_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Estado</label>
-                            <select name="state_id" id="reg_state_id" 
+                            <select name="state_id" id="reg_state_id"
                                     class="w-full border-b-2 border-slate-200 py-2 text-slate-900 focus:outline-none focus:border-mso-gold transition-colors bg-transparent" disabled>
                                 <option value="">Primero seleccione un país</option>
                             </select>
@@ -221,7 +221,7 @@
 
                         <div>
                             <label for="reg_municipality_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Municipio</label>
-                            <select name="municipality_id" id="reg_municipality_id" 
+                            <select name="municipality_id" id="reg_municipality_id"
                                     class="w-full border-b-2 border-slate-200 py-2 text-slate-900 focus:outline-none focus:border-mso-gold transition-colors bg-transparent" disabled>
                                 <option value="">Primero seleccione un estado</option>
                             </select>
@@ -229,7 +229,7 @@
 
                         <div>
                             <label for="reg_parish_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Parroquia</label>
-                            <select name="parish_id" id="reg_parish_id" 
+                            <select name="parish_id" id="reg_parish_id"
                                     class="w-full border-b-2 border-slate-200 py-2 text-slate-900 focus:outline-none focus:border-mso-gold transition-colors bg-transparent" disabled>
                                 <option value="">Primero seleccione un municipio</option>
                             </select>
@@ -237,7 +237,7 @@
 
                         <div>
                             <label for="reg_city_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ciudad</label>
-                            <select name="city_id" id="reg_city_id" 
+                            <select name="city_id" id="reg_city_id"
                                     class="w-full border-b-2 border-slate-200 py-2 text-slate-900 focus:outline-none focus:border-mso-gold transition-colors bg-transparent" disabled>
                                 <option value="">Primero seleccione una parroquia</option>
                             </select>
@@ -252,11 +252,11 @@
                     </div>
 
                     <div class="flex justify-between pt-2">
-                        <button type="button" onclick="goToStep(1)" 
+                        <button type="button" onclick="goToStep(1)"
                                 class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-sm hover:bg-slate-300 transition-colors text-sm">
                             <i class="ph ph-arrow-left mr-1"></i> Anterior
                         </button>
-                        <button type="button" onclick="goToStep(3)" 
+                        <button type="button" onclick="goToStep(3)"
                                 class="px-6 py-2 bg-mso-gold text-slate-900 font-medium rounded-sm hover:bg-yellow-600 transition-colors text-sm">
                             Siguiente <i class="ph ph-arrow-right ml-1"></i>
                         </button>
@@ -413,7 +413,7 @@
 
                     <!-- Términos -->
                     <div class="flex items-center">
-                        <input type="checkbox" name="terms" id="terms" required 
+                        <input type="checkbox" name="terms" id="terms" required
                                class="rounded border-slate-300 text-mso-gold focus:ring-mso-gold">
                         <label for="terms" class="ml-2 block text-xs text-slate-600">
                             Acepto los <a href="#" class="text-mso-gold hover:underline font-medium">Términos y Condiciones</a>
@@ -422,11 +422,11 @@
                     </div>
 
                     <div class="flex justify-between pt-2">
-                        <button type="button" onclick="goToStep(2)" 
+                        <button type="button" onclick="goToStep(2)"
                                 class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-sm hover:bg-slate-300 transition-colors text-sm">
                             <i class="ph ph-arrow-left mr-1"></i> Anterior
                         </button>
-                        <button type="submit" id="register-submit" 
+                        <button type="submit" id="register-submit"
                                 class="px-8 py-2 bg-mso-gold text-slate-900 font-bold rounded-sm hover:bg-yellow-600 transition-colors shadow-lg text-sm">
                             <i class="ph ph-check-circle mr-1"></i> CREAR CUENTA
                         </button>
@@ -439,15 +439,15 @@
         <!-- FOOTER TABS -->
         <!-- ============================================ -->
         <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-between items-center">
-            <button onclick="switchAuthTab('login')" id="tab-login" 
+            <button onclick="switchAuthTab('login')" id="tab-login"
                     class="text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors">
                 Iniciar Sesión
             </button>
-            <button onclick="switchAuthTab('register')" id="tab-register" 
+            <button onclick="switchAuthTab('register')" id="tab-register"
                     class="text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors">
                 Registrarse
             </button>
-            <button onclick="switchAuthTab('forgot')" id="tab-forgot" 
+            <button onclick="switchAuthTab('forgot')" id="tab-forgot"
                     class="text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors hidden">
                 Recuperar
             </button>
@@ -470,7 +470,7 @@
         <div class="w-full bg-slate-200 rounded-full h-1.5 mb-4">
             <div id="success-progress" class="bg-mso-gold h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
         </div>
-        <button onclick="closeModal('auth-modal'); closeModal('success-modal')" 
+        <button onclick="closeModal('auth-modal'); closeModal('success-modal')"
                 class="w-full bg-mso-gold text-slate-900 font-bold py-3 rounded-sm hover:bg-yellow-600 transition-colors">
             Ir al Dashboard
         </button>
@@ -497,8 +497,8 @@
     const originalSwitchAuthTab = window.switchAuthTab;
 
     window.switchAuthTab = function(tab) {
-        console.log('🔵 switchAuthTab llamado con:', tab);
-        
+        console.log(' switchAuthTab llamado con:', tab);
+
         const loginForm = document.getElementById('form-login');
         const registerForm = document.getElementById('form-register');
         const forgotForm = document.getElementById('form-forgot-password');
@@ -515,7 +515,7 @@
         if (forgotForm) forgotForm.classList.add('hidden');
         if (forgotTab) forgotTab.classList.add('hidden');
 
-        // ✅ OCULTAR LA BARRA DE PROGRESO POR DEFECTO
+        //  OCULTAR LA BARRA DE PROGRESO POR DEFECTO
         if (stepIndicator) stepIndicator.classList.add('hidden');
         if (progressContainer) progressContainer.classList.add('hidden');
 
@@ -533,11 +533,11 @@
             if (forgotTab) forgotTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
             if (modalTitle) modalTitle.textContent = 'Crear Cuenta';
             if (modalSubtitle) modalSubtitle.textContent = 'Únete a MSO Grupo Inmobiliario';
-            
-            // ✅ MOSTRAR LA BARRA DE PROGRESO Y EL INDICADOR SOLO EN REGISTRO
+
+            //  MOSTRAR LA BARRA DE PROGRESO Y EL INDICADOR SOLO EN REGISTRO
             if (stepIndicator) stepIndicator.classList.remove('hidden');
             if (progressContainer) progressContainer.classList.remove('hidden');
-            
+
             // Resetear al paso 1
             goToStep(1);
         } else if (tab === 'forgot') {
@@ -694,12 +694,12 @@
             const passInput = document.getElementById('reg-pass');
             const passConfirm = document.getElementById('reg-pass-confirm');
             const passError = document.getElementById('pass-error');
-            
+
             if (passInput.value.length < 8) {
                 isValid = false;
                 errorMessages.push('La contraseña debe tener al menos 8 caracteres');
             }
-            
+
             if (passInput.value !== passConfirm.value) {
                 if (passError) passError.classList.remove('hidden');
                 passConfirm.style.borderColor = '#ef4444';
@@ -714,12 +714,12 @@
             const q2 = document.getElementById('reg_security_question_2');
             const q3 = document.getElementById('reg_security_question_3');
             const questions = [q1?.value || '', q2?.value || '', q3?.value || ''];
-            
+
             if (questions.some(q => q === '')) {
                 isValid = false;
                 errorMessages.push('Debes seleccionar 3 preguntas de seguridad');
             }
-            
+
             if (questions.every(q => q !== '') && new Set(questions).size < 3) {
                 isValid = false;
                 errorMessages.push('Las preguntas de seguridad deben ser diferentes');
@@ -729,7 +729,7 @@
             const a2 = document.getElementById('reg_security_answer_2');
             const a3 = document.getElementById('reg_security_answer_3');
             const answers = [a1?.value || '', a2?.value || '', a3?.value || ''];
-            
+
             if (answers.some(a => a.trim().length < 2)) {
                 isValid = false;
                 errorMessages.push('Las respuestas deben tener al menos 2 caracteres');
@@ -754,7 +754,7 @@
                 submitBtn.textContent = '⚠️ ' + errorMessages[0];
                 submitBtn.style.backgroundColor = '#ef4444';
                 submitBtn.style.color = 'white';
-                
+
                 setTimeout(() => {
                     submitBtn.textContent = originalText;
                     submitBtn.style.backgroundColor = '';
@@ -801,10 +801,10 @@
 
             if (strengthDiv) {
                 if (requirements.length === 0) {
-                    strengthDiv.innerHTML = '✅ Contraseña segura';
+                    strengthDiv.innerHTML = ' Contraseña segura';
                     strengthDiv.className = 'text-xs mt-1 text-green-600';
                 } else {
-                    strengthDiv.innerHTML = '⚠️ Falta: ' + requirements.join(', ');
+                    strengthDiv.innerHTML = ' Falta: ' + requirements.join(', ');
                     strengthDiv.className = 'text-xs mt-1 text-red-500';
                 }
             }
@@ -812,7 +812,7 @@
 
         function validatePasswordMatch() {
             if (!passError) return true;
-            
+
             if (passConfirm.value && passInput.value !== passConfirm.value) {
                 passError.classList.remove('hidden');
                 passConfirm.style.borderColor = '#ef4444';
@@ -947,7 +947,7 @@
 
         phoneInput.addEventListener('input', function() {
             this.value = this.value.replace(/[^0-9]/g, '');
-            
+
             const errorEl = document.querySelector('[data-for="phone"]');
             if (this.value.length > 0 && this.value.length < 7) {
                 if (errorEl) {

@@ -8,6 +8,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('favicon-96x96.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -134,7 +139,7 @@
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
-                console.log('✅ Modal abierto:', modalId);
+                console.log(' Modal abierto:', modalId);
 
                 // Marcar que el modal fue abierto recientemente
                 modalJustOpened = true;
@@ -151,12 +156,12 @@
         }
 
         function closeModal(modalId) {
-            console.log('🔵 Cerrando modal:', modalId);
+            console.log(' Cerrando modal:', modalId);
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.style.overflow = '';
-                console.log('✅ Modal cerrado:', modalId);
+                console.log(' Modal cerrado:', modalId);
             }
         }
 
@@ -210,18 +215,18 @@
 
         // Función de prueba para diagnóstico
         function testModal() {
-            console.log('🔵 TEST: Intentando abrir modal');
+            console.log(' TEST: Intentando abrir modal');
             const modal = document.getElementById('auth-modal');
-            console.log('🔵 Modal encontrado:', modal);
+            console.log(' Modal encontrado:', modal);
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
-                console.log('✅ Modal abierto desde TEST');
+                console.log(' Modal abierto desde TEST');
                 if (typeof switchAuthTab === 'function') {
                     switchAuthTab('login');
                 }
             } else {
-                console.error('❌ Modal NO encontrado');
+                console.error(' Modal NO encontrado');
                 alert('Modal no encontrado en el DOM');
             }
         }
@@ -253,16 +258,16 @@
             }
         });
 
-        console.log('✅ Funciones de modal cargadas globalmente');
+        console.log(' Funciones de modal cargadas globalmente');
     </script>
 
     {{-- VERIFICAR QUE PHOSPHOR ICONS CARGÓ --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof PhosphorIcons !== 'undefined') {
-                console.log('✅ Phosphor Icons cargado correctamente');
+                console.log(' Phosphor Icons cargado correctamente');
             } else {
-                console.warn('⚠️ Phosphor Icons no se cargó, intentando recargar...');
+                console.warn(' Phosphor Icons no se cargó, intentando recargar...');
                 const script = document.createElement('script');
                 script.src = 'https://unpkg.com/@phosphor-icons/web';
                 document.head.appendChild(script);

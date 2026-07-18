@@ -1,5 +1,4 @@
 <?php
-// routes/web.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -26,6 +25,7 @@ use App\Http\Controllers\Admin\SiteConfigController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\Api\AppointmentSettingController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\CategoryController; // <-- NUEVO
 
 // =====================================================
 // PÁGINA PRINCIPAL
@@ -63,25 +63,25 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])
         ->middleware('throttle:10,1');
-    
-    // ✅ REGISTER CORREGIDO - 5 intentos por minuto
+
+    // REGISTER CORREGIDO - 5 intentos por minuto
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register'])
         ->middleware('throttle:5,1');
-    
+
     // Recuperación de contraseña - 3 intentos cada 5 minutos
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])
         ->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
         ->name('password.email')
         ->middleware('throttle:3,5');
-    
+
     Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
         ->name('password.reset');
     Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
         ->name('password.update')
         ->middleware('throttle:5,1');
-    
+
     // Cuenta inactiva
     Route::get('/account/inactive', [LoginController::class, 'showInactiveAccount'])->name('account.inactive');
     Route::post('/account/reactivation/request', [LoginController::class, 'requestReactivation'])
@@ -305,6 +305,13 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::get('/users/{user}/modal-show', [UserController::class, 'modalShow'])->name('users.modal-show');
         Route::get('/users/{user}/modal-edit', [UserController::class, 'modalEdit'])->name('users.modal-edit');
         Route::get('/users/{user}/modal-delete', [UserController::class, 'modalDelete'])->name('users.modal-delete');
+
+        // =====================================================
+        // CATEGORÍAS - NUEVO
+        // =====================================================
+        Route::resource('categories', CategoryController::class)->except(['show']);
+        Route::patch('categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])
+            ->name('categories.toggle-status');
 
         // Propiedades
         Route::resource('properties', PropertyController::class);

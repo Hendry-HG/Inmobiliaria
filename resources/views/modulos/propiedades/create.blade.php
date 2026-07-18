@@ -330,29 +330,8 @@
             </div>
 
             {{-- ============================================ --}}
-            {{-- GEOLOCALIZACIÓN --}}
+            {{-- GEOLOCALIZACIÓN - ELIMINADA COMPLETAMENTE --}}
             {{-- ============================================ --}}
-            <div>
-                <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b">
-                    <i class="ph ph-map-trifold text-slate-400 mr-2"></i> Geolocalización
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Latitud</label>
-                        <input type="text" name="latitude" value="{{ old('latitude', $property->latitude ?? '') }}"
-                               class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition"
-                               placeholder="Ej: 10.500000">
-                        @error('latitude') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Longitud</label>
-                        <input type="text" name="longitude" value="{{ old('longitude', $property->longitude ?? '') }}"
-                               class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition"
-                               placeholder="Ej: -66.900000">
-                        @error('longitude') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-            </div>
 
             {{-- ============================================ --}}
             {{-- IMÁGENES --}}
@@ -439,6 +418,7 @@
         </form>
     </div>
 </div>
+@endsection
 
 @push('js')
 <script>
@@ -691,4 +671,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
-@endsection

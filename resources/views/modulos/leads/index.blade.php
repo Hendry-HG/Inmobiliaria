@@ -32,7 +32,7 @@
                     <option value="">Todos</option>
                     @foreach($asesores as $asesor)
                         <option value="{{ $asesor->id }}" {{ request('asesor_id') == $asesor->id ? 'selected' : '' }}>
-                            {{ $asesor->name }}
+                            {{ trim($asesor->name . ' ' . ($asesor->last_name ?? '')) }}
                         </option>
                     @endforeach
                 </select>
@@ -79,7 +79,7 @@
                         </td>
                         <td class="px-6 py-4">
                             @if($lead->asesor)
-                                <span class="text-sm">{{ $lead->asesor->name }}</span>
+                                <span class="text-sm">{{ trim($lead->asesor->name . ' ' . ($lead->asesor->last_name ?? '')) }}</span>
                             @else
                                 <span class="text-xs text-slate-400">Sin asignar</span>
                             @endif
@@ -114,7 +114,7 @@
                                     class="text-slate-500 hover:text-mso-blue transition-colors" title="Cambiar Estado">
                                     <i class="ph ph-arrow-counter-clockwise text-lg"></i>
                                 </button>
-                                <button onclick="openDeleteModal({{ $lead->id }}, '{{ $lead->name }}')"
+                                <button onclick="openDeleteModal({{ $lead->id }}, '{{ addslashes($lead->name) }}')"
                                     class="text-slate-500 hover:text-red-500 transition-colors" title="Eliminar">
                                     <i class="ph ph-trash text-lg"></i>
                                 </button>
@@ -238,25 +238,34 @@
             </button>
         </div>
         <div class="p-6">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="ph ph-warning text-3xl text-mso-blue"></i>
-                </div>
-                <h4 class="text-lg font-bold text-slate-800">¿Estás seguro?</h4>
-                <p class="text-sm text-slate-500 mt-2">Esta acción eliminará el lead <strong id="deleteLeadName"></strong> permanentemente.</p>
+            {{-- Icono --}}
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+                <i class="ph ph-trash text-3xl text-red-600"></i>
             </div>
-            <form id="deleteForm" method="POST">
-                @csrf
-                @method('DELETE')
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeDeleteModal()" class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-mso-blue text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/20">
-                        Eliminar
-                    </button>
-                </div>
-            </form>
+
+            {{-- Título --}}
+            <h4 class="text-lg font-bold text-slate-900 text-center mb-2">
+                ¿Eliminar lead?
+            </h4>
+
+            {{-- Mensaje --}}
+            <p class="text-sm text-slate-500 text-center mb-6">
+                ¿Estás seguro de eliminar el lead "<strong id="deleteLeadName" class="text-slate-700"></strong>"?
+                <br><span class="text-xs text-red-500">Esta acción no se puede deshacer.</span>
+            </p>
+
+            {{-- Botones --}}
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button type="button" onclick="closeDeleteModal()"
+                        class="px-6 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit" id="confirmDeleteBtn"
+                        class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <i class="ph ph-trash"></i>
+                    Sí, eliminar
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -292,6 +301,15 @@
             return response.json();
         })
         .then(data => {
+            // Construir nombre completo del asesor con apellido
+            let asesorFullName = 'Sin asignar';
+            if (data.asesor) {
+                asesorFullName = data.asesor.name;
+                if (data.asesor.last_name) {
+                    asesorFullName += ' ' + data.asesor.last_name;
+                }
+            }
+
             let html = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -312,7 +330,7 @@
                     </div>
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase">Asesor asignado</label>
-                        <p class="text-slate-800">${data.asesor ? data.asesor.name : 'Sin asignar'}</p>
+                        <p class="text-slate-800">${asesorFullName}</p>
                     </div>
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase">Fecha de solicitud</label>
@@ -329,34 +347,49 @@
                 `;
             }
 
-            // Mostrar preferencias de forma legible
+            // Mostrar preferencias de propiedad (excluyendo campos personales)
             if (data.preferences && Object.keys(data.preferences).length > 0) {
+                // Campos que NO deben mostrarse en la información de la propiedad
+                const excludeFields = ['last_name', 'name', 'email', 'phone', 'notes', 'asesor_id', 'user_id'];
+                
+                // Campos de propiedad con etiquetas amigables
                 const fieldLabels = {
                     'property_address': 'Dirección de la propiedad',
                     'property_type': 'Tipo de propiedad',
-                    'last_name': 'Apellido',
                     'bedrooms': 'Habitaciones',
                     'bathrooms': 'Baños',
                     'area': 'Área (m²)',
                     'budget': 'Presupuesto',
-                    'property_details': 'Detalles de la propiedad'
+                    'property_details': 'Detalles de la propiedad',
+                    'city': 'Ciudad',
+                    'state': 'Estado',
+                    'country': 'País',
+                    'property_id': 'ID de propiedad'
                 };
 
-                let prefHtml = `
-                    <div class="col-span-2">
-                        <label class="text-xs font-bold text-slate-500 uppercase">Información de la propiedad</label>
-                        <div class="bg-slate-50 p-4 rounded-lg space-y-1 text-sm text-slate-700">
-                `;
-
+                // Filtrar solo campos de propiedad
+                let propertyFields = {};
                 for (const [key, value] of Object.entries(data.preferences)) {
-                    if (value) {
-                        const label = fieldLabels[key] || key.replace('_', ' ');
-                        prefHtml += `<p><span class="font-medium">${label}:</span> ${value}</p>`;
+                    if (!excludeFields.includes(key) && value) {
+                        propertyFields[key] = value;
                     }
                 }
 
-                prefHtml += `</div></div>`;
-                html += prefHtml;
+                if (Object.keys(propertyFields).length > 0) {
+                    let prefHtml = `
+                        <div class="col-span-2">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Información de la propiedad</label>
+                            <div class="bg-slate-50 p-4 rounded-lg space-y-1 text-sm text-slate-700">
+                    `;
+
+                    for (const [key, value] of Object.entries(propertyFields)) {
+                        const label = fieldLabels[key] || key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        prefHtml += `<p><span class="font-medium">${label}:</span> ${value}</p>`;
+                    }
+
+                    prefHtml += `</div></div>`;
+                    html += prefHtml;
+                }
             }
 
             html += `</div>`;
@@ -507,46 +540,92 @@
     // ============================================================
     // FUNCIONES PARA MODAL ELIMINAR
     // ============================================================
+    let deleteLeadId = null;
+
     function openDeleteModal(id, name) {
+        deleteLeadId = id;
         const modal = document.getElementById('deleteModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
 
         document.getElementById('deleteLeadName').textContent = name;
-        const form = document.getElementById('deleteForm');
-        form.action = `/leads/${id}`;
-
-        form.onsubmit = function(e) {
-            e.preventDefault();
-            fetch(form.action, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const row = document.getElementById(`lead-row-${id}`);
-                    if (row) {
-                        row.remove();
-                    }
-                    closeDeleteModal();
-                } else {
-                    alert('Error: ' + (data.message || 'Error desconocido'));
-                }
-            })
-            .catch(error => {
-                alert('Error al eliminar el lead');
-            });
-        };
     }
 
     function closeDeleteModal() {
         const modal = document.getElementById('deleteModal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+        deleteLeadId = null;
+    }
+
+    // Manejar el clic en el botón de eliminar del modal
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        const id = deleteLeadId;
+        if (!id) return;
+
+        const form = document.getElementById('deleteForm');
+        form.action = `/leads/${id}`;
+
+        fetch(form.action, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const row = document.getElementById(`lead-row-${id}`);
+                if (row) {
+                    row.remove();
+                }
+                closeDeleteModal();
+                showToast('Lead eliminado exitosamente', 'success');
+            } else {
+                alert('Error: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            alert('Error al eliminar el lead');
+        });
+    });
+
+    // ============================================================
+    // TOAST NOTIFICATIONS
+    // ============================================================
+    function showToast(message, type = 'info') {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        const bgColor = type === 'success' ? 'bg-green-500' :
+                        type === 'error' ? 'bg-red-500' :
+                        'bg-mso-blue';
+
+        toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-x-full text-sm`;
+        toast.innerHTML = `
+            <i class="ph ${type === 'success' ? 'ph-check-circle' : type === 'error' ? 'ph-warning-circle' : 'ph-info'} text-lg"></i>
+            <span>${message}</span>
+        `;
+
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+        }, 10);
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
     }
 
     // ============================================================

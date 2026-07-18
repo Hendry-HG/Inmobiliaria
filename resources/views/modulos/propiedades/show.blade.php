@@ -1,3 +1,4 @@
+{{-- resources/views/modulos/propiedades/show.blade.php --}}
 @extends('layouts.dashboard')
 
 @section('title', $property->title)
@@ -5,30 +6,13 @@
 
 @push('css')
 <style>
-    /* Transición suave para la imagen principal */
     .hero-img-transition {
         transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
     }
-
-    /* Ocultar barra de desplazamiento pero permitir scroll */
-    .hide-scroll::-webkit-scrollbar {
-        display: none;
-    }
-    .hide-scroll {
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-    }
-
-    /* Estilos para textos */
-    .custom-prose {
-        max-width: 100%;
-        line-height: 1.6;
-        color: #334155; /* slate-700 */
-    }
-
-    .custom-prose p {
-        margin-bottom: 1rem;
-    }
+    .hide-scroll::-webkit-scrollbar { display: none; }
+    .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    .custom-prose { max-width: 100%; line-height: 1.6; color: #334155; }
+    .custom-prose p { margin-bottom: 1rem; }
 </style>
 @endpush
 
@@ -123,7 +107,6 @@
         <div class="p-4 bg-slate-50 border-t border-slate-200">
             <div class="flex items-center gap-3 overflow-x-auto hide-scroll pb-2">
                 @foreach($property->images as $image)
-                {{-- CORREGIDO: Orden de argumentos (this, url) para coincidir con JS --}}
                 <div onclick="changeMainImage(this, '{{ asset('storage/' . $image->image_path) }}')"
                      class="thumbnail flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden cursor-pointer border-2 {{ $image->is_primary ? 'border-mso-gold opacity-100 shadow-lg' : 'border-transparent opacity-70' }} hover:opacity-100 hover:scale-105 transition-all relative">
                     <img src="{{ asset('storage/' . $image->image_path) }}"
@@ -221,7 +204,7 @@
                     Descripción General
                 </h3>
                 <div class="prose prose-slate max-w-none">
-                 {!! $property->description !!}
+                    {!! $property->description !!}
                 </div>
             </div>
 
@@ -236,7 +219,7 @@
                     @foreach($property->features as $feature)
                     <div class="flex items-center gap-3 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
                         <i class="ph ph-check-circle text-green-500"></i>
-                        <span class="text-sm">{{ $feature }}</span>
+                        <span class="text-sm">{{ ucfirst(str_replace('_', ' ', $feature)) }}</span>
                     </div>
                     @endforeach
                 </div>
@@ -486,13 +469,12 @@
         </div>
     </div>
 </div>
+@endsection
 
 @push('js')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ---------------------------------------------------------
-        // 1. Script para el Formulario (Combinar Fecha y Hora)
-        // ---------------------------------------------------------
+        // Script para combinar fecha y hora
         const datePicker = document.getElementById('datePicker');
         const timePicker = document.getElementById('timePicker');
         const fullDateTimeInput = document.getElementById('fullDateTimeInput');
@@ -501,7 +483,6 @@
         if (appointmentForm) {
             appointmentForm.addEventListener('submit', function(e) {
                 if(datePicker.value && timePicker.value) {
-                    // Formato: YYYY-MM-DDTHH:MM:00
                     fullDateTimeInput.value = datePicker.value + 'T' + timePicker.value + ':00';
                 } else {
                     e.preventDefault();
@@ -511,23 +492,18 @@
         }
     });
 
-    // ---------------------------------------------------------
-    // 2. Script optimizado para Galería de Imágenes
-    // ---------------------------------------------------------
+    // Función para cambiar imagen principal
     function changeMainImage(thumbnailElement, imageUrl) {
         const mainImage = document.getElementById('mainImage');
 
         if (!mainImage || !thumbnailElement) return;
 
-        // 1. Efecto de desvanecimiento
         mainImage.style.opacity = '0';
         mainImage.classList.add('scale-105');
 
-        // 2. Cambio de fuente
         setTimeout(() => {
             mainImage.src = imageUrl;
 
-            // 3. Efecto de aparición
             const onImageLoad = () => {
                 mainImage.style.opacity = '1';
                 mainImage.classList.remove('scale-105');
@@ -550,7 +526,6 @@
             }
         }, 200);
 
-        // 4. Actualizar estilos de miniaturas
         const thumbnails = document.querySelectorAll('.thumbnail');
         thumbnails.forEach(t => {
             t.classList.remove('border-mso-gold', 'opacity-100', 'shadow-lg', 'ring-2', 'ring-mso-gold/50');
@@ -562,4 +537,3 @@
     }
 </script>
 @endpush
-@endsection

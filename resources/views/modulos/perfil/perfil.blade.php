@@ -128,8 +128,9 @@
             </div>
 
             {{-- ============================================ --}}
-            {{-- ESTADÍSTICAS SEGÚN ROL --}}
+            {{-- ESTADÍSTICAS SEGÚN ROL - EXCLUYENDO CLIENTE --}}
             {{-- ============================================ --}}
+            @if($mainRole != 'Cliente')
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
                 <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <i class="ph ph-chart-bar text-mso-gold"></i>
@@ -186,21 +187,6 @@
                             <span class="font-bold text-yellow-600">{{ $stats['pending_appointments'] ?? 0 }}</span>
                         </div>
 
-                    {{-- CLIENTE --}}
-                    @elseif($mainRole == 'Cliente')
-                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                            <span class="text-slate-600">Favoritos</span>
-                            <span class="font-bold text-slate-800">{{ $stats['favorites'] ?? 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                            <span class="text-slate-600">Total Citas</span>
-                            <span class="font-bold text-slate-800">{{ $stats['appointments'] ?? 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-2">
-                            <span class="text-slate-600">Citas Pendientes</span>
-                            <span class="font-bold text-yellow-600">{{ $stats['pending_appointments'] ?? 0 }}</span>
-                        </div>
-
                     {{-- AUDITOR --}}
                     @elseif($mainRole == 'Auditor')
                         <div class="flex justify-between items-center py-2 border-b border-slate-100">
@@ -214,6 +200,7 @@
                     @endif
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- Columna derecha - Formulario de edición -->

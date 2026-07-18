@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
@@ -114,9 +113,10 @@ class LeadController extends Controller
                 ->paginate(20)
                 ->withQueryString();
 
+            // Obtener asesores con nombre completo
             $asesores = User::role('Asesor Inmobiliario')
                 ->where('is_active', true)
-                ->get(['id', 'name']);
+                ->get(['id', 'name', 'last_name']);
 
             $statuses = [
                 'nuevo' => 'Nuevo',
@@ -217,7 +217,7 @@ class LeadController extends Controller
                 $lead->update(['preferences' => $preferences]);
             }
 
-            // 🔥 AUDITORÍA - CREACIÓN DE LEAD
+            //  AUDITORÍA - CREACIÓN DE LEAD
             $this->logCreated($lead, (Auth::user()?->full_name ?? 'Sistema') . ' CAPTÓ un nuevo lead: "' . $fullName . '" (Email: ' . $request->email . ')');
 
             return redirect()->back()
@@ -262,7 +262,8 @@ class LeadController extends Controller
                     'preferences' => $lead->preferences,
                     'asesor' => $lead->asesor ? [
                         'id' => $lead->asesor->id,
-                        'name' => $lead->asesor->name
+                        'name' => $lead->asesor->name,
+                        'last_name' => $lead->asesor->last_name ?? ''
                     ] : null,
                     'user' => $lead->user ? [
                         'id' => $lead->user->id,
@@ -297,7 +298,7 @@ class LeadController extends Controller
         try {
             $asesores = User::role('Asesor Inmobiliario')
                 ->where('is_active', true)
-                ->get(['id', 'name']);
+                ->get(['id', 'name', 'last_name']);
 
             $statuses = [
                 'nuevo' => 'Nuevo',
@@ -349,7 +350,7 @@ class LeadController extends Controller
             $oldValues = $lead->toArray();
             $lead->update($request->all());
 
-            // 🔥 AUDITORÍA - ACTUALIZACIÓN DE LEAD
+            //  AUDITORÍA - ACTUALIZACIÓN DE LEAD
             $changes = [];
             $fieldLabels = [
                 'name' => 'nombre',
@@ -440,7 +441,7 @@ class LeadController extends Controller
             $oldValues = $lead->toArray();
             $lead->update(['status' => $request->status]);
 
-            // 🔥 AUDITORÍA - CAMBIO DE ESTADO DE LEAD
+            //  AUDITORÍA - CAMBIO DE ESTADO DE LEAD
             $statusLabels = [
                 'nuevo' => 'Nuevo',
                 'contactado' => 'Contactado',

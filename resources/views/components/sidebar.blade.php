@@ -12,6 +12,10 @@
     $isAdminSuperOrAuditor = $isAdmin || $isSuperAdmin || $isAuditor;
     $showSupervision = ($isSuperAdmin || $isAdmin || $isAuditor) && !$isAsesor;
     $showAudit = $isSuperAdmin || $isAdmin || $isAuditor;
+    $showChat = $isAsesor || $isCliente;
+    $showLeads = $isAsesor || $isAuditor || $isAdmin || $isSuperAdmin;
+    $showProperties = !$isCliente;
+    $showAdminProperties = $isAdminOrSuper;
 @endphp
 
 {{-- Sidebar Desktop --}}
@@ -29,10 +33,16 @@
 
             <a href="{{ route('home') }}" class="flex items-center gap-2 group overflow-hidden"
                :class="sidebarOpen ? 'w-auto' : 'w-8'">
-                <div class="w-8 h-8 bg-mso-gold text-mso-blue flex items-center justify-center font-serif font-bold text-lg rounded flex-shrink-0">M</div>
-                <span class="font-serif font-bold text-xl tracking-wide group-hover:text-mso-gold transition-colors whitespace-nowrap"
-                      x-show="sidebarOpen"
-                      x-transition:enter.duration.300ms>MSO</span>
+                <div class="w-8 h-8 bg-mso-gold flex items-center justify-center rounded flex-shrink-0 overflow-hidden">
+                    <img src="{{ asset('favicon-96x96.png') }}"
+                         alt="MSO"
+                         class="w-7 h-7 object-contain">
+                </div>
+
+                <div class="flex flex-col" x-show="sidebarOpen" x-transition:enter.duration.300ms>
+                    <span class="font-serif font-bold text-xl text-white leading-none tracking-wide group-hover:text-mso-gold transition-colors">MSO</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-[0.2em]">Inmobiliaria</span>
+                </div>
             </a>
         </div>
 
@@ -140,22 +150,6 @@
                         <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
                     </div>
                 </li>
-
-                {{-- SERVICIOS (Solo Super Admin y Admin) --}}
-                <li class="relative group">
-                    <a href="{{ route('admin.servicios.index') }}"
-                       class="flex items-center gap-3 px-2 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('admin.servicios*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}"
-                       :class="sidebarOpen ? 'justify-start' : 'justify-center'">
-                        <i class="ph ph-handshake text-xl flex-shrink-0"></i>
-                        <span x-show="sidebarOpen" x-transition:enter.duration.300ms>Servicios</span>
-                    </a>
-                    <div x-show="!sidebarOpen"
-                         x-cloak
-                         class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg border border-slate-700">
-                        Servicios
-                        <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
-                    </div>
-                </li>
                 @endif
 
                 {{-- ============================================ --}}
@@ -198,9 +192,9 @@
                 @endif
 
                 {{-- ============================================ --}}
-                {{-- 5. SECCIÓN SUPERVISIÓN (Solo para Auditor y cuando NO es Admin/Super) --}}
+                {{-- 5. SECCIÓN SUPERVISIÓN (Solo Auditor) --}}
                 {{-- ============================================ --}}
-                @if($isAuditor && !$isAdminOrSuper)
+                @if($isAuditor)
                 <li class="pt-3" x-show="sidebarOpen" x-transition:enter.duration.300ms>
                     <p class="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Supervisión</p>
                 </li>
@@ -219,21 +213,6 @@
                         <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
                     </div>
                 </li>
-
-                <li class="relative group">
-                    <a href="{{ route('admin.properties.index') }}"
-                       class="flex items-center gap-3 px-2 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('admin.properties*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}"
-                       :class="sidebarOpen ? 'justify-start' : 'justify-center'">
-                        <i class="ph ph-building text-xl flex-shrink-0"></i>
-                        <span x-show="sidebarOpen" x-transition:enter.duration.300ms>Propiedades</span>
-                    </a>
-                    <div x-show="!sidebarOpen"
-                         x-cloak
-                         class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg border border-slate-700">
-                        Propiedades
-                        <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
-                    </div>
-                </li>
                 @endif
 
                 {{-- ============================================ --}}
@@ -244,21 +223,20 @@
                        class="flex items-center gap-3 px-2 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('citas*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}"
                        :class="sidebarOpen ? 'justify-start' : 'justify-center'">
                         <i class="ph ph-calendar-check text-xl flex-shrink-0"></i>
-                        <span x-show="sidebarOpen" x-transition:enter.duration.300ms>
-                            @if($isAsesor || $isCliente) Mis Citas @else Citas @endif
-                        </span>
+                        <span x-show="sidebarOpen" x-transition:enter.duration.300ms>Citas</span>
                     </a>
                     <div x-show="!sidebarOpen"
                          x-cloak
                          class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg border border-slate-700">
-                        @if($isAsesor || $isCliente) Mis Citas @else Citas @endif
+                        Citas
                         <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
                     </div>
                 </li>
 
                 {{-- ============================================ --}}
-                {{-- 7. CHAT (TODOS) --}}
+                {{-- 7. CHAT (SOLO ASESOR Y CLIENTE) --}}
                 {{-- ============================================ --}}
+                @if($showChat)
                 <li class="relative group">
                     <a href="{{ route('chat.index') }}"
                        class="flex items-center gap-3 px-2 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('chat*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}"
@@ -276,6 +254,7 @@
                         <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
                     </div>
                 </li>
+                @endif
 
                 {{-- ============================================ --}}
                 {{-- 8. SECCIÓN AUDITORÍA (Super Admin, Admin, Auditor) --}}
@@ -401,6 +380,11 @@
                             <i class="ph ph-sliders text-sm"></i>
                             Configuración Plataforma
                         </a>
+                        <a href="{{ route('admin.categories.index') }}"
+                           class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('admin.categories*') ? 'text-mso-gold bg-slate-700/50' : '' }}">
+                            <i class="ph ph-folder text-sm"></i>
+                            Categorías
+                        </a>
                         <a href="{{ route('admin.servicios.index') }}"
                            class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('admin.servicios*') ? 'text-mso-gold bg-slate-700/50' : '' }}">
                             <i class="ph ph-handshake text-sm"></i>
@@ -445,51 +429,10 @@
                     </div>
                 </li>
 
-                {{-- ============================================ --}}
-                {{-- 11. MI PERFIL (TODOS) --}}
-                {{-- ============================================ --}}
-                <li class="pt-3" x-show="sidebarOpen" x-transition:enter.duration.300ms>
-                    <p class="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mi Cuenta</p>
-                </li>
-
-                <li class="relative group">
-                    <a href="{{ route('profile.index') }}"
-                       class="flex items-center gap-3 px-2 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('profile*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}"
-                       :class="sidebarOpen ? 'justify-start' : 'justify-center'">
-                        <i class="ph ph-user text-xl flex-shrink-0"></i>
-                        <span x-show="sidebarOpen" x-transition:enter.duration.300ms>Mi Perfil</span>
-                    </a>
-                    <div x-show="!sidebarOpen"
-                         x-cloak
-                         class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg border border-slate-700">
-                        Mi Perfil
-                        <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
-                    </div>
-                </li>
-
-                {{-- 12. CERRAR SESIÓN (TODOS) --}}
-                <li class="relative group">
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit"
-                                class="w-full flex items-center gap-3 px-2 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors"
-                                :class="sidebarOpen ? 'justify-start' : 'justify-center'">
-                            <i class="ph ph-sign-out text-xl flex-shrink-0"></i>
-                            <span x-show="sidebarOpen" x-transition:enter.duration.300ms>Cerrar Sesión</span>
-                        </button>
-                    </form>
-                    <div x-show="!sidebarOpen"
-                         x-cloak
-                         class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg border border-slate-700">
-                        Cerrar Sesión
-                        <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
-                    </div>
-                </li>
-
             </ul>
         </nav>
 
-        <!-- Footer del Sidebar -->
+        <!-- Footer del Sidebar Desktop -->
         <footer class="p-2 border-t border-slate-700/50 flex-shrink-0">
             <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
                  :class="sidebarOpen ? 'justify-start' : 'justify-center'">
@@ -522,7 +465,9 @@
             <!-- Header Mobile -->
             <div class="h-20 flex items-center justify-between px-6 border-b border-slate-700/50">
                 <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-mso-gold text-mso-blue flex items-center justify-center font-serif font-bold text-lg rounded">M</div>
+                    <div class="w-8 h-8 bg-mso-gold flex items-center justify-center rounded flex-shrink-0 overflow-hidden">
+                        <img src="{{ asset('favicon-96x96.png') }}" alt="MSO" class="w-7 h-7 object-contain">
+                    </div>
                     <span class="font-serif font-bold text-xl tracking-wide">MSO</span>
                 </a>
                 <button id="close-mobile-menu" class="text-slate-400 hover:text-white transition-colors">
@@ -569,7 +514,6 @@
                     </li>
 
                     <li><a href="{{ route('admin.properties.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-building text-lg"></i> Propiedades</a></li>
-                    <li><a href="{{ route('admin.servicios.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-handshake text-lg"></i> Servicios</a></li>
                     @endif
 
                     {{-- Gestión (Asesor) --}}
@@ -579,18 +523,19 @@
                     <li><a href="{{ route('asesor.properties.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-building text-lg"></i> Mis Propiedades</a></li>
                     @endif
 
-                    {{-- Supervisión (Solo Auditor cuando NO es Admin/Super) --}}
-                    @if($isAuditor && !$isAdminOrSuper)
+                    {{-- Supervisión (Solo Auditor) --}}
+                    @if($isAuditor)
                     <li class="pt-3"><p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Supervisión</p></li>
                     <li><a href="{{ route('leads.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-users-three text-lg"></i> Leads</a></li>
-                    <li><a href="{{ route('admin.properties.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-building text-lg"></i> Propiedades</a></li>
                     @endif
 
                     {{-- Citas (todos) --}}
-                    <li><a href="{{ route('citas.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-calendar-check text-lg"></i> @if($isAsesor || $isCliente) Mis Citas @else Citas @endif</a></li>
+                    <li><a href="{{ route('citas.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-calendar-check text-lg"></i> Citas</a></li>
 
-                    {{-- Chat (todos) --}}
+                    {{-- Chat (SOLO ASESOR Y CLIENTE) --}}
+                    @if($showChat)
                     <li><a href="{{ route('chat.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-chat-circle-text text-lg"></i> Chat</a></li>
+                    @endif
 
                     {{-- Auditoría (Super Admin, Admin, Auditor) --}}
                     @if($showAudit)
@@ -623,6 +568,7 @@
                         </button>
                         <div id="config-mobile" class="hidden pl-7 mt-1 space-y-1">
                             <a href="{{ route('admin.config.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors">Configuración Plataforma</a>
+                            <a href="{{ route('admin.categories.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors">Categorías</a>
                             <a href="{{ route('admin.servicios.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors">Servicios Inmobiliarios</a>
                             <a href="{{ route('admin.locations.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors">Ubicaciones</a>
                             <a href="{{ route('admin.phones.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors">Formato Telefónico</a>
@@ -634,16 +580,28 @@
                     <li class="pt-3"><p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Favoritos</p></li>
                     <li><a href="{{ route('favorites.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-heart text-lg"></i> Mis Favoritos</a></li>
 
-                    {{-- Mi Cuenta --}}
+                    {{-- FOOTER DEL USUARIO EN MÓVIL --}}
                     <li class="pt-3"><p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mi Cuenta</p></li>
-                    <li><a href="{{ route('profile.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"><i class="ph ph-user text-lg"></i> Mi Perfil</a></li>
-                    <li>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors">
-                                <i class="ph ph-sign-out text-lg"></i> Cerrar Sesión
-                            </button>
-                        </form>
+
+                    <li class="px-3 py-2">
+                        <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-700/30">
+                            <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->full_name ?? 'Usuario') . '&background=c5a059&color=fff&size=128&rounded=true&bold=true' }}"
+                                 class="w-9 h-9 rounded-full object-cover border border-slate-600 flex-shrink-0"
+                                 alt="{{ $user->full_name ?? 'Usuario' }}">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-white truncate">{{ $user->full_name ?? 'Usuario' }}</p>
+                                <p class="text-[10px] text-slate-400 truncate">
+                                    @if($isSuperAdmin) Super Admin
+                                    @elseif($isAdmin) Administrador
+                                    @elseif($isAsesor) Asesor
+                                    @elseif($isAuditor) Auditor
+                                    @else Cliente @endif
+                                </p>
+                            </div>
+                            <a href="{{ route('profile.index') }}" class="text-slate-400 hover:text-mso-gold transition-colors flex-shrink-0">
+                                <i class="ph ph-gear text-sm"></i>
+                            </a>
+                        </div>
                     </li>
                 </ul>
             </nav>
@@ -720,7 +678,11 @@
         }
 
         // Configuración
-        if (currentPath.includes('/admin/config') || currentPath.includes('/admin/locations') || currentPath.includes('/admin/phones') || currentPath.includes('/admin/servicios')) {
+        if (currentPath.includes('/admin/config') ||
+            currentPath.includes('/admin/categories') ||
+            currentPath.includes('/admin/locations') ||
+            currentPath.includes('/admin/phones') ||
+            currentPath.includes('/admin/servicios')) {
             ['config-submenu', 'config-mobile'].forEach(id => {
                 const content = document.getElementById(id);
                 const icon = document.getElementById(id + '-icon');

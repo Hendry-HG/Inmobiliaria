@@ -402,7 +402,7 @@ class AuditLogController extends Controller
         $totalLeads = Lead::count();
         $totalConfigChanges = AuditLog::where('subject_type', 'like', '%SiteConfiguration%')->count();
 
-        // 🔥 CONTADORES POR MÓDULO PARA EXPORTACIÓN
+        //  CONTADORES POR MÓDULO PARA EXPORTACIÓN
         $userLogsCount = AuditLog::where('subject_type', 'like', '%User%')->count();
         $propertyLogsCount = AuditLog::where('subject_type', 'like', '%Property%')->count();
         $appointmentLogsCount = AuditLog::where('subject_type', 'like', '%Appointment%')->count();
@@ -476,10 +476,10 @@ class AuditLogController extends Controller
         // Configuración actual
         $currentConfig = SiteConfiguration::getConfig();
 
-        // 🔥 USUARIOS PARA FILTRO (exportación)
+        //  USUARIOS PARA FILTRO (exportación)
         $users = User::orderBy('name')->get(['id', 'name', 'last_name']);
 
-        // 🔥 EXPORTACIONES RECIENTES (ejemplo - puedes implementar una tabla real)
+        //  EXPORTACIONES RECIENTES 
         $recentExports = [];
 
         return view('modulos.auditorias.reports', compact(
@@ -613,7 +613,7 @@ class AuditLogController extends Controller
     {
         $query = AuditLog::with('user');
 
-        // 🔥 FILTRO POR ENTIDAD / MÓDULO
+        //  FILTRO POR ENTIDAD / MÓDULO
         if ($request->filled('entity')) {
             $entity = $request->entity;
 
@@ -637,7 +637,7 @@ class AuditLogController extends Controller
             }
         }
 
-        // 🔥 FILTRO POR FECHAS
+        //  FILTRO POR FECHAS
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
@@ -645,12 +645,12 @@ class AuditLogController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // 🔥 FILTRO POR USUARIO
+        // FILTRO POR USUARIO
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
         }
 
-        // 🔥 FILTRO POR ACCIÓN
+        //  FILTRO POR ACCIÓN
         if ($request->filled('action')) {
             $query->where(function($q) use ($request) {
                 $q->where('action', 'like', '%' . $request->action . '%')

@@ -29,7 +29,7 @@ class AppointmentSettingController extends Controller
 
     public function update(Request $request)
     {
-        Log::info('📥 Configuración recibida', [
+        Log::info(' Configuración recibida', [
             'user_id' => Auth::id(),
             'daily_config' => $request->input('daily_config'),
             'all_data' => $request->all()
@@ -109,7 +109,7 @@ class AppointmentSettingController extends Controller
 
             $settings->save();
 
-            Log::info('✅ Configuración guardada', [
+            Log::info(' Configuración guardada', [
                 'user_id' => Auth::id(),
                 'daily_config' => $dailyConfig,
                 'hours_saved' => $dailyConfig['monday']['hours'] ?? []
@@ -118,10 +118,10 @@ class AppointmentSettingController extends Controller
             Cache::forget("appointment_settings_{$settings->user_id}");
 
             return redirect()->route('citas.configuracion')
-                ->with('success', '✅ Configuración de citas actualizada correctamente.');
+                ->with('success', ' Configuración de citas actualizada correctamente.');
 
         } catch (\Exception $e) {
-            Log::error('❌ Error al actualizar configuración de citas', [
+            Log::error(' Error al actualizar configuración de citas', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

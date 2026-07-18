@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -17,6 +16,17 @@ return new class extends Migration
             $table->boolean('is_read')->default(false);
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
+
+            // ============================================================
+            //  ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
+            $table->index('conversation_id');
+            $table->index('user_id');
+            $table->index('is_read');
+            $table->index('created_at');
+            $table->index(['conversation_id', 'is_read']);
+            $table->index(['user_id', 'is_read']);
+            $table->index(['conversation_id', 'created_at']);
         });
     }
 

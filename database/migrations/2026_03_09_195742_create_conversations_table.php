@@ -17,8 +17,17 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            // Índice único para evitar conversaciones duplicadas
+            // ============================================================
+            //  ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
             $table->unique(['client_id', 'asesor_id']);
+            $table->index('client_id');
+            $table->index('asesor_id');
+            $table->index('is_active');
+            $table->index('last_message_at');
+            $table->index(['client_id', 'is_active']);
+            $table->index(['asesor_id', 'is_active']);
+            $table->index(['last_message_at', 'is_active']);
         });
     }
 

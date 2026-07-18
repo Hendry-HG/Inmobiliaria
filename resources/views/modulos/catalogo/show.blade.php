@@ -1,6 +1,6 @@
 @extends('layouts.landing')
 
-@section('title', $property->title)
+@section('title', $property->title . ' - ' . config('app.name'))
 
 @push('css')
 <style>
@@ -74,14 +74,12 @@
     .custom-prose p {
         margin-bottom: 1rem;
     }
-    
-    /* Animación de carga para el spinner */
+    .ph-spin {
+        animation: spin 1s linear infinite;
+    }
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
-    }
-    .ph-spin {
-        animation: spin 1s linear infinite;
     }
 </style>
 @endpush
@@ -106,6 +104,21 @@
             @else bg-purple-600 text-white @endif">
             {{ ucfirst($property->type) }}
         </span>
+        @if($property->category)
+        <span class="px-4 py-2 text-xs font-bold rounded-full shadow-lg bg-amber-600 text-white flex items-center gap-1.5">
+            @if($property->category->icon)
+                <i class="{{ $property->category->icon }}"></i>
+            @else
+                <i class="ph ph-folder"></i>
+            @endif
+            {{ $property->category->name }}
+        </span>
+        @endif
+        @if($property->is_featured)
+        <span class="px-4 py-2 text-xs font-bold rounded-full shadow-lg bg-mso-gold text-mso-blue flex items-center gap-1.5">
+            <i class="ph ph-star"></i> Destacada
+        </span>
+        @endif
     </div>
 
     {{-- Miniaturas --}}
@@ -185,6 +198,22 @@
                     @endif
                 </div>
             </div>
+
+            {{-- Categoría --}}
+            @if($property->category)
+            <div class="bg-gradient-to-r from-amber-50 to-slate-50 p-4 rounded-2xl border border-amber-200/50 flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-mso-gold/20 flex items-center justify-center text-3xl flex-shrink-0">
+                    <i class="{{ $property->category->icon ?? 'ph-folder' }} text-mso-blue"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Categoría de la propiedad</p>
+                    <p class="font-bold text-slate-800 text-lg">{{ $property->category->name }}</p>
+                    @if($property->category->description)
+                        <p class="text-xs text-slate-400 mt-0.5">{{ $property->category->description }}</p>
+                    @endif
+                </div>
+            </div>
+            @endif
 
             {{-- Descripción --}}
             <div>
@@ -351,164 +380,172 @@
                 </div>
             </div>
 
-            {{-- ============================================================ --}}
-{{-- FORMULARIO DE AGENDAR CITA CON CALENDARIO --}}
-{{-- ============================================================ --}}
-<div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 lg:sticky lg:top-24">
-    <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
-        <i class="ph ph-calendar-check text-mso-gold"></i>
-        Agendar Visita
-    </h3>
-    <p class="text-slate-500 text-sm mb-5">Selecciona una fecha y hora disponible para tu visita.</p>
+            {{-- FORMULARIO DE AGENDAR CITA CON CALENDARIO --}}
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 lg:sticky lg:top-24">
+                <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="ph ph-calendar-check text-mso-gold"></i>
+                    Agendar Visita
+                </h3>
+                <p class="text-slate-500 text-sm mb-5">Selecciona una fecha y hora disponible para tu visita.</p>
 
-    @auth
-    <form id="appointmentForm" class="space-y-4">
-        @csrf
-        <input type="hidden" name="property_id" value="{{ $property->id }}">
-        <input type="hidden" name="asesor_id" value="{{ $property->user_id }}">
-        <input type="hidden" name="date" id="fullDateTimeInput">
+                @auth
+                <form id="appointmentForm" class="space-y-4">
+                    @csrf
+                    <input type="hidden" name="property_id" value="{{ $property->id }}">
+                    <input type="hidden" name="asesor_id" value="{{ $property->user_id }}">
+                    <input type="hidden" name="date" id="fullDateTimeInput">
 
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
-            <input type="text" name="name" id="formName" required placeholder="Tu nombre completo"
-                   value="{{ auth()->user()->full_name ?? '' }}"
-                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-        </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
+                        <input type="text" name="name" id="formName" required placeholder="Tu nombre completo"
+                               value="{{ auth()->user()->full_name ?? '' }}"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    </div>
 
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
-            <input type="email" name="email" id="formEmail" required placeholder="ejemplo@correo.com"
-                   value="{{ auth()->user()->email ?? '' }}"
-                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-        </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
+                        <input type="email" name="email" id="formEmail" required placeholder="ejemplo@correo.com"
+                               value="{{ auth()->user()->email ?? '' }}"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    </div>
 
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
-            <input type="tel" name="phone" id="formPhone" required placeholder="Tu número de contacto"
-                   value="{{ auth()->user()->phone ?? '' }}"
-                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-        </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
+                        <input type="tel" name="phone" id="formPhone" required placeholder="Tu número de contacto"
+                               value="{{ auth()->user()->phone ?? '' }}"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    </div>
 
-        {{-- CALENDARIO DE SELECCIÓN DE FECHA --}}
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Selecciona una fecha *</label>
-            <div id="calendarContainer" class="bg-white border border-slate-200 rounded-lg p-3">
-                {{-- Cabecera del calendario --}}
-                <div class="flex items-center justify-between mb-3">
-                    <button type="button" id="prevMonth" class="p-1 hover:bg-slate-100 rounded">
-                        <i class="ph ph-caret-left text-lg"></i>
+                    {{-- CALENDARIO DE SELECCIÓN DE FECHA --}}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Selecciona una fecha *</label>
+                        <div id="calendarContainer" class="bg-white border border-slate-200 rounded-lg p-3">
+                            <div class="flex items-center justify-between mb-3">
+                                <button type="button" id="prevMonth" class="p-1 hover:bg-slate-100 rounded">
+                                    <i class="ph ph-caret-left text-lg"></i>
+                                </button>
+                                <span id="currentMonthDisplay" class="font-bold text-slate-800"></span>
+                                <button type="button" id="nextMonth" class="p-1 hover:bg-slate-100 rounded">
+                                    <i class="ph ph-caret-right text-lg"></i>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
+                                <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                            </div>
+                            <div id="calendarDays" class="grid grid-cols-7 gap-1">
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 text-xs">
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 bg-mso-gold rounded-full"></span> Disponible</span>
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 bg-slate-200 rounded-full"></span> No disponible</span>
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-200 rounded-full"></span> Sin cupos</span>
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 bg-slate-300 rounded-full"></span> Fecha pasada</span>
+                            </div>
+                        </div>
+                        <input type="hidden" name="date_picker" id="datePicker" required>
+                    </div>
+
+                    {{-- Selector de horas --}}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Hora disponible *</label>
+                        <select name="time_picker" id="timePicker" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                            <option value="">Primero selecciona una fecha</option>
+                        </select>
+                        <div id="slotsInfo" class="text-xs text-slate-400 mt-1 hidden">
+                            <i class="ph ph-info"></i>
+                            <span id="slotsCount">0</span> cupos disponibles para esta fecha
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
+                        <textarea name="message" id="formMessage" rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?"
+                                  class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm resize-none"></textarea>
+                    </div>
+
+                    <button type="submit" id="submitAppointmentBtn"
+                            class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                        <i class="ph ph-calendar-plus"></i>
+                        Solicitar Cita
                     </button>
-                    <span id="currentMonthDisplay" class="font-bold text-slate-800"></span>
-                    <button type="button" id="nextMonth" class="p-1 hover:bg-slate-100 rounded">
-                        <i class="ph ph-caret-right text-lg"></i>
+
+                    <div id="formMessageError" class="text-red-500 text-xs text-center hidden"></div>
+                    <div id="formMessageSuccess" class="text-green-600 text-xs text-center hidden"></div>
+                </form>
+                @else
+                <div class="space-y-4 opacity-60">
+                    <div><input type="text" placeholder="Nombre completo" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm" disabled></div>
+                    <div><input type="email" placeholder="Correo electrónico" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm" disabled></div>
+                    <div><input type="tel" placeholder="Teléfono" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm" disabled></div>
+                    <button type="button" onclick="openAuthModal()"
+                            class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                        <i class="ph ph-calendar-plus"></i>
+                        Solicitar Cita
                     </button>
                 </div>
+                @endauth
 
-                {{-- Días de la semana --}}
-                <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
-                    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
-                </div>
-
-                {{-- Grid de días --}}
-                <div id="calendarDays" class="grid grid-cols-7 gap-1">
-                    <!-- Se llena con JavaScript -->
-                </div>
-
-                {{-- Leyenda --}}
-                <div class="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 text-xs">
-                    <span class="flex items-center gap-1">
-                        <span class="w-3 h-3 bg-mso-gold rounded-full"></span> Disponible
-                    </span>
-                    <span class="flex items-center gap-1">
-                        <span class="w-3 h-3 bg-slate-200 rounded-full"></span> No disponible
-                    </span>
-                    <span class="flex items-center gap-1">
-                        <span class="w-3 h-3 bg-red-200 rounded-full"></span> Sin cupos
-                    </span>
-                    <span class="flex items-center gap-1">
-                        <span class="w-3 h-3 bg-slate-300 rounded-full"></span> Fecha pasada
-                    </span>
-                </div>
-            </div>
-            <input type="hidden" name="date_picker" id="datePicker" required>
-        </div>
-
-        {{-- Selector de horas (se llena dinámicamente) --}}
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Hora disponible *</label>
-            <select name="time_picker" id="timePicker" required 
-                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
-                <option value="">Primero selecciona una fecha</option>
-            </select>
-            <div id="slotsInfo" class="text-xs text-slate-400 mt-1 hidden">
-                <i class="ph ph-info"></i> 
-                <span id="slotsCount">0</span> cupos disponibles para esta fecha
+                <p class="text-xs text-slate-400 text-center mt-3">
+                    <i class="ph ph-shield-check"></i> Tus datos están seguros
+                </p>
             </div>
         </div>
-
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Mensaje (opcional)</label>
-            <textarea name="message" id="formMessage" rows="2" placeholder="¿Alguna preferencia de horario o comentario adicional?"
-                      class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm resize-none"></textarea>
-        </div>
-
-        <button type="submit" id="submitAppointmentBtn"
-                class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
-            <i class="ph ph-calendar-plus"></i>
-            Solicitar Cita
-        </button>
-
-        <div id="formMessageError" class="text-red-500 text-xs text-center hidden"></div>
-        <div id="formMessageSuccess" class="text-green-600 text-xs text-center hidden"></div>
-    </form>
-    @else
-    <!-- Usuario no autenticado -->
-    <div class="space-y-4 opacity-60">
-        <!-- ... campos deshabilitados ... -->
-        <button type="button" onclick="openAuthModal()"
-                class="w-full bg-mso-gold text-mso-blue font-bold py-3 rounded-lg hover:bg-mso-blue hover:text-white transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
-            <i class="ph ph-calendar-plus"></i>
-            Solicitar Cita
-        </button>
     </div>
-    @endauth
 
-    <p class="text-xs text-slate-400 text-center mt-3">
-        <i class="ph ph-shield-check"></i> Tus datos están seguros
-    </p>
-</div>
+    {{-- Propiedades similares --}}
+    @if(isset($similarProperties) && $similarProperties->count() > 0)
+    <div class="mt-12">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Propiedades similares</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            @foreach($similarProperties as $similar)
+            <a href="{{ route('catalogo.show', $similar) }}" class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all group">
+                <div class="h-44 bg-slate-100 overflow-hidden relative">
+                    <img src="{{ $similar->primary_image_url }}"
+                         alt="{{ $similar->title }}"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    @if($similar->category)
+                    <div class="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
+                        @if($similar->category->icon)
+                            <i class="{{ $similar->category->icon }} text-xs"></i>
+                        @endif
+                        {{ $similar->category->name }}
+                    </div>
+                    @endif
+                </div>
+                <div class="p-3">
+                    <h3 class="font-semibold text-slate-800 text-sm line-clamp-1">{{ $similar->title }}</h3>
+                    <p class="text-mso-gold font-bold text-sm">{{ $similar->formatted_price }}</p>
+                    <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                        <i class="ph ph-map-pin"></i>
+                        <span>{{ $similar->stateRelation->name ?? 'Venezuela' }}</span>
+                    </div>
+                </div>
+            </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+</section>
 
-{{-- ============================================================ --}}
-{{-- MODAL DE AUTENTICACIÓN PARA USUARIOS NO REGISTRADOS --}}
-{{-- ============================================================ --}}
+{{-- MODAL DE AUTENTICACIÓN --}}
 <div id="authModal" class="modal-overlay fixed inset-0 z-[200] hidden items-center justify-center p-4">
     <div class="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-8">
         <div class="mb-4">
             <span class="house-icon">🏠</span>
         </div>
-
-        <h3 class="text-2xl font-bold text-slate-800 mb-2">
-            ¡Regístrate para agendar tu visita!
-        </h3>
+        <h3 class="text-2xl font-bold text-slate-800 mb-2">¡Regístrate para agendar tu visita!</h3>
         <p class="text-slate-500 text-sm mb-6">
             Para poder solicitar una cita y recibir la confirmación del asesor, necesitas tener una cuenta activa en nuestra plataforma.
         </p>
-
         <div class="flex flex-col gap-3">
-            <a href="{{ route('login') }}"
-               class="w-full bg-mso-blue text-white text-center font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all shadow-lg flex items-center justify-center gap-2">
-                <i class="ph ph-sign-in text-lg"></i>
-                Iniciar Sesión
+            <a href="{{ route('login') }}" class="w-full bg-mso-blue text-white text-center font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all shadow-lg flex items-center justify-center gap-2">
+                <i class="ph ph-sign-in text-lg"></i> Iniciar Sesión
             </a>
-            <a href="{{ route('register') }}"
-               class="w-full border-2 border-slate-200 text-slate-700 text-center font-medium py-3.5 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                <i class="ph ph-user-plus text-lg"></i>
-                Crear Cuenta Gratis
+            <a href="{{ route('register') }}" class="w-full border-2 border-slate-200 text-slate-700 text-center font-medium py-3.5 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                <i class="ph ph-user-plus text-lg"></i> Crear Cuenta Gratis
             </a>
         </div>
-
-        <button onclick="closeAuthModal()"
-                class="mt-6 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+        <button onclick="closeAuthModal()" class="mt-6 text-sm text-slate-400 hover:text-slate-600 transition-colors">
             <i class="ph ph-x mr-1"></i> Cerrar
         </button>
     </div>
@@ -518,11 +555,53 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
-    // VARIABLES GLOBALES
+    // GALERÍA DE IMÁGENES
+    // ============================================================
+    window.changeMainImage = function(element, src) {
+        document.getElementById('mainImage').src = src;
+        document.querySelectorAll('.thumbnail').forEach(thumb => {
+            thumb.classList.remove('active', 'border-mso-gold', 'opacity-100');
+            thumb.classList.add('opacity-60');
+        });
+        element.classList.remove('opacity-60');
+        element.classList.add('active', 'border-mso-gold', 'opacity-100');
+    };
+
+    // ============================================================
+    // MODAL DE AUTENTICACIÓN
+    // ============================================================
+    window.openAuthModal = function() {
+        const modal = document.getElementById('authModal');
+        const content = modal.querySelector('.modal-content');
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        setTimeout(() => content.classList.add('show'), 10);
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeAuthModal = function() {
+        const modal = document.getElementById('authModal');
+        const content = modal.querySelector('.modal-content');
+        content.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }, 300);
+    };
+
+    document.getElementById('authModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAuthModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeAuthModal();
+    });
+
+    // ============================================================
+    // VARIABLES DEL CALENDARIO
     // ============================================================
     const asesorId = document.querySelector('input[name="asesor_id"]')?.value;
-    const propertyId = document.querySelector('input[name="property_id"]')?.value;
-    
     let currentDate = new Date();
     let currentYear = currentDate.getFullYear();
     let currentMonth = currentDate.getMonth() + 1;
@@ -530,14 +609,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedSlots = [];
 
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
     // ============================================================
     // FUNCIONES DEL CALENDARIO
     // ============================================================
     function loadCalendar(year, month) {
         const url = `/api/appointments/available-days?year=${year}&month=${month}&asesor_id=${asesorId}`;
-        
+
         document.getElementById('calendarDays').innerHTML = '<div class="col-span-7 text-center py-4 text-slate-400"><i class="ph ph-spinner ph-spin"></i> Cargando...</div>';
         document.getElementById('currentMonthDisplay').textContent = `${monthNames[month - 1]} ${year}`;
 
@@ -557,7 +635,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 return;
             }
-
             renderCalendar(data.days);
         })
         .catch(error => {
@@ -574,17 +651,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('calendarDays');
         let html = '';
 
-        // Obtener el primer día del mes (0 = Domingo, 1 = Lunes)
         const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).getDay();
-        // Ajustar para que Lunes sea 0
         let startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
-        // Espacios vacíos al inicio
         for (let i = 0; i < startOffset; i++) {
             html += '<div class="h-10"></div>';
         }
 
-        // Días del mes
         days.forEach(dayData => {
             const date = new Date(dayData.date);
             const isToday = date.toDateString() === new Date().toDateString();
@@ -592,10 +665,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const isAvailable = dayData.is_available;
             const hasSlots = dayData.slots && dayData.slots.length > 0;
             const isException = dayData.is_exception;
-            const maxPerDay = dayData.max_per_day || 0;
 
             let classes = 'h-10 rounded-lg cursor-pointer flex items-center justify-center text-sm transition-all duration-200 relative';
-            
+
             if (isPast) {
                 classes += ' text-slate-300 cursor-not-allowed bg-slate-50';
             } else if (isException) {
@@ -612,23 +684,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 classes += ' ring-2 ring-mso-blue ring-offset-2';
             }
 
-            html += `<div class="${classes}" data-date="${dayData.date}" data-available="${isAvailable && hasSlots}" data-slots='${JSON.stringify(dayData.slots || [])}' data-max="${maxPerDay}">`;
+            html += `<div class="${classes}" data-date="${dayData.date}" data-available="${isAvailable && hasSlots}" data-slots='${JSON.stringify(dayData.slots || [])}'>`;
             html += `<span>${dayData.day}</span>`;
-            
-            // Indicador de cupos
             if (isAvailable && hasSlots && !isPast && !isException) {
-                const slotCount = dayData.slots.length;
-                const maxSlots = maxPerDay || 0;
-                const availablePercent = Math.round((slotCount / maxSlots) * 100);
-                html += `<span class="absolute -bottom-1 -right-1 text-[8px] bg-white text-mso-blue rounded-full px-1 py-0.5 shadow-sm font-bold">${slotCount}</span>`;
+                html += `<span class="absolute -bottom-1 -right-1 text-[8px] bg-white text-mso-blue rounded-full px-1 py-0.5 shadow-sm font-bold">${dayData.slots.length}</span>`;
             }
-            
             html += '</div>';
         });
 
         container.innerHTML = html;
 
-        // Agregar eventos de clic a los días
         container.querySelectorAll('[data-available="true"]').forEach(element => {
             element.addEventListener('click', function() {
                 const date = this.dataset.date;
@@ -642,7 +707,6 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedDate = date;
         selectedSlots = slots || [];
 
-        // Actualizar UI del calendario
         document.querySelectorAll('#calendarDays > div[data-date]').forEach(el => {
             el.classList.remove('ring-2', 'ring-mso-gold', 'ring-offset-2', 'scale-105');
             if (el.dataset.date === date) {
@@ -650,13 +714,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Actualizar campo oculto
         document.getElementById('datePicker').value = date;
-
-        // Cargar horas disponibles
         populateTimeSlots(date, slots);
 
-        // Mostrar información de cupos
         const slotsInfo = document.getElementById('slotsInfo');
         const slotsCount = document.getElementById('slotsCount');
         if (slots && slots.length > 0) {
@@ -669,7 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function populateTimeSlots(date, slots) {
         const timePicker = document.getElementById('timePicker');
-        
+
         if (!slots || slots.length === 0) {
             timePicker.innerHTML = '<option value="">No hay horas disponibles</option>';
             timePicker.disabled = true;
@@ -765,10 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('timePicker').innerHTML = '<option value="">Primero selecciona una fecha</option>';
                 document.getElementById('timePicker').disabled = true;
                 document.getElementById('slotsInfo').classList.add('hidden');
-                // Recargar calendario para actualizar cupos
-                setTimeout(() => {
-                    loadCalendar(currentYear, currentMonth);
-                }, 1000);
+                setTimeout(() => loadCalendar(currentYear, currentMonth), 1000);
             } else {
                 showFormMessage(result.message || 'Error al agendar la cita.', true);
             }
@@ -780,9 +837,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ============================================================
-    // FUNCIONES AUXILIARES
-    // ============================================================
     function showFormMessage(message, isError = false) {
         const errorDiv = document.getElementById('formMessageError');
         const successDiv = document.getElementById('formMessageSuccess');
@@ -815,7 +869,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     // INICIALIZAR CALENDARIO
     // ============================================================
-    loadCalendar(currentYear, currentMonth);
+    if (asesorId) {
+        loadCalendar(currentYear, currentMonth);
+    }
 });
 </script>
 @endpush

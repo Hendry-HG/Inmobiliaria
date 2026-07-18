@@ -1,5 +1,6 @@
 <?php
 
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -25,7 +26,7 @@ return new class extends Migration
             $table->string('address')->nullable();
             $table->string('location')->nullable();
 
-            // Campos antiguos (compatibilidad) - marcados para deprecación
+            // Campos antiguos (compatibilidad)
             $table->string('sector')->nullable();
             $table->string('city')->nullable();
             $table->string('state')->nullable();
@@ -48,9 +49,10 @@ return new class extends Migration
             // Características adicionales (JSON)
             $table->json('features')->nullable();
 
-            // Geolocalización
-            $table->decimal('latitude', 10, 8)->nullable();
-            $table->decimal('longitude', 11, 8)->nullable();
+            // ============================================================
+            // ELIMINADOS: latitude y longitude
+            // Ya no se usan campos de geolocalización manual
+            // ============================================================
 
             // Relaciones
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -69,20 +71,38 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Índices para optimizar búsquedas (incorporados directamente)
-            $table->index(['status', 'type', 'price']);
+            // ============================================================
+            // ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
             $table->index('user_id');
             $table->index('category_id');
-            $table->index(['country_id', 'state_id', 'municipality_id']);
-            $table->index(['title', 'description']); // Full-text search podría ser mejor
-            $table->index(['is_featured', 'featured_until']);
-            $table->index(['created_at', 'status']);
             $table->index('price');
             $table->index('status');
             $table->index('type');
+            $table->index('views');
+            $table->index('is_featured');
+            $table->index('featured_until');
+            $table->index('created_at');
+            $table->index('deleted_at');
+            $table->index('country_id');
+            $table->index('state_id');
+            $table->index('city_id');
+            $table->index('municipality_id');
 
-            // Índice compuesto para búsquedas comunes
+            // Índices compuestos
+            $table->index(['status', 'type', 'price']);
+            $table->index(['country_id', 'state_id', 'municipality_id']);
+            $table->index(['is_featured', 'featured_until']);
+            $table->index(['created_at', 'status']);
             $table->index(['status', 'type', 'price', 'created_at']);
+            $table->index(['user_id', 'status']);
+            $table->index(['category_id', 'status']);
+            $table->index(['city_id', 'status']);
+            $table->index(['state_id', 'status']);
+
+            // Índices para búsquedas de texto
+            $table->index(['title', 'description']);
+            $table->index(['address', 'location']);
         });
     }
 

@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,8 +29,9 @@ class Property extends Model
         'country_id', 'state_id', 'municipality_id', 'parish_id', 'city_id',
         'sector', 'city', 'state', 'country', 'zip_code', 'bedrooms', 'bathrooms',
         'parking_spaces', 'area', 'land_area', 'floors', 'year_built', 'type',
-        'status', 'features', 'latitude', 'longitude', 'user_id', 'category_id',
+        'status', 'features', 'user_id', 'category_id',
         'views', 'inquiries', 'is_featured', 'featured_until', 'meta_data'
+        // latitude y longitude ELIMINADOS
     ];
 
     protected $casts = [

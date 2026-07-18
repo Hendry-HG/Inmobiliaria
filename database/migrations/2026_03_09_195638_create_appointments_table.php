@@ -6,25 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // Eliminamos la tabla si existe para asegurar una estructura limpia
         Schema::dropIfExists('appointments');
 
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
 
             // Relaciones
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Cliente que agenda
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('property_id')->constrained()->onDelete('cascade');
-            $table->foreignId('asesor_id')->constrained('users')->onDelete('cascade'); // Asesor asignado
+            $table->foreignId('asesor_id')->constrained('users')->onDelete('cascade');
 
             // Fechas
-            $table->dateTime('scheduled_date'); // Inicio de la cita
-            $table->dateTime('end_date')->nullable(); // Fin estimado (opcional)
+            $table->dateTime('scheduled_date');
+            $table->dateTime('end_date')->nullable();
 
             // Estado
             $table->enum('status', [
@@ -32,15 +28,15 @@ return new class extends Migration
                 'reprogrammed', 'no_show'
             ])->default('pending');
 
-            // Datos de contacto (Capturados en el formulario)
+            // Datos de contacto
             $table->string('contact_name')->nullable();
             $table->string('contact_phone')->nullable();
             $table->string('contact_email')->nullable();
 
             // Mensajes y Notas
-            $table->text('message')->nullable(); // Mensaje del cliente al agendar
-            $table->text('notes')->nullable();   // Notas internas (Solo manual)
-            $table->text('result_notes')->nullable(); // Resultado post-cita
+            $table->text('message')->nullable();
+            $table->text('notes')->nullable();
+            $table->text('result_notes')->nullable();
 
             // Indicadores de resultado
             $table->boolean('client_attended')->default(false);
@@ -48,19 +44,23 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Índices para búsquedas rápidas en calendario
+            // ============================================================
+            //  ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
+            $table->index('user_id');
+            $table->index('property_id');
+            $table->index('asesor_id');
+            $table->index('status');
+            $table->index('scheduled_date');
+            $table->index('created_at');
             $table->index(['asesor_id', 'scheduled_date']);
             $table->index(['status', 'scheduled_date']);
-            $table->index('user_id');
-
-            // IMPORTANTE: No hay unique(['user_id', 'property_id'])
-            // Esto permite múltiples visitas del mismo cliente a la misma propiedad.
+            $table->index(['user_id', 'scheduled_date']);
+            $table->index(['property_id', 'status']);
+            $table->index(['asesor_id', 'status', 'scheduled_date']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('appointments');

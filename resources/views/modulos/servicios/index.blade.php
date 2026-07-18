@@ -1,255 +1,418 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Servicios Inmobiliarios')
-@section('header', 'Gestión de Servicios')
+@section('title', 'Gestión de Propiedades')
+@section('header', 'Inventario de Propiedades')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-    {{-- Header y Botón Crear --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800">Listado de Servicios</h2>
-                <p class="text-sm text-slate-500 mt-1">Gestiona los servicios que ofrece tu inmobiliaria</p>
+        <!-- Header y Filtros -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+                <h2 class="text-xl font-bold text-slate-800">Listado de Inmuebles</h2>
+                @php
+                    $createRoute = (isset($isAdmin) && $isAdmin) ? route('admin.properties.create') : route('asesor.properties.create');
+                @endphp
+                <a href="{{ $createRoute }}"
+                   class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
+                    <i class="ph ph-plus-circle text-lg"></i> Nueva Propiedad
+                </a>
             </div>
-            <a href="{{ route('admin.servicios.create') }}"
-               class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2 whitespace-nowrap">
-                <i class="ph ph-plus-circle text-lg"></i> Nuevo Servicio
-            </a>
-        </div>
-    </div>
 
-    {{-- Mensajes --}}
-    @if(session('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm">
-            <div class="flex items-center">
-                <i class="ph ph-check-circle text-xl mr-2"></i>
-                <p>{{ session('success') }}</p>
-            </div>
-        </div>
-    @endif
+            <form action="{{ request()->url() }}" method="GET" class="space-y-3">
+                <!-- Búsqueda -->
+                <div class="flex flex-wrap gap-3">
+                    <input type="text" name="search" value="{{ request('search') }}"
+                           placeholder="Buscar por título, descripción o dirección..."
+                           class="flex-1 min-w-[200px] border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-mso-gold outline-none">
 
-    {{-- Tabla de Servicios --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                        <th class="p-4">Servicio</th>
-                        <th class="p-4">Descripción</th>
-                        <th class="p-4 text-center">Estado</th>
-                        <th class="p-4 text-center">Imágenes</th>
-                        <th class="p-4 text-center">Orden</th>
-                        <th class="p-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-sm" id="services-list">
-                    @forelse($services as $service)
-                        <tr class="hover:bg-slate-50 transition-colors group" data-id="{{ $service->id }}">
-                            <td class="p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-                                         style="background-color: {{ $service->color ?? '#f3f4f6' }}; color: {{ $service->color ? '#ffffff' : '#6b7280' }}">
-                                        @if($service->icon)
-                                            <i class="{{ $service->icon }}"></i>
-                                        @else
-                                            <i class="ph ph-house"></i>
-                                        @endif
-                                    </div>
-                                    <span class="font-semibold text-slate-800">{{ $service->title }}</span>
-                                </div>
-                            </td>
-                            <td class="p-4 text-slate-500 max-w-[200px] truncate">
-                                {{ $service->description ?? 'Sin descripción' }}
-                            </td>
-                            <td class="p-4 text-center">
-                                <div class="flex flex-wrap items-center justify-center gap-1">
-                                    @if($service->badge)
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-mso-gold/20 text-mso-gold whitespace-nowrap">
-                                            {{ $service->badge }}
-                                        </span>
-                                    @endif
-                                    @if($service->is_featured)
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 whitespace-nowrap">
-                                            <i class="ph ph-star"></i>
-                                        </span>
-                                    @endif
-                                    @if(!$service->is_active)
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-600 whitespace-nowrap">
-                                            Inactivo
-                                        </span>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="p-4 text-center text-slate-500">
-                                <i class="ph ph-image"></i> {{ $service->gallery->count() }}
-                            </td>
-                            <td class="p-4 text-center text-slate-500">
-                                {{ $service->order }}
-                            </td>
-                            <td class="p-4 text-right">
-                                <div class="flex items-center justify-end gap-1">
-                                    <a href="{{ route('admin.servicios.edit', $service->id) }}"
-                                       class="p-1.5 text-slate-400 hover:text-mso-gold hover:bg-mso-gold/10 rounded transition-colors">
-                                        <i class="ph ph-pencil text-sm"></i>
-                                    </a>
-                                    <button onclick="deleteService({{ $service->id }})"
-                                            class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
-                                        <i class="ph ph-trash text-sm"></i>
-                                    </button>
-                                    <span class="drag-handle p-1.5 text-slate-300 hover:text-slate-500 cursor-grab transition-colors">
-                                        <i class="ph ph-dots-six text-sm"></i>
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-500">
-                                <i class="ph ph-buildings text-4xl text-slate-300 mb-3 block"></i>
-                                <p>No hay servicios creados aún.</p>
-                                <a href="{{ route('admin.servicios.create') }}" class="text-mso-gold hover:underline font-semibold">
-                                    Crear el primer servicio
-                                </a>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+                    <select name="type" class="border rounded-lg px-4 py-2 text-sm bg-white">
+                        <option value="">Todos los Tipos</option>
+                        <option value="venta" {{ request('type') == 'venta' ? 'selected' : '' }}>Venta</option>
+                        <option value="alquiler" {{ request('type') == 'alquiler' ? 'selected' : '' }}>Alquiler</option>
+                        <option value="venta/alquiler" {{ request('type') == 'venta/alquiler' ? 'selected' : '' }}>Venta/Alquiler</option>
+                    </select>
 
-    {{-- ============================================ --}}
-    {{-- SECCIÓN: ASESORES (igual que en Propiedades) --}}
-    {{-- ============================================ --}}
-    <div class="mt-6 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                    <i class="ph ph-users text-mso-gold"></i>
-                    Asesores Disponibles
-                    <span class="text-sm font-normal text-slate-400 ml-2">({{ $asesores->count() }})</span>
-                </h3>
-                <p class="text-sm text-slate-500 mt-1">Asesores registrados en la plataforma</p>
-            </div>
-            <a href="{{ route('admin.users.index') }}?role=Asesor Inmobiliario"
-               class="text-sm text-mso-gold hover:underline font-semibold whitespace-nowrap">
-                Gestionar Asesores
-            </a>
-        </div>
-
-        <div class="p-4 sm:p-6">
-            @if($asesores->isEmpty())
-                <div class="text-center py-8 text-slate-400">
-                    <i class="ph ph-user-plus text-4xl block mb-2"></i>
-                    <p>No hay asesores registrados.</p>
+                    <select name="status" class="border rounded-lg px-4 py-2 text-sm bg-white">
+                        <option value="">Todos los Estados</option>
+                        <option value="borrador" {{ request('status') == 'borrador' ? 'selected' : '' }}>Borrador</option>
+                        <option value="pendiente" {{ request('status') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                        <option value="publicada" {{ request('status') == 'publicada' ? 'selected' : '' }}>Publicada</option>
+                        <option value="vendida" {{ request('status') == 'vendida' ? 'selected' : '' }}>Vendida</option>
+                        <option value="alquilada" {{ request('status') == 'alquilada' ? 'selected' : '' }}>Alquilada</option>
+                    </select>
                 </div>
-            @else
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    @foreach($asesores as $asesor)
-                        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 hover:shadow-md transition-shadow text-center">
-                            <img src="{{ $asesor->profile_photo_url }}"
-                                 class="w-12 h-12 rounded-full object-cover border-2 border-mso-gold mx-auto"
-                                 alt="{{ $asesor->full_name }}">
-                            <p class="font-semibold text-slate-800 text-xs truncate mt-1">{{ $asesor->full_name }}</p>
-                            @if($asesor->specialization)
-                                <span class="text-[8px] font-medium px-1.5 py-0.5 rounded-full bg-mso-gold/20 text-mso-gold truncate block max-w-full">
-                                    {{ $asesor->specialization }}
-                                </span>
+
+                <!-- Filtros de Ubicación -->
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <select name="country_id" id="filter_country" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white">
+                        <option value="">Todos los Países</option>
+                        @foreach($countries as $country)
+                            <option value="{{ $country->id }}" {{ request('country_id') == $country->id ? 'selected' : '' }}>
+                                {{ $country->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <select name="state_id" id="filter_state" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('country_id') ? '' : 'disabled' }}>
+                        <option value="">Todos los Estados</option>
+                        @foreach($states as $state)
+                            <option value="{{ $state->id }}" {{ request('state_id') == $state->id ? 'selected' : '' }}>
+                                {{ $state->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <select name="municipality_id" id="filter_municipality" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('state_id') ? '' : 'disabled' }}>
+                        <option value="">Todos los Municipios</option>
+                        @foreach($municipalities as $municipality)
+                            <option value="{{ $municipality->id }}" {{ request('municipality_id') == $municipality->id ? 'selected' : '' }}>
+                                {{ $municipality->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <select name="parish_id" id="filter_parish" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('municipality_id') ? '' : 'disabled' }}>
+                        <option value="">Todas las Parroquias</option>
+                        @foreach($parishes as $parish)
+                            <option value="{{ $parish->id }}" {{ request('parish_id') == $parish->id ? 'selected' : '' }}>
+                                {{ $parish->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <select name="city_id" id="filter_city" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('parish_id') ? '' : 'disabled' }}>
+                        <option value="">Todas las Ciudades</option>
+                        @foreach($cities as $city)
+                            <option value="{{ $city->id }}" {{ request('city_id') == $city->id ? 'selected' : '' }}>
+                                {{ $city->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filtros adicionales -->
+                <div class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Precio Mínimo</label>
+                        <input type="number" name="min_price" value="{{ request('min_price') }}"
+                               placeholder="$ Min" class="border rounded-lg px-4 py-2 text-sm w-32">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Precio Máximo</label>
+                        <input type="number" name="max_price" value="{{ request('max_price') }}"
+                               placeholder="$ Max" class="border rounded-lg px-4 py-2 text-sm w-32">
+                    </div>
+
+                    @if(isset($isAdmin) && $isAdmin && isset($asesores) && $asesores->count() > 0)
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Asesor</label>
+                            <select name="user_id" class="border rounded-lg px-4 py-2 text-sm bg-white">
+                                <option value="">Todos los Asesores</option>
+                                @foreach($asesores as $asesor)
+                                    <option value="{{ $asesor->id }}" {{ request('user_id') == $asesor->id ? 'selected' : '' }}>
+                                        {{ $asesor->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    <button type="submit" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700">
+                        <i class="ph ph-funnel mr-1"></i> Filtrar
+                    </button>
+                    <a href="{{ request()->url() }}" class="border border-slate-300 text-slate-600 px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-50">
+                        Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabla -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                            <th class="p-4">Propiedad</th>
+                            <th class="p-4">Precio</th>
+                            <th class="p-4">Ubicación</th>
+                            <th class="p-4">Estado</th>
+                            @if(isset($isAdmin) && $isAdmin)
+                                <th class="p-4">Asesor</th>
                             @endif
-                            <div class="mt-1 pt-1 border-t border-slate-200 flex justify-center gap-2 text-[9px] text-slate-400">
-                                <span><i class="ph ph-buildings text-[9px]"></i> {{ $asesor->properties->where('status', 'publicada')->count() }}</span>
+                            <th class="p-4 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody
+                        x-data="{
+                            rowsHtml: @js(View::make('modulos.propiedades._rows', ['properties' => $properties, 'isAdmin' => $isAdmin ?? false, 'isAsesor' => $isAsesor ?? false])->render()),
+                            loading: false
+                        }"
+                        x-init="initTablePolling()"
+                        x-html="rowsHtml"
+                        class="divide-y divide-slate-100 text-sm relative transition-opacity duration-300"
+                        :class="loading ? 'opacity-50' : 'opacity-100'"
+                    >
+                        <div x-show="loading" x-cloak class="absolute inset-0 bg-white/30 flex items-center justify-center z-10 backdrop-blur-sm pointer-events-none">
+                            <div class="bg-white p-2 rounded-lg shadow-lg border border-slate-100">
+                                <i class="ph ph-spinner animate-spin text-xl text-mso-gold"></i>
                             </div>
                         </div>
-                    @endforeach
-                </div>
-            @endif
+                    </tbody>
+
+                </table>
+            </div>
+            <div class="p-4 border-t border-slate-100 flex justify-center">
+                {{ $properties->appends(request()->query())->links() }}
+            </div>
         </div>
     </div>
 
-</div>
+    <!-- ============================================ -->
+    <!-- MODAL DE CONFIRMACIÓN PARA ELIMINAR PROPIEDAD -->
+    <!-- ============================================ -->
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <!-- Overlay -->
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeDeleteModal()"></div>
 
-{{-- Formulario para eliminar --}}
-<form id="delete-form" method="POST" style="display: none;">
-    @csrf
-    @method('DELETE')
-</form>
+            <!-- Modal -->
+            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+                <div class="p-6">
+                    <!-- Icono -->
+                    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+                        <i class="ph ph-trash text-3xl text-red-600"></i>
+                    </div>
+
+                    <!-- Título -->
+                    <h3 class="text-lg font-bold text-slate-900 text-center mb-2" id="modal-title">
+                        ¿Eliminar propiedad?
+                    </h3>
+
+                    <!-- Mensaje -->
+                    <p class="text-sm text-slate-500 text-center mb-6" id="modalMessage">
+                        ¿Estás seguro de eliminar la propiedad "<span id="propertyTitle" class="font-semibold text-slate-700"></span>"?
+                        <br><span class="text-xs text-red-500">Esta acción no se puede deshacer.</span>
+                    </p>
+
+                    <!-- Botones -->
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button onclick="closeDeleteModal()"
+                                class="px-6 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                            Cancelar
+                        </button>
+                        <button onclick="confirmDelete()"
+                                class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="ph ph-trash"></i>
+                            Sí, eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario para eliminar (oculto) -->
+    <form id="delete-form" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
 
 @push('js')
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
-    function deleteService(id) {
-        if (!confirm('¿Estás seguro de eliminar este servicio?')) return;
-        const form = document.getElementById('delete-form');
-        form.action = `{{ route('admin.servicios.destroy', ['id' => '__ID__']) }}`.replace('__ID__', id);
-        form.submit();
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    const filterCountry = document.getElementById('filter_country');
+    const filterState = document.getElementById('filter_state');
+    const filterMunicipality = document.getElementById('filter_municipality');
+    const filterParish = document.getElementById('filter_parish');
+    const filterCity = document.getElementById('filter_city');
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const list = document.getElementById('services-list');
-        if (!list) return;
-
-        new Sortable(list, {
-            handle: '.drag-handle',
-            animation: 150,
-            onEnd: function() {
-                const items = list.querySelectorAll('tr[data-id]');
-                const order = [];
-                items.forEach(item => {
-                    order.push(parseInt(item.dataset.id));
-                });
-
-                fetch('{{ route("admin.servicios.reorder") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ order: order })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Orden actualizado correctamente', 'success');
-                    }
-                })
-                .catch(() => showToast('Error al actualizar el orden', 'error'));
+    if (filterCountry) {
+        filterCountry.addEventListener('change', function() {
+            const countryId = this.value;
+            if (countryId) {
+                fetch(`/api/locations/states/${countryId}`)
+                    .then(response => response.json())
+                    .then(states => {
+                        filterState.disabled = false;
+                        filterState.innerHTML = '<option value="">Todos los Estados</option>';
+                        states.forEach(state => {
+                            filterState.innerHTML += `<option value="${state.id}">${state.name}</option>`;
+                        });
+                        filterMunicipality.disabled = true;
+                        filterMunicipality.innerHTML = '<option value="">Todos los Municipios</option>';
+                        filterParish.disabled = true;
+                        filterParish.innerHTML = '<option value="">Todas las Parroquias</option>';
+                        filterCity.disabled = true;
+                        filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+                    });
+            } else {
+                filterState.disabled = true;
+                filterState.innerHTML = '<option value="">Todos los Estados</option>';
+                filterMunicipality.disabled = true;
+                filterMunicipality.innerHTML = '<option value="">Todos los Municipios</option>';
+                filterParish.disabled = true;
+                filterParish.innerHTML = '<option value="">Todas las Parroquias</option>';
+                filterCity.disabled = true;
+                filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
             }
         });
-    });
-
-    function showToast(message, type = 'info') {
-        let container = document.getElementById('toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
-            document.body.appendChild(container);
-        }
-
-        const toast = document.createElement('div');
-        const bgColor = type === 'success' ? 'bg-green-500' :
-                        type === 'error' ? 'bg-red-500' :
-                        'bg-mso-blue';
-
-        toast.className = `${bgColor} text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 transform transition-all duration-300 translate-x-full text-sm`;
-        toast.innerHTML = `
-            <i class="ph ${type === 'success' ? 'ph-check-circle' : type === 'error' ? 'ph-warning-circle' : 'ph-info'}"></i>
-            <span>${message}</span>
-        `;
-
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 10);
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => {
-                toast.remove();
-            }, 300);
-        }, 2500);
     }
+
+    if (filterState) {
+        filterState.addEventListener('change', function() {
+            const stateId = this.value;
+            if (stateId) {
+                fetch(`/api/locations/municipalities/${stateId}`)
+                    .then(response => response.json())
+                    .then(municipalities => {
+                        filterMunicipality.disabled = false;
+                        filterMunicipality.innerHTML = '<option value="">Todos los Municipios</option>';
+                        municipalities.forEach(municipality => {
+                            filterMunicipality.innerHTML += `<option value="${municipality.id}">${municipality.name}</option>`;
+                        });
+                        filterParish.disabled = true;
+                        filterParish.innerHTML = '<option value="">Todas las Parroquias</option>';
+                        filterCity.disabled = true;
+                        filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+                    });
+            } else {
+                filterMunicipality.disabled = true;
+                filterMunicipality.innerHTML = '<option value="">Todos los Municipios</option>';
+                filterParish.disabled = true;
+                filterParish.innerHTML = '<option value="">Todas las Parroquias</option>';
+                filterCity.disabled = true;
+                filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+            }
+        });
+    }
+
+    if (filterMunicipality) {
+        filterMunicipality.addEventListener('change', function() {
+            const municipalityId = this.value;
+            if (municipalityId) {
+                fetch(`/api/locations/parishes/${municipalityId}`)
+                    .then(response => response.json())
+                    .then(parishes => {
+                        filterParish.disabled = false;
+                        filterParish.innerHTML = '<option value="">Todas las Parroquias</option>';
+                        parishes.forEach(parish => {
+                            filterParish.innerHTML += `<option value="${parish.id}">${parish.name}</option>`;
+                        });
+                        filterCity.disabled = true;
+                        filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+                    });
+            } else {
+                filterParish.disabled = true;
+                filterParish.innerHTML = '<option value="">Todas las Parroquias</option>';
+                filterCity.disabled = true;
+                filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+            }
+        });
+    }
+
+    if (filterParish) {
+        filterParish.addEventListener('change', function() {
+            const parishId = this.value;
+            if (parishId) {
+                fetch(`/api/locations/cities/${parishId}`)
+                    .then(response => response.json())
+                    .then(cities => {
+                        filterCity.disabled = false;
+                        filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+                        cities.forEach(city => {
+                            filterCity.innerHTML += `<option value="${city.id}">${city.name}</option>`;
+                        });
+                    });
+            } else {
+                filterCity.disabled = true;
+                filterCity.innerHTML = '<option value="">Todas las Ciudades</option>';
+            }
+        });
+    }
+
+    function initTablePolling() {
+        setInterval(() => {
+            this.loading = true;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('ajax', '1');
+            fetch(currentUrl.toString())
+                .then(response => response.json())
+                .then(data => {
+                    if (data.html) {
+                        this.rowsHtml = data.html;
+                    }
+                })
+                .catch(error => console.error('Error actualizando tabla:', error))
+                .finally(() => {
+                    this.loading = false;
+                });
+        }, 10000);
+    }
+});
+
+// ============================================
+// FUNCIONES DEL MODAL DE ELIMINACIÓN
+// ============================================
+let deletePropertyId = null;
+let deleteRoute = '';
+
+function openDeleteModal(id, title, route) {
+    deletePropertyId = id;
+    deleteRoute = route;
+    document.getElementById('propertyTitle').textContent = title;
+    const modal = document.getElementById('deleteModal');
+    const content = document.getElementById('modalContent');
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    const content = document.getElementById('modalContent');
+    
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        deletePropertyId = null;
+        deleteRoute = '';
+    }, 300);
+}
+
+function confirmDelete() {
+    if (!deletePropertyId || !deleteRoute) return;
+    const form = document.getElementById('delete-form');
+    form.action = deleteRoute;
+    form.submit();
+}
+
+// Cerrar modal con tecla ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeDeleteModal();
+    }
+});
+
+// Cerrar modal al hacer clic fuera
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (modal && !modal.classList.contains('hidden')) {
+        if (event.target === modal || event.target === document.querySelector('.fixed.inset-0.bg-slate-900\\/50')) {
+            closeDeleteModal();
+        }
+    }
+});
 </script>
 @endpush
 @endsection

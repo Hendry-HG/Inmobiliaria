@@ -12,6 +12,7 @@ use App\Models\Property;
 use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\AuditLog;
+use App\Models\Favorite;
 
 class DashboardController extends Controller
 {
@@ -35,7 +36,6 @@ class DashboardController extends Controller
             ->pluck('roles.name')
             ->toArray();
 
-        // Verificar redirección manual
         if ($request->has('redirect') && !empty($request->redirect)) {
             $redirectUrl = $request->redirect;
             if ($this->isSafeUrl($redirectUrl)) {
@@ -43,7 +43,6 @@ class DashboardController extends Controller
             }
         }
 
-        // Verificar URL intended
         if (session()->has('url.intended')) {
             $intendedUrl = session()->get('url.intended');
             if ($this->isSafeUrl($intendedUrl)) {
@@ -53,7 +52,6 @@ class DashboardController extends Controller
             session()->forget('url.intended');
         }
 
-        // Redirigir según rol
         if (in_array('Super Admin', $userRoles)) {
             return redirect()->route('super-admin.dashboard');
         } elseif (in_array('Administrador', $userRoles)) {
@@ -73,12 +71,10 @@ class DashboardController extends Controller
     {
         if (empty($url)) return false;
 
-        // URLs relativas son seguras
         if (str_starts_with($url, '/')) {
             return true;
         }
 
-        // Verificar URLs completas
         if (filter_var($url, FILTER_VALIDATE_URL)) {
             $parsedUrl = parse_url($url);
             if (isset($parsedUrl['host']) && $parsedUrl['host'] === request()->getHost()) {
@@ -313,6 +309,9 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Dashboard para Clientes - CORREGIDO
+     */
     public function clienteDashboard()
     {
         $user = Auth::user();
@@ -328,8 +327,27 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        $favoritesCount = $user->favorites()->count();
+        // =============================================
+        // FAVORITOS - USAR EL MODELO Favorite DIRECTAMENTE
+        // =============================================
+        $favoritesCount = Favorite::where('user_id', $user->id)->count();
 
+        // Obtener IDs de propiedades favoritas
+        $favoriteIds = Favorite::where('user_id', $user->id)
+            ->pluck('property_id')
+            ->toArray();
+
+        // Obtener las propiedades favoritas
+        $favoriteProperties = Property::whereIn('id', $favoriteIds)
+            ->where('status', 'publicada')
+            ->with('primaryImage')
+            ->latest()
+            ->limit(3)
+            ->get();
+
+        // =============================================
+        // CITAS
+        // =============================================
         $upcomingAppointments = Appointment::where('user_id', $user->id)
             ->where('scheduled_date', '>=', now())
             ->whereIn('status', ['pending', 'confirmed'])
@@ -342,34 +360,40 @@ class DashboardController extends Controller
             ->orderBy('scheduled_date', 'asc')
             ->first();
 
-        $favoriteProperties = $user->favoriteProperties()
-            ->with('primaryImage')
-            ->latest('favorites.created_at')
-            ->limit(3)
-            ->get();
-
         $appointments = Appointment::where('user_id', $user->id)
             ->with(['property', 'asesor'])
             ->latest()
             ->limit(5)
             ->get();
 
-        $recentProperties = Property::published()
+        $pendingAppointmentsCount = Appointment::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+
+        // =============================================
+        // PROPIEDADES RECIENTES - SIN USAR scope published()
+        // =============================================
+        $recentProperties = Property::where('status', 'publicada')
             ->with('primaryImage')
             ->latest()
             ->limit(3)
             ->get();
 
+        // =============================================
+        // MENSAJES NO LEÍDOS (si tienes chat)
+        // =============================================
         $unreadMessagesCount = 0;
 
-        $pendingAppointmentsCount = Appointment::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->count();
-
         return view('dashboard.cliente.index', compact(
-            'user', 'favoritesCount', 'upcomingAppointments', 'nextAppointment',
-            'favoriteProperties', 'appointments', 'recentProperties',
-            'unreadMessagesCount', 'pendingAppointmentsCount'
+            'user',
+            'favoritesCount',
+            'upcomingAppointments',
+            'nextAppointment',
+            'favoriteProperties',
+            'appointments',
+            'recentProperties',
+            'unreadMessagesCount',
+            'pendingAppointmentsCount'
         ));
     }
 }

@@ -14,8 +14,14 @@ return new class extends Migration
             $table->foreignId('property_id')->constrained()->onDelete('cascade');
             $table->timestamps();
 
+            // ============================================================
+            //  ÍNDICES OPTIMIZADOS PARA RENDIMIENTO
+            // ============================================================
             $table->unique(['user_id', 'property_id']);
+            $table->index('user_id');
+            $table->index('property_id');
             $table->index(['user_id', 'created_at']);
+            $table->index(['property_id', 'created_at']);
         });
     }
 

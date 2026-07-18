@@ -145,9 +145,6 @@
                         </tr>
                     </thead>
 
-                    <!-- ========================================== -->
-                    <!-- CAMBIO AQUÍ: ALPINE.JS PARA ACTUALIZACIÓN -->
-                    <!-- ========================================== -->
                     <tbody
                         x-data="{
                             rowsHtml: @js(View::make('modulos.propiedades._rows', ['properties' => $properties, 'isAdmin' => $isAdmin ?? false, 'isAsesor' => $isAsesor ?? false])->render()),
@@ -158,28 +155,57 @@
                         class="divide-y divide-slate-100 text-sm relative transition-opacity duration-300"
                         :class="loading ? 'opacity-50' : 'opacity-100'"
                     >
-                        <!-- Indicador de carga superpuesto -->
                         <div x-show="loading" x-cloak class="absolute inset-0 bg-white/30 flex items-center justify-center z-10 backdrop-blur-sm pointer-events-none">
                             <div class="bg-white p-2 rounded-lg shadow-lg border border-slate-100">
                                 <i class="ph ph-spinner animate-spin text-xl text-mso-gold"></i>
                             </div>
                         </div>
                     </tbody>
-                    <!-- ========================================== -->
 
                 </table>
             </div>
-            <!-- Paginación -->
             <div class="p-4 border-t border-slate-100 flex justify-center">
                 {{ $properties->appends(request()->query())->links() }}
             </div>
         </div>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN PARA ELIMINAR -->
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeDeleteModal()"></div>
+            <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+                <div class="p-6">
+                    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+                        <i class="ph ph-trash text-3xl text-red-600"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 text-center mb-2">¿Eliminar propiedad?</h3>
+                    <p class="text-sm text-slate-500 text-center mb-6">
+                        ¿Estás seguro de eliminar la propiedad "<span id="propertyTitle" class="font-semibold text-slate-700"></span>"?
+                        <br><span class="text-xs text-red-500">Esta acción no se puede deshacer.</span>
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button onclick="closeDeleteModal()" class="px-6 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                            Cancelar
+                        </button>
+                        <button onclick="confirmDelete()" class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="ph ph-trash"></i> Sí, eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="delete-form" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
+@endsection
+
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // === SELECTORES DE UBICACIÓN (Mantener tu código original) ===
     const filterCountry = document.getElementById('filter_country');
     const filterState = document.getElementById('filter_state');
     const filterMunicipality = document.getElementById('filter_municipality');
@@ -290,35 +316,81 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === FUNCIONALIDAD DE ACTUALIZACIÓN AUTOMÁTICA ===
     function initTablePolling() {
-        // Actualizar cada 10 segundos
         setInterval(() => {
             this.loading = true;
-
-            // Creamos una URL con los parámetros actuales para mantener los filtros
             const currentUrl = new URL(window.location.href);
             currentUrl.searchParams.set('ajax', '1');
-
             fetch(currentUrl.toString())
-                .then(response => {
-                    if (!response.ok) throw new Error('Error de red');
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     if (data.html) {
                         this.rowsHtml = data.html;
                     }
                 })
-                .catch(error => {
-                    console.error('Error actualizando tabla:', error);
-                })
+                .catch(error => console.error('Error actualizando tabla:', error))
                 .finally(() => {
                     this.loading = false;
                 });
-        }, 10000); // 10000ms = 10 segundos
+        }, 10000);
+    }
+});
+
+// FUNCIONES DEL MODAL
+let deletePropertyId = null;
+let deleteRoute = '';
+
+function openDeleteModal(id, title, route) {
+    deletePropertyId = id;
+    deleteRoute = route;
+    document.getElementById('propertyTitle').textContent = title;
+    const modal = document.getElementById('deleteModal');
+    const content = document.getElementById('modalContent');
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    const content = document.getElementById('modalContent');
+
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        deletePropertyId = null;
+        deleteRoute = '';
+    }, 300);
+}
+
+function confirmDelete() {
+    if (!deletePropertyId || !deleteRoute) return;
+    const form = document.getElementById('delete-form');
+    form.action = deleteRoute;
+    form.submit();
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeDeleteModal();
+    }
+});
+
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (modal && !modal.classList.contains('hidden')) {
+        if (event.target === modal || event.target === document.querySelector('.fixed.inset-0.bg-slate-900\\/50')) {
+            closeDeleteModal();
+        }
     }
 });
 </script>
 @endpush
-@endsection
