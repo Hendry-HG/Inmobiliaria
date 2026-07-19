@@ -25,6 +25,7 @@ class SiteConfiguration extends Model
 
     protected $casts = [
         'hero_images' => 'array',
+        'hero_image_paths' => 'array',
         'featured_properties' => 'array',
     ];
 
@@ -37,7 +38,7 @@ class SiteConfiguration extends Model
     }
 
     /**
-     * Crear configuración por defecto
+     * Crear configuración por defecto SIN imágenes
      */
     public static function createDefault()
     {
@@ -46,16 +47,16 @@ class SiteConfiguration extends Model
             'hero_title_line1' => 'El Arte de',
             'hero_title_line2' => 'Vivir Bien',
             'hero_subtitle' => 'Descubre una curaduría exclusiva de propiedades de lujo en las mejores zonas de Venezuela.',
-            'hero_images' => [
-                'https://images.unsplash.com/photo-1600596542815-2495db0c5903?q=80&w=2000&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2000&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop'
-            ],
+            'hero_images' => [], // ← ARRAY VACÍO
+            'hero_image_paths' => null,
             'featured_badge' => 'Colección Exclusiva',
             'featured_title' => 'Propiedades Destacadas',
             'featured_properties' => [],
             'support_whatsapp' => '58XXXXXXXXX',
             'support_instagram' => 'msoinmobiliaria',
+            'support_phone' => null,
+            'support_email' => null,
+            'footer_text' => '© ' . date('Y') . ' MSO Inmobiliaria. Todos los derechos reservados.',
         ]);
     }
 
@@ -66,6 +67,7 @@ class SiteConfiguration extends Model
     {
         $images = json_decode($value, true) ?? [];
 
+        // Si hay imágenes subidas localmente, combinarlas
         if ($this->hero_image_paths) {
             $uploadedImages = json_decode($this->hero_image_paths, true) ?? [];
             $images = array_merge($images, $uploadedImages);

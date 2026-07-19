@@ -25,7 +25,7 @@ use App\Http\Controllers\Admin\SiteConfigController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\Api\AppointmentSettingController;
 use App\Http\Controllers\Admin\ServiceController;
-use App\Http\Controllers\Admin\CategoryController; // <-- NUEVO
+use App\Http\Controllers\Admin\CategoryController;
 
 // =====================================================
 // PÁGINA PRINCIPAL
@@ -132,7 +132,7 @@ Route::prefix('api/locations')->name('api.locations.')->group(function () {
     Route::get('/municipalities/{stateId}', [ApiLocationController::class, 'getMunicipalities']);
     Route::get('/parishes/{municipalityId}', [ApiLocationController::class, 'getParishes']);
     Route::get('/cities/{parishId}', [ApiLocationController::class, 'getCities']);
-})->middleware('throttle:60,1'); // 60 peticiones por minuto
+})->middleware('throttle:60,1');
 
 // API de Registro
 Route::prefix('api/register')->group(function () {
@@ -154,7 +154,7 @@ Route::get('/api/phone-config/{countryId}', [PhoneController::class, 'getPhoneCo
 Route::middleware(['auth', 'check.account.active'])->group(function () {
 
     // =====================================================
-    // API PARA OBTENER SLOTS DISPONIBLES (USANDO API CONTROLLER)
+    // API PARA OBTENER SLOTS DISPONIBLES
     // =====================================================
     Route::prefix('api/appointments')->name('api.appointments.')->group(function () {
         Route::get('/available-slots', [AppointmentSettingController::class, 'getAvailableSlots'])
@@ -215,7 +215,6 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::post('/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('update-status');
         Route::post('/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('reschedule');
 
-        // Configuración (solo admin)
         Route::get('/configuracion', [AppointmentSettingController::class, 'index'])->name('configuracion');
         Route::post('/configuracion', [AppointmentSettingController::class, 'update'])->name('configuracion.update');
         Route::post('/exceptions', [AppointmentSettingController::class, 'addException'])->name('exceptions.add');
@@ -306,9 +305,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::get('/users/{user}/modal-edit', [UserController::class, 'modalEdit'])->name('users.modal-edit');
         Route::get('/users/{user}/modal-delete', [UserController::class, 'modalDelete'])->name('users.modal-delete');
 
-        // =====================================================
-        // CATEGORÍAS - NUEVO
-        // =====================================================
+        // CATEGORÍAS
         Route::resource('categories', CategoryController::class)->except(['show']);
         Route::patch('categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])
             ->name('categories.toggle-status');
@@ -353,11 +350,14 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
             Route::delete('/delete-image/{index}', [SiteConfigController::class, 'deleteImage'])->name('delete-image');
         });
 
-        // Servicios
+        // ==========================================
+        // RUTAS PARA SERVICIOS (COMPLETAS)
+        // ==========================================
         Route::prefix('servicios')->name('servicios.')->group(function () {
             Route::get('/', [ServiceController::class, 'index'])->name('index');
             Route::get('/create', [ServiceController::class, 'create'])->name('create');
             Route::post('/', [ServiceController::class, 'store'])->name('store');
+            Route::get('/{id}', [ServiceController::class, 'show'])->name('show');  // ← RUTA AGREGADA
             Route::get('/{id}/edit', [ServiceController::class, 'edit'])->name('edit');
             Route::put('/{id}', [ServiceController::class, 'update'])->name('update');
             Route::delete('/{id}', [ServiceController::class, 'destroy'])->name('destroy');
@@ -390,5 +390,6 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
     Route::middleware(['permission:ver reportes'])->prefix('reportes')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/datos', [ReportController::class, 'getData'])->name('data');
+        Route::get('/exportar', [ReportController::class, 'export'])->name('export');
     });
 });

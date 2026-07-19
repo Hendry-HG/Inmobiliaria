@@ -8,7 +8,7 @@ use App\Models\Property;
 use App\Traits\AuditTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth; // ✅ IMPORTAR AUTH
+use Illuminate\Support\Facades\Auth;
 
 class SiteConfigController extends Controller
 {
@@ -27,25 +27,21 @@ class SiteConfigController extends Controller
     {
         $config = SiteConfiguration::getConfig();
 
-        // Obtener todas las propiedades publicadas con sus vistas
         $allProperties = Property::where('status', 'publicada')
             ->with('primaryImage')
             ->orderBy('views', 'desc')
             ->get();
 
-        // Obtener las propiedades actualmente destacadas
         $featuredIds = $config->featured_properties ?? [];
         if (is_string($featuredIds)) {
             $featuredIds = json_decode($featuredIds, true) ?? [];
         }
 
-        // Propiedades destacadas con sus datos
         $featuredProperties = Property::whereIn('id', $featuredIds)
             ->where('status', 'publicada')
             ->with('primaryImage')
             ->get();
 
-        // Estadísticas rápidas para el panel
         $stats = [
             'total_properties' => Property::where('status', 'publicada')->count(),
             'total_views' => Property::where('status', 'publicada')->sum('views'),
@@ -86,11 +82,13 @@ class SiteConfigController extends Controller
         ]);
 
         $config = SiteConfiguration::getConfig();
-
-        // Guardar valores antiguos para auditoría
         $oldValues = $config->toArray();
 
-        // ACTUALIZAR IMÁGENES ELIMINADAS
+        // ==========================================
+        // PROCESAR IMÁGENES DEL HERO
+        // ==========================================
+
+        // 1. Eliminar imágenes marcadas
         $deletedImages = json_decode($request->input('deleted_hero_images', '[]'), true);
         $currentImages = $config->hero_images ?? [];
 
@@ -98,7 +96,7 @@ class SiteConfigController extends Controller
             $currentImages = json_decode($currentImages, true) ?? [];
         }
 
-        // Eliminar imágenes marcadas
+        // Filtrar imágenes que no están marcadas para eliminar
         $remainingImages = [];
         foreach ($currentImages as $index => $image) {
             if (!in_array($index, $deletedImages)) {
@@ -106,7 +104,7 @@ class SiteConfigController extends Controller
             }
         }
 
-        // AGREGAR NUEVAS IMÁGENES
+        // 2. Subir nuevas imágenes
         $newImages = [];
         if ($request->hasFile('hero_images_new')) {
             foreach ($request->file('hero_images_new') as $file) {
@@ -117,10 +115,13 @@ class SiteConfigController extends Controller
             }
         }
 
-        // Combinar imágenes existentes y nuevas
+        // 3. Combinar imágenes existentes y nuevas
         $allImages = array_merge($remainingImages, $newImages);
 
+        // ==========================================
         // PROCESAR PROPIEDADES DESTACADAS
+        // ==========================================
+
         $featuredProperties = $request->input('featured_properties', []);
 
         if (is_string($featuredProperties)) {
@@ -133,24 +134,37 @@ class SiteConfigController extends Controller
         $featuredProperties = array_map('intval', $featuredProperties);
         $featuredProperties = array_values($featuredProperties);
 
+        // ==========================================
         // ACTUALIZAR CONFIGURACIÓN
+        // ==========================================
+
         $config->update([
+            // Hero
             'hero_badge' => $request->hero_badge,
             'hero_title_line1' => $request->hero_title_line1,
             'hero_title_line2' => $request->hero_title_line2,
             'hero_subtitle' => $request->hero_subtitle,
             'hero_images' => $allImages,
+
+            // Featured
             'featured_badge' => $request->featured_badge,
             'featured_title' => $request->featured_title,
             'featured_properties' => $featuredProperties,
+
+            // Support
             'support_whatsapp' => $request->support_whatsapp,
             'support_instagram' => $request->support_instagram,
             'support_phone' => $request->support_phone,
             'support_email' => $request->support_email,
+
+            // Footer
             'footer_text' => $request->footer_text,
         ]);
 
-        // 🔥 AUDITORÍA - ACTUALIZACIÓN DE CONFIGURACIÓN
+        // ==========================================
+        // AUDITORÍA
+        // ==========================================
+
         $changes = [];
         $fieldLabels = [
             'hero_badge' => 'badge del hero',
@@ -242,8 +256,6 @@ class SiteConfigController extends Controller
     public function reset()
     {
         $config = SiteConfiguration::getConfig();
-
-        // Guardar valores antiguos para auditoría
         $oldValues = $config->toArray();
 
         // Eliminar imágenes del storage
@@ -261,10 +273,23 @@ class SiteConfigController extends Controller
             }
         }
 
-        // Restaurar valores por defecto
-        $config->update(SiteConfiguration::createDefault()->toArray());
+        // Restaurar valores por defecto (SIN IMÁGENES)
+        $config->update([
+            'hero_badge' => 'Exclusividad & Confort',
+            'hero_title_line1' => 'El Arte de',
+            'hero_title_line2' => 'Vivir Bien',
+            'hero_subtitle' => 'Descubre una curaduría exclusiva de propiedades de lujo en las mejores zonas de Venezuela.',
+            'hero_images' => [],
+            'featured_badge' => 'Colección Exclusiva',
+            'featured_title' => 'Propiedades Destacadas',
+            'featured_properties' => [],
+            'support_whatsapp' => '58XXXXXXXXX',
+            'support_instagram' => 'msoinmobiliaria',
+            'support_phone' => null,
+            'support_email' => null,
+            'footer_text' => '© ' . date('Y') . ' MSO Inmobiliaria. Todos los derechos reservados.',
+        ]);
 
-        // 🔥 AUDITORÍA - RESETEO DE CONFIGURACIÓN
         $this->logAudit('updated', $config, $oldValues, $config->toArray(),
             (Auth::user()?->full_name ?? 'Sistema') . ' RESTAURÓ la configuración del sitio a valores por defecto'
         );

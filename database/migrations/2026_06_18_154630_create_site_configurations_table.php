@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('hero_title_line1')->default('El Arte de');
             $table->string('hero_title_line2')->default('Vivir Bien');
             $table->text('hero_subtitle')->default('Descubre una curaduría exclusiva de propiedades de lujo en las mejores zonas de Venezuela.');
-            $table->json('hero_images')->nullable(); // URLs de imágenes
-            $table->string('hero_image_paths')->nullable(); // Para almacenar rutas de imágenes subidas
+            $table->json('hero_images')->nullable();
+            $table->string('hero_image_paths')->nullable();
 
             // Sección de propiedades destacadas
             $table->string('featured_badge')->default('Colección Exclusiva');
@@ -29,6 +29,11 @@ return new class extends Migration
             $table->string('support_instagram')->nullable();
             $table->string('support_phone')->nullable();
             $table->string('support_email')->nullable();
+
+            // ==========================================
+            // FOOTER - PIE DE PÁGINA (AGREGADO)
+            // ==========================================
+            $table->text('footer_text')->nullable();
 
             $table->timestamps();
         });

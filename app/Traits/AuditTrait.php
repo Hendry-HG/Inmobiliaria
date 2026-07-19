@@ -7,12 +7,10 @@ use Illuminate\Support\Facades\Auth;
 
 trait AuditTrait
 {
-    //  ARRAY PARA CONTROLAR DUPLICADOS
     private static $audit_logged = [];
 
     protected function logAudit($event, $subject, $oldValues = null, $newValues = null, $description = null)
     {
-        //  EVITAR DUPLICADOS
         $key = get_class($subject) . '_' . $subject->id . '_' . $event;
         if (in_array($key, self::$audit_logged)) {
             return null;
@@ -35,19 +33,45 @@ trait AuditTrait
             $description = "{$userName} {$eventLabel} " . class_basename($subject) . " '{$subjectName}'";
         }
 
+        // ==========================================
+        // CONVERTIR A JSON ANTES DE GUARDAR
+        // ==========================================
+        $oldJson = $this->toJson($oldValues);
+        $newJson = $this->toJson($newValues);
+
         return AuditLog::create([
             'user_id' => $userId,
+            'user_type' => $user ? get_class($user) : null,
             'event' => $event,
             'action' => $event,
             'subject_type' => get_class($subject),
             'subject_id' => $subject->id,
-            'old_values' => $oldValues,
-            'new_values' => $newValues,
+            'auditable_type' => get_class($subject),
+            'auditable_id' => $subject->id,
+            'old_values' => $oldJson,
+            'new_values' => $newJson,
             'description' => $description,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'url' => request()->fullUrl(),
         ]);
+    }
+
+    private function toJson($values)
+    {
+        if (is_null($values)) {
+            return null;
+        }
+
+        if (is_string($values)) {
+            json_decode($values);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $values;
+            }
+            return json_encode($values);
+        }
+
+        return json_encode($values);
     }
 
     protected function logCreated($subject, $description = null)

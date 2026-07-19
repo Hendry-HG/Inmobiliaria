@@ -6,7 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\ServiceGallery;
 use App\Models\User;
-use App\Models\SiteConfiguration; // IMPORTAR ESTO
+use App\Models\SiteConfiguration;
+use App\Models\Country;
+use App\Models\State;
+use App\Models\Municipality;
+use App\Models\Parish;
+use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
@@ -30,12 +35,26 @@ class ServiceController extends Controller
             ->orderBy('order')
             ->get();
 
-        //  CORREGIDO: Eliminar 'profile' y usar los campos directamente del modelo User
         $asesores = User::role('Asesor Inmobiliario')
             ->where('is_active', true)
             ->get();
 
-        return view('modulos.servicios.index', compact('services', 'asesores'));
+        // Datos para los filtros de ubicación (si los necesitas)
+        $countries = Country::orderBy('name')->get();
+        $states = collect();
+        $municipalities = collect();
+        $parishes = collect();
+        $cities = collect();
+
+        return view('modulos.servicios.index', compact(
+            'services',
+            'asesores',
+            'countries',
+            'states',
+            'municipalities',
+            'parishes',
+            'cities'
+        ));
     }
 
     /**
@@ -234,7 +253,6 @@ class ServiceController extends Controller
             ->orderBy('order')
             ->get();
 
-        //  Obtener asesores con todos los datos necesarios
         $asesores = User::role('Asesor Inmobiliario')
             ->with(['properties' => function($query) {
                 $query->where('status', 'publicada');
@@ -242,10 +260,7 @@ class ServiceController extends Controller
             ->where('is_active', true)
             ->get();
 
-        //  Obtener imágenes de la galería (si tienes un modelo ServiceGallery)
-        $galleryImages = collect(); // o ServiceGallery::all();
-
-        //  Obtener configuración del sitio
+        $galleryImages = collect();
         $config = SiteConfiguration::getConfig();
 
         return view('modulos.servicios.public', compact('services', 'asesores', 'galleryImages', 'config'));
