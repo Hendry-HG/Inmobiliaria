@@ -214,11 +214,13 @@ class DashboardController extends Controller
             abort(403, 'No tienes permiso para acceder a esta página.');
         }
 
+        // Obtener todas las citas del asesor
         $appointments = Appointment::with(['property', 'asesor', 'user'])
             ->where('asesor_id', $user->id)
             ->orderBy('scheduled_date', 'desc')
             ->get();
 
+        // Métricas
         $myProperties = Property::where('user_id', $user->id)->count();
 
         $todayAppointments = Appointment::where('asesor_id', $user->id)
@@ -239,6 +241,7 @@ class DashboardController extends Controller
             ->count();
         $conversionRate = $totalLeads > 0 ? round(($convertedLeads / $totalLeads) * 100) : 0;
 
+        // Próximas citas (para la lista de la izquierda)
         $upcomingAppointments = Appointment::where('asesor_id', $user->id)
             ->where('scheduled_date', '>=', now())
             ->whereIn('status', ['pending', 'confirmed'])
@@ -247,6 +250,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Leads recientes
         $recentLeads = Lead::where('asesor_id', $user->id)
             ->with('property')
             ->latest()
@@ -260,6 +264,7 @@ class DashboardController extends Controller
             'todayAppointments',
             'pendingAppointments',
             'newLeads',
+            'totalLeads',
             'conversionRate',
             'upcomingAppointments',
             'recentLeads'
@@ -310,7 +315,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Clientes - CORREGIDO
+     * Dashboard para Clientes
      */
     public function clienteDashboard()
     {
@@ -327,17 +332,13 @@ class DashboardController extends Controller
             abort(403);
         }
 
-        // =============================================
-        // FAVORITOS - USAR EL MODELO Favorite DIRECTAMENTE
-        // =============================================
+        // Favoritos
         $favoritesCount = Favorite::where('user_id', $user->id)->count();
 
-        // Obtener IDs de propiedades favoritas
         $favoriteIds = Favorite::where('user_id', $user->id)
             ->pluck('property_id')
             ->toArray();
 
-        // Obtener las propiedades favoritas
         $favoriteProperties = Property::whereIn('id', $favoriteIds)
             ->where('status', 'publicada')
             ->with('primaryImage')
@@ -345,9 +346,7 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
-        // =============================================
-        // CITAS
-        // =============================================
+        // Citas
         $upcomingAppointments = Appointment::where('user_id', $user->id)
             ->where('scheduled_date', '>=', now())
             ->whereIn('status', ['pending', 'confirmed'])
@@ -370,18 +369,13 @@ class DashboardController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        // =============================================
-        // PROPIEDADES RECIENTES - SIN USAR scope published()
-        // =============================================
+        // Propiedades recientes
         $recentProperties = Property::where('status', 'publicada')
             ->with('primaryImage')
             ->latest()
             ->limit(3)
             ->get();
 
-        // =============================================
-        // MENSAJES NO LEÍDOS (si tienes chat)
-        // =============================================
         $unreadMessagesCount = 0;
 
         return view('dashboard.cliente.index', compact(

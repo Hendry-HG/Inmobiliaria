@@ -2,18 +2,20 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>MSO Grupo Inmobiliario - @yield('title', 'Tu hogar en Venezuela')</title>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('favicon-96x96.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('favicon-96x96.png') }}">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
+    <!-- FAVICONS con url() en lugar de asset() -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url('/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url('/favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" href="{{ url('/favicon-96x96.png') }}">
+    <link rel="shortcut icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
@@ -46,9 +48,15 @@
         }
     </script>
 
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
+        /* Reset y estilos base */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
         .hero-slider {
             position: absolute;
             top: 0;
@@ -92,7 +100,20 @@
             padding-top: 80px;
         }
 
-        [x-cloak] { display: none !important; }
+        /* Alpine.js - ocultar elementos mientras carga */
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Mejoras para móviles */
+        .touch-manipulation {
+            touch-action: manipulation;
+        }
+
+        /* Scroll suave para móviles */
+        .smooth-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 
     @stack('css')
@@ -116,16 +137,14 @@
     <!-- Auth Modal -->
     <x-auth-modal />
 
-    <!-- JavaScript Personalizado -->
-    <script src="{{ asset('js/app.js') }}"></script>
-    <script src="{{ asset('js/phone-mask.js') }}"></script>
+    <!-- ============================================ -->
+    <!-- ALPINE.JS - DEBE CARGARSE ANTES DE USARLO -->
+    <!-- ============================================ -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
 
-    {{-- ALPINE.JS - ÚLTIMO EN CARGARSE --}}
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    {{-- ============================================ --}}
-    {{-- FUNCIONES GLOBALES PARA MODALES --}}
-    {{-- ============================================ --}}
+    <!-- ============================================ -->
+    <!-- FUNCIONES GLOBALES PARA MODALES -->
+    <!-- ============================================ -->
     <script>
         // ============================================
         // FUNCIONES GLOBALES PARA MODALES
@@ -134,7 +153,7 @@
         let modalJustOpened = false;
 
         function openModal(modalId) {
-            console.log('🔵 Abriendo modal:', modalId);
+            console.log(' Abriendo modal:', modalId);
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.classList.remove('hidden');
@@ -151,7 +170,7 @@
                     switchAuthTab('login');
                 }
             } else {
-                console.error('❌ Modal no encontrado:', modalId);
+                console.error(' Modal no encontrado:', modalId);
             }
         }
 
@@ -161,12 +180,12 @@
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.style.overflow = '';
-                console.log(' Modal cerrado:', modalId);
+                console.log('Modal cerrado:', modalId);
             }
         }
 
         function switchAuthTab(tab) {
-            console.log('🔵 switchAuthTab llamado con:', tab);
+            console.log(' switchAuthTab llamado con:', tab);
             const loginForm = document.getElementById('form-login');
             const registerForm = document.getElementById('form-register');
             const forgotForm = document.getElementById('form-forgot-password');
@@ -242,9 +261,8 @@
             }
         });
 
-        // Cerrar modal al hacer clic fuera - CORREGIDO
+        // Cerrar modal al hacer clic fuera
         document.addEventListener('click', function(e) {
-            // Si el modal se abrió recientemente, no cerrar
             if (modalJustOpened) {
                 return;
             }
@@ -259,19 +277,19 @@
         });
 
         console.log(' Funciones de modal cargadas globalmente');
-    </script>
 
-    {{-- VERIFICAR QUE PHOSPHOR ICONS CARGÓ --}}
-    <script>
+        // ============================================
+        // VERIFICAR QUE ALPINE.JS CARGÓ
+        // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof PhosphorIcons !== 'undefined') {
-                console.log(' Phosphor Icons cargado correctamente');
-            } else {
-                console.warn(' Phosphor Icons no se cargó, intentando recargar...');
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@phosphor-icons/web';
-                document.head.appendChild(script);
-            }
+            setTimeout(function() {
+                if (typeof Alpine !== 'undefined') {
+                    console.log(' Alpine.js cargado correctamente');
+                } else {
+                    console.warn(' Alpine.js NO se cargó correctamente');
+                    console.warn(' El menú hamburguesa no funcionará');
+                }
+            }, 1000);
         });
     </script>
 

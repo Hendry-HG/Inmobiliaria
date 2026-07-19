@@ -26,7 +26,7 @@
 
     <!-- Breadcrumbs y Navegación -->
     <div class="flex items-center text-sm text-slate-500">
-        <a href="{{ route('admin.locations.index') }}" class="hover:text-mso-blue">Países</a>
+        <a href="{{ route('admin.locations.index') }}" class="hover:text-mso-blue">País</a>
         <span class="mx-2">/</span>
         <span class="text-slate-800 font-semibold">{{ $parent->name }}</span>
     </div>
@@ -43,9 +43,9 @@
                 @csrf
                 <input type="hidden" name="{{ strtolower($level) == 'estado' ? 'country_id' : (strtolower($level) == 'municipio' ? 'state_id' : (strtolower($level) == 'parroquia' ? 'municipality_id' : 'parish_id')) }}" value="{{ $parentId }}">
                 <div class="relative flex-1">
-                    <input type="text" 
-                           name="name" 
-                           placeholder="Nuevo {{ strtolower($level) }}..." 
+                    <input type="text"
+                           name="name"
+                           placeholder="Nuevo {{ strtolower($level) }}..."
                            class="border rounded-lg px-4 py-2 flex-1 w-full focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
                            required
                            minlength="2"
@@ -64,7 +64,7 @@
             <table class="w-full text-left">
                 <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold">
                     <tr>
-                        <th class="px-6 py-4">#</th>
+                        <th class="px-6 py-4">ID</th>
                         <th class="px-6 py-4">Nombre</th>
                         <th class="px-6 py-4">Hijos</th>
                         <th class="px-6 py-4 text-right">Acciones</th>
@@ -94,10 +94,10 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button data-id="{{ $item->id }}" 
+                            <button data-id="{{ $item->id }}"
                                     data-name="{{ $item->name }}"
                                     data-type="{{ $level }}"
-                                    onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.type)" 
+                                    onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.type)"
                                     class="text-red-500 hover:text-red-700">
                                 <i class="ph ph-trash text-lg"></i>
                             </button>
@@ -154,13 +154,13 @@
         currentModalId = id;
         currentModalName = name || 'este elemento';
         currentModalType = type || 'elemento';
-        
+
         document.getElementById('modal-title').textContent = `¿Eliminar "${currentModalName}"?`;
         document.getElementById('modal-message').innerHTML = `
-            ¿Estás seguro de eliminar <strong>"${currentModalName}"</strong>? 
+            ¿Estás seguro de eliminar <strong>"${currentModalName}"</strong>?
             Esta acción no se puede deshacer y podría afectar a elementos relacionados.
         `;
-        
+
         const modal = document.getElementById('modal-delete-wrapper');
         modal.classList.remove('hidden');
         modal.classList.add('flex');

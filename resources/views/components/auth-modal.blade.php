@@ -156,11 +156,11 @@
                                 <option value="E">E</option>
                                 <option value="J">J</option>
                             </select>
-                            <input type="text" name="id_number" id="reg-cedula" placeholder="12345678 (opcional)"
+                            <input type="text" name="id_number" id="reg-cedula" placeholder="12345678 (obligatorio)"
                                    class="flex-1 border-b-2 border-slate-200 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-mso-gold transition-colors bg-transparent"
                                    maxlength="20">
                         </div>
-                        <p class="text-xs text-slate-400 mt-1">Opcional - Puedes dejarlo en blanco</p>
+                        <p class="text-xs text-slate-400 mt-1">Obligatorio - No puedes dejarlo en blanco</p>
                     </div>
 
                     <div>

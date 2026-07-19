@@ -28,16 +28,16 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">Países</h2>
+                <h2 class="text-xl font-bold text-slate-800">País</h2>
                 <p class="text-sm text-slate-500">Gestionando los países del sistema</p>
             </div>
 
             <form action="{{ route('admin.locations.country.store') }}" method="POST" class="w-full md:w-auto flex gap-2" autocomplete="off">
                 @csrf
                 <div class="relative flex-1">
-                    <input type="text" 
-                           name="name" 
-                           placeholder="Nuevo país..." 
+                    <input type="text"
+                           name="name"
+                           placeholder="Nuevo país..."
                            class="border rounded-lg px-4 py-2 flex-1 w-full focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
                            required
                            minlength="2"
@@ -56,7 +56,7 @@
             <table class="w-full text-left">
                 <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold">
                     <tr>
-                        <th class="px-6 py-4">#</th>
+                        <th class="px-6 py-4">ID</th>
                         <th class="px-6 py-4">Nombre</th>
                         <th class="px-6 py-4">Estados</th>
                         <th class="px-6 py-4 text-right">Acciones</th>
@@ -74,14 +74,14 @@
                             </a>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button data-id="{{ $country->id }}" 
+                            <button data-id="{{ $country->id }}"
                                     data-name="{{ $country->name }}"
-                                    onclick="openDeleteModal(this.dataset.id, this.dataset.name, 'País')" 
+                                    onclick="openDeleteModal(this.dataset.id, this.dataset.name, 'País')"
                                     class="text-red-500 hover:text-red-700">
                                 <i class="ph ph-trash text-lg"></i>
                             </button>
                             <form id="form-delete-{{ $country->id }}" action="{{ route('admin.locations.country.destroy', $country) }}" method="POST" class="hidden">
-                                @csrf 
+                                @csrf
                                 @method('DELETE')
                             </form>
                         </td>
@@ -127,13 +127,13 @@
         currentModalId = id;
         currentModalName = name || 'este elemento';
         currentModalType = type || 'elemento';
-        
+
         document.getElementById('modal-title').textContent = `¿Eliminar "${currentModalName}"?`;
         document.getElementById('modal-message').innerHTML = `
-            ¿Estás seguro de eliminar <strong>"${currentModalName}"</strong>? 
+            ¿Estás seguro de eliminar <strong>"${currentModalName}"</strong>?
             Esta acción no se puede deshacer y podría afectar a elementos relacionados.
         `;
-        
+
         const modal = document.getElementById('modal-delete-wrapper');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
