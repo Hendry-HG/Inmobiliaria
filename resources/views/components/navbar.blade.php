@@ -38,18 +38,11 @@
                 @auth
                     @php
                         $user = Auth::user();
-                        $dashboardRoute = route('dashboard');
-                        if ($user->hasRole('Super Admin')) {
-                            $dashboardRoute = route('super-admin.dashboard');
-                        } elseif ($user->hasRole('Administrador')) {
-                            $dashboardRoute = route('admin.dashboard');
-                        } elseif ($user->hasRole('Asesor Inmobiliario')) {
-                            $dashboardRoute = route('asesor.dashboard');
-                        } elseif ($user->hasRole('Auditor')) {
-                            $dashboardRoute = route('auditor.dashboard');
-                        } elseif ($user->hasRole('Cliente')) {
-                            $dashboardRoute = route('cliente.dashboard');
-                        }
+                        // Usar PermissionService directamente en lugar del helper
+                        $permission = new \App\Services\PermissionService($user);
+                        $dashboardRoute = $permission->getDashboardRoute();
+                        $mainRole = $permission->getMainRole();
+                        $roleDisplayName = $permission->getRoleDisplayName();
                     @endphp
                     <div class="flex items-center gap-3">
                         <a href="{{ $dashboardRoute }}" class="text-sm font-medium text-white bg-mso-gold px-5 py-2.5 rounded-full hover:bg-yellow-600 transition-colors shadow-lg">
@@ -166,6 +159,13 @@
             <!-- Mobile Buttons -->
             <div class="md:hidden flex items-center gap-2">
                 @auth
+                    @php
+                        $user = Auth::user();
+                        // Usar PermissionService directamente en lugar del helper
+                        $permission = new \App\Services\PermissionService($user);
+                        $dashboardRoute = $permission->getDashboardRoute();
+                        $roleDisplayName = $permission->getRoleDisplayName();
+                    @endphp
                     {{-- Foto de perfil con menú desplegable en móvil --}}
                     <div class="relative inline-block">
                         <button @click="mobileProfileOpen = !mobileProfileOpen"
@@ -196,13 +196,7 @@
                                          alt="{{ $user->name }}">
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-bold text-slate-800 truncate">{{ $user->name }}</p>
-                                        <p class="text-[10px] text-slate-500 truncate">
-                                            @if($user->hasRole('Super Admin')) Super Admin
-                                            @elseif($user->hasRole('Administrador')) Administrador
-                                            @elseif($user->hasRole('Asesor Inmobiliario')) Asesor
-                                            @elseif($user->hasRole('Auditor')) Auditor
-                                            @else Cliente @endif
-                                        </p>
+                                        <p class="text-[10px] text-slate-500 truncate">{{ $roleDisplayName }}</p>
                                     </div>
                                 </div>
                             </div>

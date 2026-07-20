@@ -9,11 +9,13 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <!-- FAVICONS con url() en lugar de asset() -->
+    <!-- FAVICONS -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url('/favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="96x96" href="{{ url('/favicon-96x96.png') }}">
     <link rel="apple-touch-icon" href="{{ url('/favicon-96x96.png') }}">
     <link rel="shortcut icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -100,17 +102,14 @@
             padding-top: 80px;
         }
 
-        /* Alpine.js - ocultar elementos mientras carga */
         [x-cloak] {
             display: none !important;
         }
 
-        /* Mejoras para móviles */
         .touch-manipulation {
             touch-action: manipulation;
         }
 
-        /* Scroll suave para móviles */
         .smooth-scroll {
             -webkit-overflow-scrolling: touch;
         }
@@ -137,14 +136,7 @@
     <!-- Auth Modal -->
     <x-auth-modal />
 
-    <!-- ============================================ -->
-    <!-- ALPINE.JS - DEBE CARGARSE ANTES DE USARLO -->
-    <!-- ============================================ -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
 
-    <!-- ============================================ -->
-    <!-- FUNCIONES GLOBALES PARA MODALES -->
-    <!-- ============================================ -->
     <script>
         // ============================================
         // FUNCIONES GLOBALES PARA MODALES
@@ -160,7 +152,6 @@
                 document.body.style.overflow = 'hidden';
                 console.log(' Modal abierto:', modalId);
 
-                // Marcar que el modal fue abierto recientemente
                 modalJustOpened = true;
                 setTimeout(() => {
                     modalJustOpened = false;
@@ -277,20 +268,6 @@
         });
 
         console.log(' Funciones de modal cargadas globalmente');
-
-        // ============================================
-        // VERIFICAR QUE ALPINE.JS CARGÓ
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                if (typeof Alpine !== 'undefined') {
-                    console.log(' Alpine.js cargado correctamente');
-                } else {
-                    console.warn(' Alpine.js NO se cargó correctamente');
-                    console.warn(' El menú hamburguesa no funcionará');
-                }
-            }, 1000);
-        });
     </script>
 
     @stack('js')

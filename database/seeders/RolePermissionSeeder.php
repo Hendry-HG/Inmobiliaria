@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -83,6 +84,21 @@ class RolePermissionSeeder extends Seeder
             'password' => 'Cliente2025#Secure!',
             'role' => 'Cliente',
         ],
+        'editor' => [
+            'email' => 'editor@mso.com',
+            'password' => 'Editor2025#Secure!',
+            'role' => 'Editor',
+        ],
+        'supervisor' => [
+            'email' => 'supervisor@mso.com',
+            'password' => 'Supervisor2025#Secure!',
+            'role' => 'Supervisor',
+        ],
+        'marketing' => [
+            'email' => 'marketing@mso.com',
+            'password' => 'Marketing2025#Secure!',
+            'role' => 'Marketing',
+        ],
     ];
 
     /**
@@ -96,6 +112,9 @@ class RolePermissionSeeder extends Seeder
         'auditor' => ['respuesta_auditor_1', 'respuesta_auditor_2', 'respuesta_auditor_3'],
         'cliente1' => ['respuesta_cliente1_1', 'respuesta_cliente1_2', 'respuesta_cliente1_3'],
         'cliente2' => ['respuesta_cliente2_1', 'respuesta_cliente2_2', 'respuesta_cliente2_3'],
+        'editor' => ['respuesta_editor_1', 'respuesta_editor_2', 'respuesta_editor_3'],
+        'supervisor' => ['respuesta_supervisor_1', 'respuesta_supervisor_2', 'respuesta_supervisor_3'],
+        'marketing' => ['respuesta_marketing_1', 'respuesta_marketing_2', 'respuesta_marketing_3'],
     ];
 
     public function run(): void
@@ -108,126 +127,395 @@ class RolePermissionSeeder extends Seeder
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
             // =============================================
-            // 2. CREAR TODOS LOS PERMISOS
+            // CREAR PERMISOS DEL SISTEMA
             // =============================================
-            $this->command->info(' Creando permisos...');
+            $this->command->info(' Creando permisos del sistema...');
 
-            $permissions = [
+            $systemPermissions = [
                 // Panel de control
                 'ver panel de control',
 
-                // Usuarios
-                'ver usuarios', 'crear usuario', 'editar usuario', 'eliminar usuario',
+                // PERMISOS DE USUARIOS
+                'ver usuarios',
+                'crear usuario',
+                'editar usuario',
+                'eliminar usuario',
+                'gestionar usuarios',
 
-                // Roles
-                'ver roles', 'crear rol', 'editar rol', 'eliminar rol',
+                // PERMISOS DE ROLES
+                'ver roles',
+                'crear rol',
+                'editar rol',
+                'eliminar rol',
+                'gestionar roles',
 
-                // Categorías - NUEVO
-                'ver categorias', 'crear categoria', 'editar categoria', 'eliminar categoria',
+                // PERMISOS DE CATEGORÍAS
+                'ver categorias',
+                'crear categoria',
+                'editar categoria',
+                'eliminar categoria',
+                'gestionar categorias',
 
-                // Ubicaciones
-                'ver paises', 'crear paises', 'eliminar paises',
-                'ver estados', 'crear estados', 'eliminar estados',
-                'ver municipios', 'crear municipios', 'eliminar municipios',
-                'ver parroquias', 'crear parroquias', 'eliminar parroquias',
-                'ver ciudades', 'crear ciudades', 'eliminar ciudades',
+                // PERMISOS DE UBICACIONES
+                'ver paises',
+                'crear paises',
+                'eliminar paises',
+                'ver estados',
+                'crear estados',
+                'eliminar estados',
+                'ver municipios',
+                'crear municipios',
+                'eliminar municipios',
+                'ver parroquias',
+                'crear parroquias',
+                'eliminar parroquias',
+                'ver ciudades',
+                'crear ciudades',
+                'eliminar ciudades',
+                'gestionar ubicaciones',
 
-                // Propiedades
-                'ver propiedades', 'crear propiedad', 'editar propiedad',
-                'eliminar propiedad', 'publicar propiedad',
+                // PERMISOS DE PROPIEDADES
+                'ver propiedades',
+                'crear propiedad',
+                'editar propiedad',
+                'eliminar propiedad',
+                'publicar propiedad',
+                'gestionar propiedades',
 
-                // Citas
-                'ver citas', 'crear cita', 'editar cita', 'eliminar cita',
+                // PERMISOS DE CITAS
+                'ver citas',
+                'crear cita',
+                'editar cita',
+                'eliminar cita',
+                'gestionar citas',
+                'configurar agenda',
 
-                // LEADS
-                'ver leads', 'crear lead', 'editar lead', 'eliminar lead',
+                // PERMISOS DE LEADS
+                'ver leads',
+                'crear lead',
+                'editar lead',
+                'eliminar lead',
+                'gestionar leads',
+                'cambiar estado lead',
 
-                // SERVICIOS
-                'ver servicios', 'crear servicios', 'editar servicios', 'eliminar servicios',
+                // PERMISOS DE SERVICIOS
+                'ver servicios',
+                'crear servicios',
+                'editar servicios',
+                'eliminar servicios',
+                'gestionar servicios',
 
-                // Auditoría
+                // PERMISOS DE AUDITORÍA
                 'ver logs de auditoria',
+                'acceso auditoria',
                 'ver reportes',
                 'exportar reportes',
 
-                // Configuración
-                'ver configuración', 'editar configuración',
+                // PERMISOS DE CONFIGURACIÓN
+                'ver configuración',
+                'editar configuración',
                 'actualizar configuracion telefonica',
+                'gestionar configuracion',
+
+                // PERMISOS DE CHAT
+                'chat access',
+
+                // PERMISOS DE FAVORITOS
+                'ver favoritos',
+                'crear favorito',
+                'eliminar favorito',
             ];
 
-            foreach ($permissions as $permission) {
+            foreach ($systemPermissions as $permission) {
                 Permission::firstOrCreate([
                     'name' => $permission,
                     'guard_name' => 'web'
                 ]);
             }
 
-            $this->command->info(' Permisos creados: ' . count($permissions));
+            $this->command->info(' Permisos del sistema creados: ' . count($systemPermissions));
 
             // =============================================
-            // 3. CREAR ROLES Y ASIGNAR PERMISOS
+            // CREAR PERMISOS DEL SIDEBAR
+            // =============================================
+            $this->command->info(' Creando permisos del sidebar...');
+
+            $sidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.users',
+                'sidebar.roles',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.appointments',
+                'sidebar.chat',
+                'sidebar.audit',
+                'sidebar.reports',
+                'sidebar.config',
+                'sidebar.favorites',
+                'sidebar.servicios',
+                'sidebar.categorias',
+                'sidebar.ubicaciones',
+                'sidebar.telefonos',
+                'sidebar.profile',
+            ];
+
+            foreach ($sidebarPermissions as $permission) {
+                Permission::firstOrCreate([
+                    'name' => $permission,
+                    'guard_name' => 'web'
+                ]);
+            }
+
+            $this->command->info(' Permisos del sidebar creados: ' . count($sidebarPermissions));
+
+            // =============================================
+            // CREAR ROLES Y ASIGNAR PERMISOS
             // =============================================
             $this->command->info('👤 Creando roles...');
 
-            // SUPER ADMIN - TODOS los permisos
+            // =============================================
+            // 1. SUPER ADMIN - TODOS los permisos
+            // =============================================
             $superAdmin = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
-            $superAdmin->syncPermissions(Permission::all());
-            $this->command->info(' Super Admin: todos los permisos');
+            $superAdminPermissions = array_merge($systemPermissions, $sidebarPermissions);
+            $superAdmin->syncPermissions($superAdminPermissions);
+            $this->command->info(' Super Admin: permisos asignados (' . count($superAdminPermissions) . ' permisos)');
 
-            // ADMINISTRADOR
+            // =============================================
+            // 2. ADMINISTRADOR
+            // =============================================
             $admin = Role::firstOrCreate(['name' => 'Administrador', 'guard_name' => 'web']);
-            $adminPermissions = [
+
+            $adminSystemPermissions = [
                 'ver panel de control',
-                'ver usuarios', 'crear usuario', 'editar usuario',
-                // Categorías
-                'ver categorias', 'crear categoria', 'editar categoria', 'eliminar categoria',
+                'ver usuarios', 'crear usuario', 'editar usuario', 'eliminar usuario', 'gestionar usuarios',
+                'ver roles',
+                'ver categorias', 'crear categoria', 'editar categoria', 'eliminar categoria', 'gestionar categorias',
                 'ver paises', 'ver estados', 'ver municipios', 'ver parroquias', 'ver ciudades',
-                'ver propiedades', 'crear propiedad', 'editar propiedad', 'eliminar propiedad', 'publicar propiedad',
-                'ver citas', 'crear cita', 'editar cita', 'eliminar cita',
-                'ver leads', 'crear lead', 'editar lead', 'eliminar lead',
-                'ver servicios', 'crear servicios', 'editar servicios', 'eliminar servicios',
+                'crear paises', 'eliminar paises',
+                'crear estados', 'eliminar estados',
+                'crear municipios', 'eliminar municipios',
+                'crear parroquias', 'eliminar parroquias',
+                'crear ciudades', 'eliminar ciudades',
+                'gestionar ubicaciones',
+                'ver propiedades', 'crear propiedad', 'editar propiedad', 'eliminar propiedad', 'publicar propiedad', 'gestionar propiedades',
+                'ver citas', 'crear cita', 'editar cita', 'eliminar cita', 'gestionar citas',
+                'configurar agenda',
+                'ver leads', 'crear lead', 'editar lead', 'eliminar lead', 'gestionar leads', 'cambiar estado lead',
+                'ver servicios', 'crear servicios', 'editar servicios', 'eliminar servicios', 'gestionar servicios',
+                'ver logs de auditoria',
+                'acceso auditoria',
                 'ver reportes', 'exportar reportes',
-                'ver configuración', 'editar configuración',
+                'ver configuración', 'editar configuración', 'gestionar configuracion',
                 'actualizar configuracion telefonica',
+                'ver favoritos', 'crear favorito', 'eliminar favorito',
             ];
+
+            $adminSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.users',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.appointments',
+                'sidebar.audit',
+                'sidebar.reports',
+                'sidebar.config',
+                'sidebar.favorites',
+                'sidebar.servicios',
+                'sidebar.categorias',
+                'sidebar.ubicaciones',
+                'sidebar.telefonos',
+                'sidebar.profile',
+            ];
+
+            $adminPermissions = array_merge($adminSystemPermissions, $adminSidebarPermissions);
             $admin->syncPermissions($adminPermissions);
-            $this->command->info(' Administrador: permisos asignados');
+            $this->command->info(' Administrador: permisos asignados (' . count($adminPermissions) . ' permisos)');
 
-            // ASESOR INMOBILIARIO
+            // =============================================
+            // 3. ASESOR INMOBILIARIO
+            // =============================================
             $asesor = Role::firstOrCreate(['name' => 'Asesor Inmobiliario', 'guard_name' => 'web']);
-            $asesorPermissions = [
-                'ver panel de control',
-                'ver propiedades', 'crear propiedad', 'editar propiedad', 'publicar propiedad',
-                'ver citas', 'crear cita', 'editar cita',
-                'ver leads', 'crear lead', 'editar lead',
-            ];
-            $asesor->syncPermissions($asesorPermissions);
-            $this->command->info(' Asesor Inmobiliario: permisos asignados');
 
-            // AUDITOR - SOLO LECTURA
+            $asesorSystemPermissions = [
+                'ver panel de control',
+                'ver propiedades', 'crear propiedad', 'editar propiedad', 'publicar propiedad', 'gestionar propiedades',
+                'ver citas', 'crear cita', 'editar cita', 'gestionar citas',
+                'configurar agenda',
+                'ver leads', 'crear lead', 'editar lead', 'gestionar leads', 'cambiar estado lead',
+                'chat access',
+                'ver favoritos', 'crear favorito', 'eliminar favorito',
+            ];
+
+            $asesorSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.appointments',
+                'sidebar.chat',
+                'sidebar.favorites',
+                'sidebar.profile',
+            ];
+
+            $asesorPermissions = array_merge($asesorSystemPermissions, $asesorSidebarPermissions);
+            $asesor->syncPermissions($asesorPermissions);
+            $this->command->info('Asesor Inmobiliario: permisos asignados (' . count($asesorPermissions) . ' permisos)');
+
+            // =============================================
+            // 4. AUDITOR
+            // =============================================
             $auditor = Role::firstOrCreate(['name' => 'Auditor', 'guard_name' => 'web']);
-            $auditorPermissions = [
+
+            $auditorSystemPermissions = [
                 'ver panel de control',
                 'ver usuarios',
                 'ver categorias',
+                'ver paises', 'ver estados', 'ver municipios', 'ver parroquias', 'ver ciudades',
                 'ver propiedades',
                 'ver citas',
                 'ver leads',
                 'ver servicios',
                 'ver logs de auditoria',
+                'acceso auditoria',
                 'ver reportes',
                 'exportar reportes',
+                'ver favoritos',
             ];
-            $auditor->syncPermissions($auditorPermissions);
-            $this->command->info(' Auditor: permisos de solo lectura');
 
-            // CLIENTE
-            $cliente = Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
-            $cliente->syncPermissions(['ver citas', 'crear cita']);
-            $this->command->info(' Cliente: permisos asignados');
+            $auditorSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.appointments',
+                'sidebar.audit',
+                'sidebar.reports',
+                'sidebar.favorites',
+                'sidebar.profile',
+            ];
+
+            $auditorPermissions = array_merge($auditorSystemPermissions, $auditorSidebarPermissions);
+            $auditor->syncPermissions($auditorPermissions);
+            $this->command->info(' Auditor: permisos asignados (' . count($auditorPermissions) . ' permisos)');
 
             // =============================================
-            // 4. CREAR UBICACIONES DE PRUEBA
+            // 5. CLIENTE
+            // =============================================
+            $cliente = Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
+
+            $clienteSystemPermissions = [
+                'ver panel de control',
+                'ver citas', 'crear cita',
+                'chat access',
+                'ver favoritos', 'crear favorito', 'eliminar favorito',
+            ];
+
+            $clienteSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.appointments',
+                'sidebar.chat',
+                'sidebar.favorites',
+                'sidebar.profile',
+            ];
+
+            $clientePermissions = array_merge($clienteSystemPermissions, $clienteSidebarPermissions);
+            $cliente->syncPermissions($clientePermissions);
+            $this->command->info(' Cliente: permisos asignados (' . count($clientePermissions) . ' permisos)');
+
+            // =============================================
+            // 6. EDITOR
+            // =============================================
+            $editor = Role::firstOrCreate(['name' => 'Editor', 'guard_name' => 'web']);
+
+            $editorSystemPermissions = [
+                'ver panel de control',
+                'ver propiedades', 'crear propiedad', 'editar propiedad', 'publicar propiedad',
+                'ver citas', 'crear cita', 'editar cita',
+                'ver leads', 'crear lead', 'editar lead',
+                'ver favoritos', 'crear favorito',
+            ];
+
+            $editorSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.appointments',
+                'sidebar.favorites',
+                'sidebar.profile',
+            ];
+
+            $editorPermissions = array_merge($editorSystemPermissions, $editorSidebarPermissions);
+            $editor->syncPermissions($editorPermissions);
+            $this->command->info(' Editor: permisos asignados (' . count($editorPermissions) . ' permisos)');
+
+            // =============================================
+            // 7. SUPERVISOR
+            // =============================================
+            $supervisor = Role::firstOrCreate(['name' => 'Supervisor', 'guard_name' => 'web']);
+
+            $supervisorSystemPermissions = [
+                'ver panel de control',
+                'ver usuarios',
+                'ver categorias',
+                'ver paises', 'ver estados', 'ver municipios', 'ver parroquias', 'ver ciudades',
+                'ver propiedades',
+                'ver citas',
+                'ver leads',
+                'ver servicios',
+                'ver reportes',
+                'ver favoritos',
+            ];
+
+            $supervisorSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.appointments',
+                'sidebar.favorites',
+                'sidebar.profile',
+            ];
+
+            $supervisorPermissions = array_merge($supervisorSystemPermissions, $supervisorSidebarPermissions);
+            $supervisor->syncPermissions($supervisorPermissions);
+            $this->command->info(' Supervisor: permisos asignados (' . count($supervisorPermissions) . ' permisos)');
+
+            // =============================================
+            // 8. MARKETING
+            // =============================================
+            $marketing = Role::firstOrCreate(['name' => 'Marketing', 'guard_name' => 'web']);
+
+            $marketingSystemPermissions = [
+                'ver panel de control',
+                'ver propiedades',
+                'ver leads', 'crear lead', 'editar lead', 'cambiar estado lead',
+                'ver reportes',
+                'chat access',
+                'ver favoritos',
+            ];
+
+            $marketingSidebarPermissions = [
+                'sidebar.dashboard',
+                'sidebar.catalogo',
+                'sidebar.properties',
+                'sidebar.leads',
+                'sidebar.reports',
+                'sidebar.chat',
+                'sidebar.favorites',
+                'sidebar.profile',
+            ];
+
+            $marketingPermissions = array_merge($marketingSystemPermissions, $marketingSidebarPermissions);
+            $marketing->syncPermissions($marketingPermissions);
+            $this->command->info(' Marketing: permisos asignados (' . count($marketingPermissions) . ' permisos)');
+
+            // =============================================
+            // CREAR UBICACIONES DE PRUEBA
             // =============================================
             $this->command->info(' Creando ubicaciones de prueba...');
 
@@ -315,7 +603,7 @@ class RolePermissionSeeder extends Seeder
             $this->command->info(' Ubicaciones creadas correctamente.');
 
             // =============================================
-            // 5. FUNCIÓN AUXILIAR PARA PREGUNTAS ÚNICAS
+            // FUNCIÓN AUXILIAR PARA PREGUNTAS ÚNICAS
             // =============================================
             $getUniqueQuestions = function(): array {
                 $shuffled = $this->securityQuestions;
@@ -336,9 +624,9 @@ class RolePermissionSeeder extends Seeder
             };
 
             // =============================================
-            // 6. CREAR USUARIOS DE PRUEBA
+            // CREAR USUARIOS DE PRUEBA
             // =============================================
-            $this->command->info('👤 Creando usuarios de prueba...');
+            $this->command->info(' Creando usuarios de prueba...');
 
             $usersData = [
                 'superadmin' => [
@@ -449,6 +737,48 @@ class RolePermissionSeeder extends Seeder
                     'parish_id' => $sanJose->id,
                     'city_id' => $valenciaCity->id,
                 ],
+                'editor' => [
+                    'name' => 'Laura',
+                    'last_name' => 'Editora',
+                    'phone' => '+58 424 5678901',
+                    'id_type' => 'V',
+                    'id_number' => '78901234',
+                    'bio' => 'Editora de contenido inmobiliario.',
+                    'specialization' => 'Edición de Propiedades',
+                    'country_id' => $venezuela->id,
+                    'state_id' => $miranda->id,
+                    'municipality_id' => $baruta->id,
+                    'parish_id' => $barutaParish->id,
+                    'city_id' => $barutaCity->id,
+                ],
+                'supervisor' => [
+                    'name' => 'Jorge',
+                    'last_name' => 'Supervisor',
+                    'phone' => '+58 414 6789012',
+                    'id_type' => 'V',
+                    'id_number' => '89012345',
+                    'bio' => 'Supervisor de procesos inmobiliarios.',
+                    'specialization' => 'Supervisión',
+                    'country_id' => $venezuela->id,
+                    'state_id' => $carabobo->id,
+                    'municipality_id' => $valencia->id,
+                    'parish_id' => $sanJose->id,
+                    'city_id' => $valenciaCity->id,
+                ],
+                'marketing' => [
+                    'name' => 'Ana',
+                    'last_name' => 'Marketing',
+                    'phone' => '+58 412 9876543',
+                    'id_type' => 'V',
+                    'id_number' => '90123456',
+                    'bio' => 'Especialista en marketing inmobiliario.',
+                    'specialization' => 'Marketing Digital',
+                    'country_id' => $venezuela->id,
+                    'state_id' => $distritoCapital->id,
+                    'municipality_id' => $libertador->id,
+                    'parish_id' => $altagracia->id,
+                    'city_id' => $caracas->id,
+                ],
             ];
 
             foreach ($this->testUsers as $key => $userCredentials) {
@@ -459,7 +789,7 @@ class RolePermissionSeeder extends Seeder
                 $existingUser = User::where('email', $userCredentials['email'])->first();
 
                 if ($existingUser) {
-                    $this->command->info(" Usuario {$userCredentials['email']} ya existe, actualizando...");
+                    $this->command->info("   Usuario {$userCredentials['email']} ya existe, actualizando...");
 
                     $existingUser->update([
                         'name' => $userData['name'],
@@ -486,7 +816,7 @@ class RolePermissionSeeder extends Seeder
 
                     $existingUser->syncRoles([$userCredentials['role']]);
 
-                    $this->command->info(" Usuario actualizado: {$userCredentials['email']}");
+                    $this->command->info("    Usuario actualizado: {$userCredentials['email']}");
                 } else {
                     $user = User::create([
                         'name' => $userData['name'],
@@ -515,16 +845,16 @@ class RolePermissionSeeder extends Seeder
 
                     $user->assignRole($userCredentials['role']);
 
-                    $this->command->info(" Usuario creado: {$userCredentials['email']}");
+                    $this->command->info("    Usuario creado: {$userCredentials['email']}");
                 }
             }
 
             // =============================================
-            // 7. MOSTRAR CREDENCIALES
+            // MOSTRAR CREDENCIALES
             // =============================================
             $this->command->newLine();
             $this->command->info('========================================');
-            $this->command->info('      CREDENCIALES DE ACCESO');
+            $this->command->info('       CREDENCIALES DE ACCESO');
             $this->command->info('========================================');
 
             foreach ($this->testUsers as $key => $user) {
@@ -533,8 +863,8 @@ class RolePermissionSeeder extends Seeder
                 $password = $user['password'];
 
                 $this->command->info(" {$role}:");
-                $this->command->info("    {$email}");
-                $this->command->info("    {$password}");
+                $this->command->info("     {$email}");
+                $this->command->info("     {$password}");
                 $this->command->info('');
             }
 
@@ -555,10 +885,19 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('========================================');
             $this->command->info('');
 
+            // =============================================
+            // LIMPIAR CACHÉ
+            // =============================================
+            Cache::forget('permissions_grouped');
+            Cache::forget('roles_with_permissions');
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
             DB::commit();
 
             $this->command->info(' RolePermissionSeeder completado exitosamente!');
-            $this->command->info(' Todos los usuarios tienen preguntas de seguridad configuradas.');
+            $this->command->info(' Total de permisos del sistema: ' . count($systemPermissions));
+            $this->command->info(' Total de permisos del sidebar: ' . count($sidebarPermissions));
+            $this->command->info(' Total de permisos combinados: ' . (count($systemPermissions) + count($sidebarPermissions)));
             $this->command->info(' Total de usuarios creados/actualizados: ' . count($this->testUsers));
 
         } catch (\Exception $e) {

@@ -10,13 +10,25 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
                 <h2 class="text-xl font-bold text-slate-800">Listado de Inmuebles</h2>
-                @php
-                    $createRoute = (isset($isAdmin) && $isAdmin) ? route('admin.properties.create') : route('asesor.properties.create');
-                @endphp
-                <a href="{{ $createRoute }}"
-                   class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
-                    <i class="ph ph-plus-circle text-lg"></i> Nueva Propiedad
-                </a>
+
+                {{-- ============================================= --}}
+                {{-- BOTÓN NUEVA PROPIEDAD - SOLO ASESOR --}}
+                {{-- ============================================= --}}
+                @role('Asesor Inmobiliario')
+                    @php
+                        $createRoute = (isset($isAdmin) && $isAdmin) ? route('admin.properties.create') : route('asesor.properties.create');
+                    @endphp
+                    <a href="{{ $createRoute }}"
+                       class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
+                        <i class="ph ph-plus-circle text-lg"></i> Nueva Propiedad
+                    </a>
+                @else
+                    {{-- Mostrar mensaje informativo para otros roles --}}
+                    <span class="text-sm text-slate-400 flex items-center gap-2">
+                        <i class="ph ph-lock-simple"></i>
+                        Solo asesores pueden crear propiedades
+                    </span>
+                @endrole
             </div>
 
             <form action="{{ request()->url() }}" method="GET" class="space-y-3">

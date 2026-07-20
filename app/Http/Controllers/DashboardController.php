@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -13,9 +14,13 @@ use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\AuditLog;
 use App\Models\Favorite;
+use App\Services\PermissionService;
 
 class DashboardController extends Controller
 {
+    /**
+     * Redirige al dashboard correspondiente según el rol del usuario
+     */
     public function index(Request $request)
     {
         if (!Auth::check()) {
@@ -29,13 +34,19 @@ class DashboardController extends Controller
             return redirect()->route('login')->withErrors(['email' => 'Tu cuenta está desactivada.']);
         }
 
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
+        $dashboardRoute = $permissionService->getDashboardRoute();
 
+        \Illuminate\Support\Facades\Log::info('DashboardController - index', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'main_role' => $permissionService->getMainRole(),
+            'all_roles' => $permissionService->getRoles(),
+            'dashboard_route' => $dashboardRoute
+        ]);
+
+        // Si hay una URL de redirección segura
         if ($request->has('redirect') && !empty($request->redirect)) {
             $redirectUrl = $request->redirect;
             if ($this->isSafeUrl($redirectUrl)) {
@@ -43,6 +54,7 @@ class DashboardController extends Controller
             }
         }
 
+        // Si hay una URL intendida en sesión
         if (session()->has('url.intended')) {
             $intendedUrl = session()->get('url.intended');
             if ($this->isSafeUrl($intendedUrl)) {
@@ -52,19 +64,8 @@ class DashboardController extends Controller
             session()->forget('url.intended');
         }
 
-        if (in_array('Super Admin', $userRoles)) {
-            return redirect()->route('super-admin.dashboard');
-        } elseif (in_array('Administrador', $userRoles)) {
-            return redirect()->route('admin.dashboard');
-        } elseif (in_array('Asesor Inmobiliario', $userRoles)) {
-            return redirect()->route('asesor.dashboard');
-        } elseif (in_array('Auditor', $userRoles)) {
-            return redirect()->route('auditor.dashboard');
-        } elseif (in_array('Cliente', $userRoles)) {
-            return redirect()->route('cliente.dashboard');
-        }
-
-        return redirect()->route('home');
+        // Redirigir al dashboard correspondiente
+        return redirect($dashboardRoute);
     }
 
     private function isSafeUrl($url)
@@ -85,19 +86,18 @@ class DashboardController extends Controller
         return false;
     }
 
+    /**
+     * Dashboard para Super Admin
+     */
     public function superAdminDashboard(Request $request)
     {
         $user = Auth::user();
 
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
 
-        if (!in_array('Super Admin', $userRoles)) {
-            abort(403);
+        if (!$permissionService->hasRole('Super Admin')) {
+            abort(403, 'No tienes permiso para acceder a esta página.');
         }
 
         $totalProperties = Property::count();
@@ -143,19 +143,18 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Dashboard para Administrador
+     */
     public function adminDashboard(Request $request)
     {
         $user = Auth::user();
 
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
 
-        if (!in_array('Administrador', $userRoles) && !in_array('Super Admin', $userRoles)) {
-            abort(403);
+        if (!$permissionService->hasAnyRole(['Administrador', 'Super Admin'])) {
+            abort(403, 'No tienes permiso para acceder a esta página.');
         }
 
         $totalProperties = Property::count();
@@ -199,28 +198,25 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Dashboard para Asesor Inmobiliario
+     */
     public function asesorDashboard()
     {
         $user = Auth::user();
 
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
 
-        if (!in_array('Asesor Inmobiliario', $userRoles)) {
+        if (!$permissionService->hasRole('Asesor Inmobiliario')) {
             abort(403, 'No tienes permiso para acceder a esta página.');
         }
 
-        // Obtener todas las citas del asesor
         $appointments = Appointment::with(['property', 'asesor', 'user'])
             ->where('asesor_id', $user->id)
             ->orderBy('scheduled_date', 'desc')
             ->get();
 
-        // Métricas
         $myProperties = Property::where('user_id', $user->id)->count();
 
         $todayAppointments = Appointment::where('asesor_id', $user->id)
@@ -241,7 +237,6 @@ class DashboardController extends Controller
             ->count();
         $conversionRate = $totalLeads > 0 ? round(($convertedLeads / $totalLeads) * 100) : 0;
 
-        // Próximas citas (para la lista de la izquierda)
         $upcomingAppointments = Appointment::where('asesor_id', $user->id)
             ->where('scheduled_date', '>=', now())
             ->whereIn('status', ['pending', 'confirmed'])
@@ -250,7 +245,6 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Leads recientes
         $recentLeads = Lead::where('asesor_id', $user->id)
             ->with('property')
             ->latest()
@@ -271,19 +265,18 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Dashboard para Auditor
+     */
     public function auditorDashboard()
     {
         $user = Auth::user();
 
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
 
-        if (!in_array('Auditor', $userRoles)) {
-            abort(403);
+        if (!$permissionService->hasRole('Auditor')) {
+            abort(403, 'No tienes permiso para acceder a esta página.');
         }
 
         $totalProperties = Property::count();
@@ -315,24 +308,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Clientes
+     * Dashboard para Cliente
      */
     public function clienteDashboard()
     {
         $user = Auth::user();
 
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
 
-        if (!in_array('Cliente', $userRoles)) {
-            abort(403);
+        if (!$permissionService->hasRole('Cliente')) {
+            abort(403, 'No tienes permiso para acceder a esta página.');
         }
 
-        // Favoritos
         $favoritesCount = Favorite::where('user_id', $user->id)->count();
 
         $favoriteIds = Favorite::where('user_id', $user->id)
@@ -346,7 +334,6 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
-        // Citas
         $upcomingAppointments = Appointment::where('user_id', $user->id)
             ->where('scheduled_date', '>=', now())
             ->whereIn('status', ['pending', 'confirmed'])
@@ -369,7 +356,6 @@ class DashboardController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        // Propiedades recientes
         $recentProperties = Property::where('status', 'publicada')
             ->with('primaryImage')
             ->latest()
@@ -388,6 +374,44 @@ class DashboardController extends Controller
             'recentProperties',
             'unreadMessagesCount',
             'pendingAppointmentsCount'
+        ));
+    }
+
+    /**
+     * Dashboard genérico para roles personalizados
+     */
+    public function genericDashboard()
+    {
+        $user = Auth::user();
+
+        // Crear una nueva instancia del servicio con el usuario autenticado
+        $permissionService = new PermissionService($user);
+
+        $stats = [
+            'total_properties' => $permissionService->hasPermission('ver propiedades') ? Property::count() : 0,
+            'total_leads' => $permissionService->hasPermission('ver leads') ? Lead::count() : 0,
+            'total_appointments' => $permissionService->hasPermission('ver citas') ? Appointment::count() : 0,
+            'total_users' => $permissionService->hasPermission('ver usuarios') ? User::count() : 0,
+        ];
+
+        $recentProperties = $permissionService->hasPermission('ver propiedades')
+            ? Property::with('primaryImage')->latest()->limit(5)->get()
+            : collect();
+
+        $upcomingAppointments = $permissionService->hasPermission('ver citas')
+            ? Appointment::where('scheduled_date', '>=', now())
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->with('property')
+                ->latest('scheduled_date')
+                ->limit(5)
+                ->get()
+            : collect();
+
+        return view('dashboard.generic', compact(
+            'user',
+            'stats',
+            'recentProperties',
+            'upcomingAppointments'
         ));
     }
 }

@@ -28,7 +28,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">País</h2>
+                <h2 class="text-xl font-bold text-slate-800">Países</h2>
                 <p class="text-sm text-slate-500">Gestionando los países del sistema</p>
             </div>
 
@@ -38,15 +38,16 @@
                     <input type="text"
                            name="name"
                            placeholder="Nuevo país..."
-                           class="border rounded-lg px-4 py-2 flex-1 w-full focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
+                           class="border rounded-lg px-3 py-1 flex-1 w-full focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none text-sm"
                            required
                            minlength="2"
                            maxlength="100"
                            pattern="^[a-zA-ZáéíóúñÑ\s\-\.]+$"
                            title="Solo letras, espacios, guiones y puntos">
-                    <div class="text-xs text-slate-400 mt-1">Solo letras, espacios, guiones y puntos</div>
+                    <div class="text-xs text-slate-400 mt-1">Solo letras, sin espacios, guiones y puntos</div>
                 </div>
-                <button type="submit" class="bg-mso-gold text-mso-blue px-6 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors whitespace-nowrap">
+                <button type="submit" class="bg-mso-gold text-mso-blue px-3 py-1 rounded-lg text-xs font-semibold hover:bg-mso-blue hover:text-white transition-colors whitespace-nowrap shadow-sm hover:shadow-md flex items-center gap-1">
+                    <i class="ph ph-plus text-sm"></i>
                     Agregar País
                 </button>
             </form>

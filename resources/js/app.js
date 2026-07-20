@@ -1,5 +1,5 @@
 /**
- * Importar Bootstrap (configuración de Echo y axios)
+ * Importar Bootstrap
  */
 import './bootstrap';
 
@@ -79,11 +79,4 @@ document.addEventListener('alpine:init', () => {
  */
 Alpine.start();
 
-// Verificar que Echo está disponible después de cargar
-setTimeout(() => {
-    if (typeof window.Echo !== 'undefined') {
-        console.log('✅ Echo is ready for chat');
-    } else {
-        console.warn('⚠️ Echo not ready yet, chat may not work in real-time');
-    }
-}, 2000);
+console.log(' Alpine.js iniciado correctamente');

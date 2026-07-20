@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/Admin/UserController.php
+
 
 namespace App\Http\Controllers\Admin;
 
@@ -10,11 +10,12 @@ use App\Models\State;
 use App\Models\Municipality;
 use App\Models\Parish;
 use App\Models\City;
+use App\Services\PermissionService;
 use App\Traits\AuditTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -27,21 +28,52 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware(['auth']);
-        $this->middleware(['role:Super Admin|Administrador'])->only([
-            'index', 'create', 'store', 'show', 'edit', 'update', 'destroy', 'toggleStatus', 'export',
-            'modalShow', 'modalEdit', 'modalDelete'
-        ]);
     }
 
     /**
-     *  OPTIMIZADO - Con índices y select específicos
+     * Obtener una instancia del PermissionService con el usuario autenticado
      */
+    private function getPermissionService()
+    {
+        return new PermissionService(Auth::user());
+    }
+
+    /**
+     * Verificar si el usuario tiene acceso a la gestión de usuarios
+     */
+    private function checkAccess()
+    {
+        if (!Auth::check()) {
+            abort(403, 'No autenticado.');
+        }
+
+        $permission = $this->getPermissionService();
+
+        // Verificar si es Super Admin
+        if ($permission->hasRole('Super Admin')) {
+            return true;
+        }
+
+        // Verificar si es Administrador
+        if ($permission->hasRole('Administrador')) {
+            return true;
+        }
+
+        // Verificar permisos específicos
+        if ($permission->hasAnyPermission(['ver usuarios', 'gestionar usuarios'])) {
+            return true;
+        }
+
+        abort(403, 'No tienes permiso para acceder a esta página.');
+    }
+
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $query = User::query();
 
         if ($request->filled('search')) {
-            //  ESCAPADO CORRECTAMENTE CON BINDINGS
             $search = '%' . $request->search . '%';
             $query->where(function($q) use ($search) {
                 $q->where('name', 'LIKE', $search)
@@ -49,7 +81,6 @@ class UserController extends Controller
                   ->orWhere('email', 'LIKE', $search)
                   ->orWhere('id_number', 'LIKE', $search)
                   ->orWhere('phone', 'LIKE', $search);
-                //  address removido para evitar búsquedas pesadas
             });
         }
 
@@ -65,7 +96,6 @@ class UserController extends Controller
             }
         }
 
-        //  SELECT ESPECÍFICO PARA REDUCIR DATOS
         $users = $query->select([
                 'id', 'name', 'last_name', 'email', 'phone', 'address',
                 'id_type', 'id_number', 'country_id', 'state_id', 'city_id',
@@ -83,6 +113,7 @@ class UserController extends Controller
 
     public function create()
     {
+        $this->checkAccess();
         $roles = Role::where('name', '!=', 'Cliente')->get();
         $countries = Country::orderBy('name')->get();
         return view('dashboard.admin.users.create', compact('roles', 'countries'));
@@ -90,6 +121,8 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
@@ -135,7 +168,10 @@ class UserController extends Controller
 
             $user->assignRole($validated['role']);
 
-            $this->logCreated($user, (Auth::user()?->full_name ?? 'Sistema') . ' CREÓ al usuario ' . $user->full_name . ' con el rol "' . $validated['role'] . '"');
+            $currentUser = Auth::user();
+            $userName = $currentUser ? $currentUser->full_name : 'Sistema';
+
+            $this->logCreated($user, $userName . ' CREÓ al usuario ' . $user->full_name . ' con el rol "' . $validated['role'] . '"');
 
             return redirect()->route('admin.users.index')
                 ->with('success', 'Usuario creado exitosamente.');
@@ -153,6 +189,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        $this->checkAccess();
         $user->load(['roles', 'country', 'state', 'municipality', 'parish', 'userCity']);
 
         $stats = [
@@ -167,6 +204,7 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        $this->checkAccess();
         $roles = Role::all();
         $countries = Country::orderBy('name')->get();
         $states = State::where('country_id', $user->country_id)->orderBy('name')->get();
@@ -182,6 +220,8 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
@@ -235,7 +275,6 @@ class UserController extends Controller
 
             $user->syncRoles([$validated['role']]);
 
-            // Auditoría
             $changes = [];
             $fieldLabels = [
                 'name' => 'nombre',
@@ -279,15 +318,19 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $this->checkAccess();
+
         if ($user->id === Auth::id()) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'No puedes eliminarte a ti mismo.');
         }
 
         try {
-            $this->logDeleted($user, (Auth::user()?->full_name ?? 'Sistema') . ' ELIMINÓ al usuario ' . $user->full_name);
+            $currentUser = Auth::user();
+            $userName = $currentUser ? $currentUser->full_name : 'Sistema';
 
-            //  ELIMINAR FOTO DE PERFIL SI EXISTE
+            $this->logDeleted($user, $userName . ' ELIMINÓ al usuario ' . $user->full_name);
+
             if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
                 Storage::disk('public')->delete($user->profile_photo);
             }
@@ -307,11 +350,10 @@ class UserController extends Controller
         }
     }
 
-    /**
-     *  RESPONSE SEGURO - SIN EXPONER DATOS SENSIBLES
-     */
     public function toggleStatus(User $user)
     {
+        $this->checkAccess();
+
         if ($user->id === Auth::id()) {
             return response()->json(['error' => 'No puedes desactivarte a ti mismo.'], 403);
         }
@@ -324,8 +366,11 @@ class UserController extends Controller
 
             $status = $user->is_active ? 'activado' : 'desactivado';
 
+            $currentUser = Auth::user();
+            $userName = $currentUser ? $currentUser->full_name : 'Sistema';
+
             $this->logAudit('updated', $user, $oldValues, $user->toArray(),
-                (Auth::user()?->full_name ?? 'Sistema') . ' ' . ($user->is_active ? 'ACTIVÓ' : 'DESACTIVÓ') . ' al usuario ' . $user->full_name
+                $userName . ' ' . ($user->is_active ? 'ACTIVÓ' : 'DESACTIVÓ') . ' al usuario ' . $user->full_name
             );
 
             if (!$user->is_active && $wasActive) {
@@ -368,7 +413,8 @@ class UserController extends Controller
 
     public function export(Request $request)
     {
-        //  LIMITAR EXPORTACIÓN A 1000 REGISTROS PARA EVITAR SOBRECARGA
+        $this->checkAccess();
+
         $query = User::query()->with(['country', 'state', 'userCity']);
 
         if ($request->filled('search')) {
@@ -386,7 +432,6 @@ class UserController extends Controller
             $query->role($request->role);
         }
 
-        //  LIMITAR A 1000 REGISTROS
         $users = $query->limit(1000)->get();
 
         $filename = "usuarios_" . date('Y-m-d_His') . ".csv";
@@ -424,12 +469,14 @@ class UserController extends Controller
 
     public function modalShow(User $user)
     {
+        $this->checkAccess();
         $user->load(['country', 'state', 'municipality', 'parish', 'userCity', 'roles']);
         return view('dashboard.admin.users.modal-show', compact('user'));
     }
 
     public function modalEdit(User $user)
     {
+        $this->checkAccess();
         $roles = Role::all();
         $countries = Country::orderBy('name')->get();
         $states = State::where('country_id', $user->country_id)->orderBy('name')->get();
@@ -444,6 +491,7 @@ class UserController extends Controller
 
     public function modalDelete(User $user)
     {
+        $this->checkAccess();
         return view('dashboard.admin.users.modal-delete', compact('user'));
     }
 }

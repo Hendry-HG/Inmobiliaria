@@ -69,7 +69,7 @@
 <div class="audit-panel" style="background:var(--slate-50);min-height:calc(100vh - 64px)">
 
     <!-- ═══ Encabezado ═══ -->
-    <div class="px-6 lg:px-8 pt-8 pb-2">
+    <div class="pt-8 pb-2">
         <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
                 <div class="flex items-center gap-3 mb-1">
@@ -94,7 +94,7 @@
     </div>
 
     <!-- ═══ KPIs ═══ -->
-    <div class="px-6 lg:px-8 py-6">
+    <div class="py-6">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="kpi-card bg-white rounded-xl p-5" style="border:1px solid var(--slate-200)">
                 <div class="flex items-center justify-between mb-3">
@@ -136,7 +136,7 @@
     </div>
 
     <!-- ═══ Tabla full-width ═══ -->
-    <div class="px-6 lg:px-8 pb-6">
+    <div class="pb-6">
         <div class="bg-white rounded-xl overflow-hidden" style="border:1px solid var(--slate-200)">
             <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="border-bottom:1px solid var(--slate-100)">
                 <div>
@@ -220,7 +220,7 @@
     </div>
 
     <!-- ═══ Gráficas Corporativas ═══ -->
-    <div class="px-6 lg:px-8 pb-10">
+    <div class="pb-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             <!-- Dona -->

@@ -12,6 +12,6 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        '/solicitar-valoracion',  // 🔥 Formulario público de valoración de propiedades
+        '/solicitar-valoracion',
     ];
 }

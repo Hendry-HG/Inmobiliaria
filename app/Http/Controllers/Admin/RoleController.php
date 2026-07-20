@@ -1,10 +1,11 @@
 <?php
 
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Log;
@@ -15,29 +16,50 @@ class RoleController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'role:Super Admin']);
-        
-        //  PERMISOS ESPECÍFICOS
-        $this->middleware(['permission:ver roles'])->only(['index']);
-        $this->middleware(['permission:crear rol'])->only(['create', 'store']);
-        $this->middleware(['permission:editar rol'])->only(['edit', 'update']);
-        $this->middleware(['permission:eliminar rol'])->only(['destroy']);
+        $this->middleware(['auth']);
+    }
+
+    private function getPermissionService()
+    {
+        return new PermissionService(Auth::user());
+    }
+
+    private function checkSuperAdminAccess()
+    {
+        if (!Auth::check()) {
+            abort(403, 'No autenticado.');
+        }
+
+        $permission = $this->getPermissionService();
+
+        if (!$permission->hasRole('Super Admin')) {
+            abort(403, 'No tienes permiso para acceder a esta página. Solo Super Admin.');
+        }
+
+        return true;
     }
 
     public function index()
     {
-        $roles = Role::with('permissions')->get();
+        $this->checkSuperAdminAccess();
+        $roles = Role::with('permissions', 'users')->get();
         return view('dashboard.admin.roles.index', compact('roles'));
     }
 
     public function create()
     {
-        //  OPTIMIZADO CON CACHÉ
+        $this->checkSuperAdminAccess();
+
+        //  OBTENER SOLO PERMISOS DEL SISTEMA
         $allPermissions = Cache::remember('permissions_grouped', 3600, function () {
-            return Permission::all()->groupBy(function ($item) {
-                $parts = explode(' ', $item->name);
-                return $parts[1] ?? 'sistema';
-            });
+            return Permission::all()
+                ->filter(function($permission) {
+                    return !str_starts_with($permission->name, 'sidebar.');
+                })
+                ->groupBy(function ($item) {
+                    $parts = explode(' ', $item->name);
+                    return $parts[1] ?? 'sistema';
+                });
         });
 
         return view('dashboard.admin.roles.form', compact('allPermissions'));
@@ -45,7 +67,8 @@ class RoleController extends Controller
 
     public function store(Request $request)
     {
-        //  VALIDACIÓN MEJORADA
+        $this->checkSuperAdminAccess();
+
         $request->validate([
             'name' => [
                 'required',
@@ -58,24 +81,29 @@ class RoleController extends Controller
             'permissions.*' => 'exists:permissions,name'
         ]);
 
-        //  SANITIZAR NOMBRE
         $name = strip_tags(trim($request->name));
 
         $role = Role::create(['name' => $name]);
 
-        if ($request->has('permissions')) {
-            $role->syncPermissions($request->permissions);
+        //  FILTRAR PERMISOS DEL SIDEBAR
+        $filteredPermissions = array_filter($request->permissions ?? [], function($p) {
+            return !str_starts_with($p, 'sidebar.');
+        });
+
+        if (!empty($filteredPermissions)) {
+            $role->syncPermissions($filteredPermissions);
         }
 
-        //  LOG DE AUDITORÍA
+        $user = Auth::user();
+        $userEmail = $user ? $user->email : 'Sistema';
+
         Log::info('Rol creado', [
             'role' => $role->name,
-            'permissions' => $request->permissions ?? [],
-            'created_by' => auth()->user()->email,
+            'permissions' => $filteredPermissions,
+            'created_by' => $userEmail,
             'ip' => request()->ip()
         ]);
 
-        //  LIMPIAR CACHÉ DE PERMISOS
         Cache::forget('permissions_grouped');
 
         return redirect()->route('super-admin.roles.index')
@@ -84,19 +112,20 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
-        if ($role->name === 'Super Admin') {
-            return redirect()->route('super-admin.roles.index')
-                ->with('error', 'No puedes editar el rol Super Admin.');
-        }
+        $this->checkSuperAdminAccess();
 
         $role->load('permissions');
 
-        //  OPTIMIZADO CON CACHÉ
+        //  OBTENER SOLO PERMISOS DEL SISTEMA
         $allPermissions = Cache::remember('permissions_grouped', 3600, function () {
-            return Permission::all()->groupBy(function ($item) {
-                $parts = explode(' ', $item->name);
-                return $parts[1] ?? 'sistema';
-            });
+            return Permission::all()
+                ->filter(function($permission) {
+                    return !str_starts_with($permission->name, 'sidebar.');
+                })
+                ->groupBy(function ($item) {
+                    $parts = explode(' ', $item->name);
+                    return $parts[1] ?? 'sistema';
+                });
         });
 
         return view('dashboard.admin.roles.form', compact('role', 'allPermissions'));
@@ -104,12 +133,8 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
-        if ($role->name === 'Super Admin') {
-            return redirect()->route('super-admin.roles.index')
-                ->with('error', 'No puedes editar el rol Super Admin.');
-        }
+        $this->checkSuperAdminAccess();
 
-        //  VALIDACIÓN MEJORADA
         $request->validate([
             'name' => [
                 'required',
@@ -122,23 +147,47 @@ class RoleController extends Controller
             'permissions.*' => 'exists:permissions,name'
         ]);
 
-        //  SANITIZAR NOMBRE
         $name = strip_tags(trim($request->name));
         $oldName = $role->name;
 
-        $role->update(['name' => $name]);
-        $role->syncPermissions($request->permissions ?? []);
+        //  OBTENER PERMISOS ACTUALES DEL ROL
+        $currentPermissions = $role->permissions->pluck('name')->toArray();
 
-        //  LOG DE AUDITORÍA
+
+        $systemPermissions = array_filter($currentPermissions, function($p) {
+            return !str_starts_with($p, 'sidebar.');
+        });
+
+        $sidebarPermissionsFromRequest = array_filter($request->permissions ?? [], function($p) {
+            return str_starts_with($p, 'sidebar.');
+        });
+
+        //  FILTRAR PERMISOS DEL SISTEMA DEL REQUEST
+        $systemPermissionsFromRequest = array_filter($request->permissions ?? [], function($p) {
+            return !str_starts_with($p, 'sidebar.');
+        });
+
+
+        $allPermissions = array_merge(
+            array_values($systemPermissions),
+            array_values($systemPermissionsFromRequest),
+            array_values($sidebarPermissionsFromRequest)
+        );
+
+        $role->update(['name' => $name]);
+        $role->syncPermissions(array_unique($allPermissions));
+
+        $user = Auth::user();
+        $userEmail = $user ? $user->email : 'Sistema';
+
         Log::info('Rol actualizado', [
             'old_name' => $oldName,
             'new_name' => $name,
-            'permissions' => $request->permissions ?? [],
-            'updated_by' => auth()->user()->email,
+            'permissions' => $allPermissions,
+            'updated_by' => $userEmail,
             'ip' => request()->ip()
         ]);
 
-        //  LIMPIAR CACHÉ DE PERMISOS
         Cache::forget('permissions_grouped');
 
         return redirect()->route('super-admin.roles.index')
@@ -147,12 +196,13 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        $this->checkSuperAdminAccess();
+
         if ($role->name === 'Super Admin') {
             return redirect()->route('super-admin.roles.index')
                 ->with('error', 'No puedes eliminar el rol Super Admin.');
         }
 
-        //  CORREGIDO - Usar $role->users en lugar de $role->users()
         if ($role->users()->count() > 0) {
             return redirect()->route('super-admin.roles.index')
                 ->with('error', 'No puedes eliminar un rol que tiene usuarios asignados.');
@@ -160,23 +210,23 @@ class RoleController extends Controller
 
         $roleName = $role->name;
 
-        //  LOG DE AUDITORÍA ANTES DE ELIMINAR
+        $user = Auth::user();
+        $userEmail = $user ? $user->email : 'Sistema';
+
         Log::warning('Rol eliminado', [
             'role' => $roleName,
-            'deleted_by' => auth()->user()->email,
+            'deleted_by' => $userEmail,
             'ip' => request()->ip()
         ]);
 
         $role->delete();
 
-        //  LIMPIAR CACHÉ DE PERMISOS
         Cache::forget('permissions_grouped');
 
         return redirect()->route('super-admin.roles.index')
             ->with('success', 'Rol eliminado correctamente.');
     }
 
-    //  MÉTODO AUXILIAR PARA LIMPIAR CACHÉ
     private function clearPermissionCache()
     {
         Cache::forget('permissions_grouped');

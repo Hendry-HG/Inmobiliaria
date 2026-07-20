@@ -57,39 +57,66 @@
             {{ ucfirst($property->status) }}
         </span>
     </td>
+
     @if(isset($isAdmin) && $isAdmin)
         <td class="p-4 text-slate-600">
             {{ $property->user->name ?? 'N/A' }}
         </td>
     @endif
+
+    {{-- ============================================= --}}
+    {{-- ACCIONES - SOLO ASESOR PUEDE EDITAR Y ELIMINAR --}}
+    {{-- ============================================= --}}
     <td class="p-4 text-right">
         <div class="flex justify-end gap-2">
-            @php
-                $editRoute = (isset($isAdmin) && $isAdmin)
-                    ? route('admin.properties.edit', $property)
-                    : route('asesor.properties.edit', $property);
-                $deleteRoute = (isset($isAdmin) && $isAdmin)
-                    ? route('admin.properties.destroy', $property)
-                    : route('asesor.properties.destroy', $property);
-            @endphp
-
+            {{-- VER - Todos los roles pueden ver --}}
             <a href="{{ $showRoute }}"
                class="text-green-600 hover:text-green-800 font-medium p-1"
                title="Ver detalle">
                 <i class="ph ph-eye text-lg"></i>
             </a>
 
-            <a href="{{ $editRoute }}"
-               class="text-blue-600 hover:text-blue-800 font-medium p-1"
-               title="Editar">
-                <i class="ph ph-pencil text-lg"></i>
-            </a>
+            {{-- ============================================= --}}
+            {{-- EDITAR - SOLO ASESOR --}}
+            {{-- ============================================= --}}
+            @role('Asesor Inmobiliario')
+                @php
+                    $editRoute = (isset($isAdmin) && $isAdmin)
+                        ? route('admin.properties.edit', $property)
+                        : route('asesor.properties.edit', $property);
+                @endphp
+                <a href="{{ $editRoute }}"
+                   class="text-blue-600 hover:text-blue-800 font-medium p-1"
+                   title="Editar">
+                    <i class="ph ph-pencil text-lg"></i>
+                </a>
+            @else
+                {{-- Mostrar icono deshabilitado para otros roles --}}
+                <span class="text-slate-300 cursor-not-allowed p-1" title="Solo asesores pueden editar">
+                    <i class="ph ph-pencil text-lg"></i>
+                </span>
+            @endrole
 
-            <button onclick="openDeleteModal({{ $property->id }}, '{{ addslashes($property->title) }}', '{{ $deleteRoute }}')"
-                    class="text-red-500 hover:text-red-700 font-medium p-1"
-                    title="Eliminar">
-                <i class="ph ph-trash text-lg"></i>
-            </button>
+            {{-- ============================================= --}}
+            {{-- ELIMINAR - SOLO ASESOR --}}
+            {{-- ============================================= --}}
+            @role('Asesor Inmobiliario')
+                @php
+                    $deleteRoute = (isset($isAdmin) && $isAdmin)
+                        ? route('admin.properties.destroy', $property)
+                        : route('asesor.properties.destroy', $property);
+                @endphp
+                <button onclick="openDeleteModal({{ $property->id }}, '{{ addslashes($property->title) }}', '{{ $deleteRoute }}')"
+                        class="text-red-500 hover:text-red-700 font-medium p-1"
+                        title="Eliminar">
+                    <i class="ph ph-trash text-lg"></i>
+                </button>
+            @else
+                {{-- Mostrar icono deshabilitado para otros roles --}}
+                <span class="text-slate-300 cursor-not-allowed p-1" title="Solo asesores pueden eliminar">
+                    <i class="ph ph-trash text-lg"></i>
+                </span>
+            @endrole
         </div>
     </td>
 </tr>

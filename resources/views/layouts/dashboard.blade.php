@@ -15,14 +15,7 @@
     <link rel="apple-touch-icon" href="{{ asset('favicon-96x96.png') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
-    <!-- ============================================= -->
-    <!-- SCRIPTS PARA WEBSOCKETS -->
-    <!-- ============================================= -->
-    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.14.0/dist/echo.iife.js"></script>
-
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <!-- Iconos Phosphor -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -42,11 +35,25 @@
         }
     </script>
     <style>
-        body { background-color: #f1f5f9; }
+        /* ============================================ */
+        /* ESTILOS BASE */
+        /* ============================================ */
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+        }
+
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
         .custom-scroll::-webkit-scrollbar-track { background-color: transparent; }
-        .nav-item.active { background-color: rgba(197, 160, 89, 0.1); color: #c5a059; border-right: 3px solid #c5a059; }
+
+        /* Sidebar - estilos específicos con mayor especificidad */
+        #sidebar .nav-item.active {
+            background-color: rgba(197, 160, 89, 0.1);
+            color: #c5a059;
+            border-right: 3px solid #c5a059;
+        }
+
         [x-cloak] { display: none !important; }
 
         @keyframes fade-in-down {
@@ -55,45 +62,205 @@
         }
         .animate-fade-in-down { animation: fade-in-down 0.3s ease-out; }
 
-        /* Transición para el sidebar */
-        .sidebar-transition {
+        /* ============================================ */
+        /* SIDEBAR - TAMAÑO FIJO Y CONSISTENTE */
+        /* ============================================ */
+        #sidebar {
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+            z-index: 30;
+        }
+
+        #sidebar .sidebar-inner {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Texto del sidebar */
+        #sidebar .nav-text {
+            transition: opacity 0.2s ease, width 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        #sidebar .nav-text-hidden {
+            opacity: 0;
+            width: 0;
+            max-width: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #sidebar .nav-text-visible {
+            opacity: 1;
+            width: auto;
+            max-width: 200px;
+        }
+
+        /* ============================================ */
+        /* HEADER - TAMAÑO FIJO */
+        /* ============================================ */
+        .dashboard-header {
+            height: 80px;
+            min-height: 80px;
+            max-height: 80px;
+            flex-shrink: 0;
+        }
+
+        /* ============================================ */
+        /* CONTENIDO PRINCIPAL */
+        /* ============================================ */
+        .dashboard-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .dashboard-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem 2rem;
+        }
+
+        /* ============================================ */
+        /* RESPONSIVE - TABLET Y MÓVIL */
+        /* ============================================ */
+        @media (max-width: 1024px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 1000;
+                transform: translateX(-100%);
+                width: 280px !important;
+                box-shadow: 4px 0 30px rgba(0,0,0,0.2);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            #sidebar .nav-text {
+                opacity: 1 !important;
+                width: auto !important;
+                max-width: 200px !important;
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+                display: none;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .dashboard-header {
+                height: 64px;
+                min-height: 64px;
+                max-height: 64px;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .dashboard-content {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .dashboard-header {
+                height: 56px;
+                min-height: 56px;
+                max-height: 56px;
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+
+            .dashboard-content {
+                padding: 0.75rem;
+            }
+
+            #sidebar {
+                width: 280px !important;
+            }
         }
     </style>
     @stack('css')
 </head>
 <body class="bg-slate-50 font-sans antialiased">
 
+    {{-- Overlay para móvil --}}
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
     {{-- Contenedor principal con Alpine.js para manejar el sidebar --}}
-    <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: true }">
+    <div class="flex h-screen overflow-hidden"
+         x-data="{
+            sidebarOpen: true,
+            isMobile: window.innerWidth < 1024,
+            init() {
+                // Recuperar estado guardado solo para desktop
+                if (!this.isMobile) {
+                    const saved = localStorage.getItem('sidebarOpen');
+                    if (saved !== null) {
+                        this.sidebarOpen = saved === 'true';
+                    }
+                    this.$watch('sidebarOpen', value => {
+                        localStorage.setItem('sidebarOpen', value);
+                    });
+                }
+
+                // Detectar cambios de tamaño
+                window.addEventListener('resize', () => {
+                    this.isMobile = window.innerWidth < 1024;
+                    if (!this.isMobile) {
+                        // Cerrar sidebar móvil si está abierto
+                        const sidebar = document.getElementById('sidebar');
+                        const overlay = document.getElementById('sidebar-overlay');
+                        if (sidebar) sidebar.classList.remove('mobile-open');
+                        if (overlay) overlay.classList.remove('active');
+                    }
+                });
+            }
+         }"
+         x-init="init()">
 
         {{-- Sidebar --}}
         <x-sidebar :user="Auth::user()" />
 
         {{-- Contenido Principal --}}
-        <main class="flex-1 flex flex-col h-full overflow-hidden transition-all duration-300">
+        <main class="dashboard-main">
 
             {{-- Header --}}
-            <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm flex-shrink-0 relative z-20">
-                <div class="flex items-center gap-2">
-                    {{-- BOTÓN PARA MÓVIL (abre sidebar overlay) --}}
-                    <button id="mobile-menu-btn" class="lg:hidden text-slate-600 hover:text-mso-gold transition-colors p-2 rounded-lg hover:bg-slate-100">
+            <header class="dashboard-header bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm flex-shrink-0 relative z-20">
+                <div class="flex items-center gap-2 min-w-0">
+                    <button id="mobile-menu-btn" class="lg:hidden text-slate-600 hover:text-mso-gold transition-colors p-2 rounded-lg hover:bg-slate-100 flex-shrink-0">
                         <i class="ph ph-list text-2xl"></i>
                     </button>
-
-                    {{-- BOTÓN TOGGLE PARA DESKTOP (abre/cierra sidebar) --}}
                     <button @click="sidebarOpen = !sidebarOpen"
-                            class="hidden lg:flex text-slate-400 hover:text-mso-gold transition-colors p-2 rounded-lg hover:bg-slate-100"
+                            class="hidden lg:flex text-slate-400 hover:text-mso-gold transition-colors p-2 rounded-lg hover:bg-slate-100 flex-shrink-0"
                             title="Toggle sidebar">
                         <i class="ph text-xl" :class="sidebarOpen ? 'ph-caret-left' : 'ph-caret-right'"></i>
                     </button>
-
-                    <h2 class="font-serif text-xl md:text-2xl font-bold text-slate-800">
+                    <h2 class="font-serif text-xl md:text-2xl font-bold text-slate-800 truncate">
                         @yield('header', 'Dashboard')
                     </h2>
                 </div>
 
-                <div class="flex items-center gap-3 md:gap-4">
+                <div class="flex items-center gap-3 md:gap-4 flex-shrink-0">
 
                     {{-- NOTIFICACIONES --}}
                     @php
@@ -180,7 +347,7 @@
                     </div>
 
                     {{-- Perfil --}}
-                    <a href="{{ route('profile.index') }}" class="relative hidden sm:block group">
+                    <a href="{{ route('profile.index') }}" class="relative hidden sm:block group flex-shrink-0">
                         <img src="{{ Auth::user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=c5a059&color=fff&size=40' }}"
                              class="w-9 h-9 rounded-full border-2 border-slate-200 object-cover group-hover:border-mso-gold transition-colors"
                              alt="{{ Auth::user()->name }}">
@@ -198,7 +365,7 @@
             </header>
 
             {{-- Contenido --}}
-            <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
+            <div class="dashboard-content custom-scroll">
                 @if(session('success'))
                     <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-r shadow-sm animate-fade-in-down">
                         <div class="flex items-center"><i class="ph ph-check-circle text-xl mr-2"></i><p>{{ session('success') }}</p></div>
@@ -214,81 +381,77 @@
         </main>
     </div>
 
-    <!-- INICIALIZACIÓN DE ECHO -->
+    <!-- ============================================ -->
+    <!-- FUNCIONES PARA EL SIDEBAR MÓVIL -->
+    <!-- ============================================ -->
     <script>
-        window.Pusher = Pusher;
-
-        window.Echo = new Echo({
-            broadcaster: 'pusher',
-            key: '{{ env("REVERB_APP_KEY") }}',
-            wsHost: '{{ env("REVERB_HOST", "127.0.0.1") }}',
-            wsPort: {{ env("REVERB_PORT", 8080) }},
-            wssPort: {{ env("REVERB_PORT", 8080) }},
-            forceTLS: false,
-            enabledTransports: ['ws', 'wss'],
-            disableStats: true,
-            cluster: 'mt1'
-        });
-
-        console.log(' Echo inicializado con key: {{ env("REVERB_APP_KEY") }}');
-
-        if (window.Echo && window.Echo.connector && window.Echo.connector.pusher) {
-            window.Echo.connector.pusher.connection.bind('connected', function() {
-                console.log(' WebSocket conectado en puerto {{ env("REVERB_PORT", 8080) }}');
-            });
-            window.Echo.connector.pusher.connection.bind('error', function(err) {
-                console.error('❌ Error WebSocket:', err);
-            });
+        function openMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) {
+                sidebar.classList.add('mobile-open');
+                document.body.style.overflow = 'hidden';
+            }
+            if (overlay) overlay.classList.add('active');
         }
-    </script>
 
-    <script>
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) {
+                sidebar.classList.remove('mobile-open');
+                document.body.style.overflow = '';
+            }
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('mobile-open')) {
+                closeMobileSidebar();
+            } else {
+                openMobileSidebar();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Móvil: abrir/cerrar sidebar
             const mobileBtn = document.getElementById('mobile-menu-btn');
-            const mobileSidebar = document.getElementById('mobile-sidebar');
-
-            if (mobileBtn && mobileSidebar) {
-                mobileBtn.addEventListener('click', () => {
-                    mobileSidebar.classList.remove('hidden');
-                    document.body.style.overflow = 'hidden';
-                });
+            if (mobileBtn) {
+                mobileBtn.addEventListener('click', toggleMobileSidebar);
             }
 
-            // Cerrar móvil con el botón X
             const closeBtn = document.getElementById('close-mobile-menu');
-            if (closeBtn && mobileSidebar) {
-                closeBtn.addEventListener('click', () => {
-                    mobileSidebar.classList.add('hidden');
-                    document.body.style.overflow = '';
-                });
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeMobileSidebar);
             }
 
-            // Cerrar móvil al hacer clic fuera
-            if (mobileSidebar) {
-                mobileSidebar.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        mobileSidebar.classList.add('hidden');
-                        document.body.style.overflow = '';
-                    }
-                });
-            }
-
-            // Cerrar móvil al redimensionar a desktop
-            window.addEventListener('resize', function() {
-                if (window.innerWidth >= 1024 && mobileSidebar) {
-                    mobileSidebar.classList.add('hidden');
-                    document.body.style.overflow = '';
-                }
-            });
-
-            // Cerrar con tecla ESC
+            // Cerrar con Escape
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && mobileSidebar && !mobileSidebar.classList.contains('hidden')) {
-                    mobileSidebar.classList.add('hidden');
-                    document.body.style.overflow = '';
+                if (e.key === 'Escape') {
+                    closeMobileSidebar();
                 }
             });
+
+            // Cerrar al hacer clic en el overlay
+            const overlay = document.getElementById('sidebar-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', closeMobileSidebar);
+            }
+
+            // Cerrar al redimensionar a desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 1024) {
+                    closeMobileSidebar();
+                }
+            });
+
+            // Prevenir que el sidebar móvil se cierre al hacer clic dentro
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
         });
     </script>
 

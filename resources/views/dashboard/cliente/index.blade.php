@@ -1,4 +1,3 @@
-{{-- resources/views/dashboard/cliente/index.blade.php --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Mi Panel')

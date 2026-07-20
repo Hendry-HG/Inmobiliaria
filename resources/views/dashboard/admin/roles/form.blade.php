@@ -33,20 +33,21 @@
 
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Rol *</label>
-                <input type="text" 
-                       name="name" 
+                <input type="text"
+                       name="name"
                        value="{{ old('name', $role->name ?? '') }}"
                        pattern="^[a-zA-ZáéíóúñÑ\s\-_]+$"
                        title="Solo letras, espacios, guiones y guiones bajos"
                        class="w-full border rounded p-2 {{ $errors->has('name') ? 'border-red-500' : '' }}"
                        required>
                 <p class="text-xs text-gray-400 mt-1">Solo letras, espacios, guiones y guiones bajos</p>
-                @error('name') 
+                @error('name')
                     <p class="text-red-500 text-xs mt-1"><i class="ph ph-warning-circle mr-1"></i>{{ $message }}</p>
                 @enderror
             </div>
 
-            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Asignar Permisos</h3>
+            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Permisos del Sistema</h3>
+            <p class="text-sm text-gray-500 mb-4">Los permisos del sidebar se gestionan en la sección <strong>Sidebar Permissions</strong>.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @php
@@ -56,7 +57,7 @@
                 @foreach($perms as $group => $permissionsList)
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <h4 class="font-bold text-gray-700 mb-3 capitalize text-sm uppercase tracking-wide">{{ $group }}</h4>
-                        <div class="space-y-2">
+                        <div class="space-y-2 max-h-60 overflow-y-auto custom-scroll">
                             @foreach($permissionsList as $permission)
                                 <label class="flex items-start space-x-2 cursor-pointer hover:text-mso-blue">
                                     <input type="checkbox"
@@ -70,6 +71,23 @@
                         </div>
                     </div>
                 @endforeach
+            </div>
+
+            {{-- NOTA SOBRE PERMISOS DEL SIDEBAR --}}
+            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div class="flex items-start gap-2">
+                    <i class="ph ph-info text-amber-600 text-xl mt-0.5"></i>
+                    <div>
+                        <p class="text-sm text-amber-700">
+                            Los permisos de visibilidad del sidebar se gestionan en
+                            <strong>Sidebar Permissions</strong>.
+                        </p>
+                        <a href="{{ route('super-admin.sidebar-permissions.index') }}"
+                           class="inline-flex items-center gap-1 text-sm text-mso-blue hover:underline font-medium mt-1">
+                            <i class="ph ph-arrow-right"></i> Ir a Sidebar Permissions
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-8 flex justify-end gap-3">
@@ -88,9 +106,39 @@
 
 @push('js')
 <script>
-    //  VALIDACIÓN DE NOMBRE DE ROL EN TIEMPO REAL
+    // VALIDACIÓN DE NOMBRE DE ROL EN TIEMPO REAL
     document.querySelector('input[name="name"]')?.addEventListener('input', function() {
         this.value = this.value.replace(/[^a-zA-ZáéíóúñÑ\s\-_]/g, '');
     });
+
+    // CONTADOR DE PERMISOS SELECCIONADOS
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('input[name="permissions[]"]:checked');
+        document.getElementById('selectedCount').textContent = checkboxes.length;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('input[name="permissions[]"]').forEach(cb => {
+            cb.addEventListener('change', updateSelectedCount);
+        });
+        updateSelectedCount();
+    });
 </script>
+
+<style>
+    .custom-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+</style>
 @endpush

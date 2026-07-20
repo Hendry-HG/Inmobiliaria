@@ -4,7 +4,7 @@
 @section('header', 'Dashboard Asesor')
 
 @section('content')
-<div class="w-full px-4 md:px-8 space-y-6">
+<div class="space-y-6">
 
     {{-- 1. MÉTRICAS PRINCIPALES (KPIs) - 3 COLUMNAS --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

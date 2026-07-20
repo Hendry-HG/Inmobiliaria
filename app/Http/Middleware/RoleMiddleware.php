@@ -1,11 +1,12 @@
 <?php
-// app/Http/Middleware/RoleMiddleware.php
+
 
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RoleMiddleware
@@ -18,72 +19,73 @@ class RoleMiddleware
 
         $user = Auth::user();
 
-        //  Verificar si el usuario está activo
         if (!$user->is_active) {
             Auth::logout();
             return redirect()->route('login')
                 ->withErrors(['email' => 'Tu cuenta está desactivada.']);
         }
 
-        //  OBTENER ROLES DEL USUARIO (USANDO RELACIÓN)
-        $userRoles = $user->roles->pluck('name')->toArray();
-
-        //  PROCESAR ROLES REQUERIDOS
+        // Procesar roles requeridos
         $allowedRoles = [];
         foreach ($roles as $role) {
-            if (str_contains($role, ',')) {
-                $splitRoles = explode(',', $role);
-                foreach ($splitRoles as $splitRole) {
-                    $allowedRoles[] = trim($splitRole);
+            $splitRoles = preg_split('/[|,]/', $role);
+            foreach ($splitRoles as $splitRole) {
+                $trimmed = trim($splitRole);
+                if (!empty($trimmed)) {
+                    $allowedRoles[] = $trimmed;
                 }
-            } else {
-                $allowedRoles[] = $role;
             }
         }
 
-        //  ELIMINAR ROLES VACÍOS
-        $allowedRoles = array_filter($allowedRoles, function($role) {
-            return !empty($role);
-        });
+        $allowedRoles = array_unique($allowedRoles);
 
-        //  VALIDAR QUE HAYA ROLES REQUERIDOS
         if (empty($allowedRoles)) {
-            Log::warning('Intento de acceso sin roles especificados', [
-                'user' => $user->email,
-                'url' => $request->fullUrl(),
-                'ip' => $request->ip()
-            ]);
             abort(403, 'No se especificaron roles para esta ruta.');
         }
 
-        //  VERIFICAR SI EL USUARIO TIENE ALGUNO DE LOS ROLES REQUERIDOS
-        foreach ($allowedRoles as $role) {
-            if (in_array($role, $userRoles)) {
+        // =============================================
+        // OBTENER ROLES DIRECTAMENTE DE LA BASE DE DATOS
+        // =============================================
+        $userRoles = DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_id', $user->id)
+            ->where('model_has_roles.model_type', 'App\\Models\\User')
+            ->pluck('roles.name')
+            ->toArray();
+
+        // =============================================
+        // LOG DE DEPURACIÓN
+        // =============================================
+        Log::info('RoleMiddleware - Verificando acceso', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_roles_db' => $userRoles,
+            'required_roles' => $allowedRoles,
+            'url' => $request->fullUrl()
+        ]);
+
+        // =============================================
+        // VERIFICAR SI EL USUARIO TIENE ALGUNO DE LOS ROLES REQUERIDOS
+        // =============================================
+        foreach ($allowedRoles as $requiredRole) {
+            if (in_array($requiredRole, $userRoles)) {
+                Log::info('RoleMiddleware - Acceso permitido', [
+                    'user' => $user->email,
+                    'role' => $requiredRole
+                ]);
                 return $next($request);
             }
         }
 
-        //  LOG DE ACCESO DENEGADO
-        Log::warning('Acceso denegado por rol', [
+        // =============================================
+        // ACCESO DENEGADO
+        // =============================================
+        Log::warning('RoleMiddleware - Acceso denegado', [
             'user' => $user->email,
             'user_roles' => $userRoles,
             'required_roles' => $allowedRoles,
-            'url' => $request->fullUrl(),
-            'ip' => $request->ip()
+            'url' => $request->fullUrl()
         ]);
-
-        //  REDIRIGIR SEGÚN EL ROL DEL USUARIO
-        if (in_array('Super Admin', $userRoles)) {
-            return redirect()->route('super-admin.dashboard');
-        } elseif (in_array('Administrador', $userRoles)) {
-            return redirect()->route('admin.dashboard');
-        } elseif (in_array('Asesor Inmobiliario', $userRoles)) {
-            return redirect()->route('asesor.dashboard');
-        } elseif (in_array('Auditor', $userRoles)) {
-            return redirect()->route('auditor.dashboard');
-        } elseif (in_array('Cliente', $userRoles)) {
-            return redirect()->route('cliente.dashboard');
-        }
 
         abort(403, 'No tienes permiso para acceder a esta página.');
     }

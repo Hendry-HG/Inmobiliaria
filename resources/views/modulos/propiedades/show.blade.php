@@ -1,4 +1,3 @@
-{{-- resources/views/modulos/propiedades/show.blade.php --}}
 @extends('layouts.dashboard')
 
 @section('title', $property->title)
@@ -35,18 +34,26 @@
                 </div>
             </div>
             <div class="flex gap-3">
+                {{-- ============================================= --}}
+                {{-- EDITAR - SOLO ASESOR --}}
+                {{-- ============================================= --}}
+                @role('Asesor Inmobiliario')
+                    @php
+                        $editRoute = (isset($isAdmin) && $isAdmin)
+                            ? route('admin.properties.edit', $property)
+                            : route('asesor.properties.edit', $property);
+                    @endphp
+                    <a href="{{ $editRoute }}"
+                       class="px-4 py-2 bg-mso-gold text-mso-blue rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors flex items-center gap-2">
+                        <i class="ph ph-pencil"></i> Editar
+                    </a>
+                @endrole
+
                 @php
-                    $editRoute = (isset($isAdmin) && $isAdmin)
-                        ? route('admin.properties.edit', $property)
-                        : route('asesor.properties.edit', $property);
                     $indexRoute = (isset($isAdmin) && $isAdmin)
                         ? route('admin.properties.index')
                         : route('asesor.properties.index');
                 @endphp
-                <a href="{{ $editRoute }}"
-                   class="px-4 py-2 bg-mso-gold text-mso-blue rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors flex items-center gap-2">
-                    <i class="ph ph-pencil"></i> Editar
-                </a>
                 <a href="{{ $indexRoute }}"
                    class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2">
                     <i class="ph ph-list"></i> Volver

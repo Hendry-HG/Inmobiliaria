@@ -1,6 +1,19 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Gestión de ' . $level)
+@php
+    $pluralMap = [
+        'Estado' => 'Estados',
+        'Municipio' => 'Municipios',
+        'Parroquia' => 'Parroquias',
+        'Ciudad' => 'Ciudades',
+        'País' => 'Países'
+    ];
+    $levelPlural = $pluralMap[$level] ?? $level . 'es';
+    $levelLower = strtolower($level);
+    $levelPluralLower = strtolower($levelPlural);
+@endphp
+
+@section('title', 'Gestión de ' . $levelPlural)
 @section('header', $parentName . ': ' . $parent->name)
 
 @section('content')
@@ -35,8 +48,8 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">{{ $level }}es</h2>
-                <p class="text-sm text-slate-500">Gestionando los {{ strtolower($level) }}es de {{ $parent->name }}</p>
+                <h2 class="text-xl font-bold text-slate-800">{{ $levelPlural }}</h2>
+                <p class="text-sm text-slate-500">Gestionando {{ $levelPluralLower }} de {{ $parent->name }}</p>
             </div>
 
             <form action="{{ $createRoute }}" method="POST" class="w-full md:w-auto flex gap-2" autocomplete="off">
@@ -45,7 +58,7 @@
                 <div class="relative flex-1">
                     <input type="text"
                            name="name"
-                           placeholder="Nuevo {{ strtolower($level) }}..."
+                           placeholder="Nuevo {{ $levelLower }}..."
                            class="border rounded-lg px-4 py-2 flex-1 w-full focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
                            required
                            minlength="2"
@@ -55,7 +68,7 @@
                     <div class="text-xs text-slate-400 mt-1">Solo letras, espacios, guiones y puntos</div>
                 </div>
                 <button type="submit" class="bg-mso-gold text-mso-blue px-6 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors whitespace-nowrap">
-                    Agregar {{ $level }}
+                    Agregar {{ $levelLower }}
                 </button>
             </form>
         </div>
@@ -123,7 +136,7 @@
 
 </div>
 
-<!-- MODAL DE ELIMINACIÓN MEJORADO -->
+<!-- Modal de Eliminación -->
 <div id="modal-delete-wrapper" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-modal-in">
         <div class="text-center">
@@ -187,14 +200,12 @@
         closeDeleteModal();
     }
 
-    // Cerrar con Escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeDeleteModal();
         }
     });
 
-    // Cerrar al hacer clic fuera
     document.getElementById('modal-delete-wrapper')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('modal-delete-wrapper')) {
             closeDeleteModal();

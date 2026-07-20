@@ -1,39 +1,30 @@
 <?php
 
+
 namespace App\Providers;
 
-use App\Models\Property;
-use App\Models\User;
-use App\Models\Appointment;
-use App\Models\Lead;
-use App\Models\SiteConfiguration;
-use App\Observers\PropertyObserver;
-use App\Observers\UserObserver;
-use App\Observers\AppointmentObserver;
-use App\Observers\LeadObserver;
-use App\Observers\SiteConfigurationObserver;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Auth;
+use App\Services\PermissionService;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+
+        $this->app->bind(PermissionService::class, function ($app) {
+            return new PermissionService(Auth::user());
+        });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Registrar Observers para auditoría
-        //Property::observe(PropertyObserver::class);
-        //User::observe(UserObserver::class);
-       // Appointment::observe(AppointmentObserver::class);
-        //Lead::observe(LeadObserver::class);
-        //SiteConfiguration::observe(SiteConfigurationObserver::class);
+        // Compartir el servicio de permisos con todas las vistas
+        View::composer('*', function ($view) {
+            if (Auth::check()) {
+                $view->with('permissionService', app(PermissionService::class));
+            }
+        });
     }
 }
