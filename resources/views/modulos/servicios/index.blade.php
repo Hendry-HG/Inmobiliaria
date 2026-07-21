@@ -10,101 +10,149 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
             <h2 class="text-xl font-bold text-slate-800">Listado de Servicios</h2>
-            <a href="{{ route('admin.servicios.create') }}"
-               class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
-                <i class="ph ph-plus-circle text-lg"></i> Nuevo Servicio
-            </a>
+
+            {{-- ============================================= --}}
+            {{-- BOTÓN NUEVO SERVICIO - Solo con permiso       --}}
+            {{-- ============================================= --}}
+            @can('crear servicios')
+                <a href="{{ route('admin.servicios.create') }}"
+                   class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
+                    <i class="ph ph-plus-circle text-lg"></i> Nuevo Servicio
+                </a>
+            @else
+                <span class="text-sm text-slate-400 flex items-center gap-2">
+                    <i class="ph ph-lock-simple"></i>
+                    No tienes permiso para crear servicios
+                </span>
+            @endcan
         </div>
     </div>
 
-    <!-- Tabla de Servicios -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                        <th class="p-4">Servicio</th>
-                        <th class="p-4">Icono</th>
-                        <th class="p-4">Estado</th>
-                        <th class="p-4">Destacado</th>
-                        <th class="p-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($services as $service)
-                        <tr>
-                            <td class="p-4">
-                                <div class="flex items-center gap-3">
-                                    @if($service->image)
-                                        <img src="{{ asset('storage/' . $service->image) }}"
-                                             alt="{{ $service->title }}"
-                                             class="w-12 h-12 rounded-lg object-cover">
-                                    @else
-                                        <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center">
-                                            <i class="ph ph-image text-slate-400 text-xl"></i>
-                                        </div>
-                                    @endif
-                                    <div>
-                                        <div class="font-semibold text-slate-800">{{ $service->title }}</div>
-                                        <div class="text-xs text-slate-500">{{ Str::limit($service->description, 60) }}</div>
-                                        @if($service->badge)
-                                            <span class="text-xs px-2 py-0.5 rounded-full bg-mso-gold/20 text-mso-gold">
-                                                {{ $service->badge }}
-                                            </span>
+    {{-- ============================================= --}}
+    {{-- TABLA - Solo con permiso                      --}}
+    {{-- ============================================= --}}
+    @canany(['ver servicios', 'gestionar servicios'])
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                            <th class="p-4">Servicio</th>
+                            <th class="p-4">Icono</th>
+                            <th class="p-4">Estado</th>
+                            <th class="p-4">Destacado</th>
+                            <th class="p-4 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($services as $service)
+                            <tr>
+                                <td class="p-4">
+                                    <div class="flex items-center gap-3">
+                                        @if($service->image)
+                                            <img src="{{ asset('storage/' . $service->image) }}"
+                                                 alt="{{ $service->title }}"
+                                                 class="w-12 h-12 rounded-lg object-cover">
+                                        @else
+                                            <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center">
+                                                <i class="ph ph-image text-slate-400 text-xl"></i>
+                                            </div>
                                         @endif
+                                        <div>
+                                            <div class="font-semibold text-slate-800">{{ $service->title }}</div>
+                                            <div class="text-xs text-slate-500">{{ Str::limit($service->description, 60) }}</div>
+                                            @if($service->badge)
+                                                <span class="text-xs px-2 py-0.5 rounded-full bg-mso-gold/20 text-mso-gold">
+                                                    {{ $service->badge }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="p-4">
-                                @if($service->icon)
-                                    <i class="{{ $service->icon }} text-2xl" style="color: {{ $service->color ?? '#000' }}"></i>
-                                @else
-                                    <span class="text-slate-400 text-sm">Sin icono</span>
-                                @endif
-                            </td>
-                            <td class="p-4">
-                                <span class="px-2 py-1 rounded-full text-xs font-medium {{ $service->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                                    {{ $service->is_active ? 'Activo' : 'Inactivo' }}
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                @if($service->is_featured)
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                                        <i class="ph ph-star"></i> Destacado
+                                </td>
+                                <td class="p-4">
+                                    @if($service->icon)
+                                        <i class="{{ $service->icon }} text-2xl" style="color: {{ $service->color ?? '#000' }}"></i>
+                                    @else
+                                        <span class="text-slate-400 text-sm">Sin icono</span>
+                                    @endif
+                                </td>
+                                <td class="p-4">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium {{ $service->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                        {{ $service->is_active ? 'Activo' : 'Inactivo' }}
                                     </span>
-                                @else
-                                    <span class="text-slate-400 text-sm">-</span>
-                                @endif
-                            </td>
-                            <td class="p-4 text-right">
-                                <div class="flex justify-end gap-2">
-                                    <a href="{{ route('admin.servicios.show', $service) }}"
-                                       class="text-slate-400 hover:text-blue-500 transition-colors">
-                                        <i class="ph ph-eye text-lg"></i>
-                                    </a>
-                                    <a href="{{ route('admin.servicios.edit', $service) }}"
-                                       class="text-slate-400 hover:text-mso-gold transition-colors">
-                                        <i class="ph ph-pencil text-lg"></i>
-                                    </a>
-                                    <button onclick="deleteService({{ $service->id }}, '{{ $service->title }}')"
-                                            class="text-slate-400 hover:text-red-500 transition-colors">
-                                        <i class="ph ph-trash text-lg"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="p-8 text-center text-slate-400">
-                                <i class="ph ph-warning text-3xl block mb-2"></i>
-                                No hay servicios registrados
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                </td>
+                                <td class="p-4">
+                                    @if($service->is_featured)
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                            <i class="ph ph-star"></i> Destacado
+                                        </span>
+                                    @else
+                                        <span class="text-slate-400 text-sm">-</span>
+                                    @endif
+                                </td>
+
+                                {{-- ============================================= --}}
+                                {{-- ACCIONES - Con permisos específicos           --}}
+                                {{-- ============================================= --}}
+                                <td class="p-4 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        {{-- VER - Solo con permiso --}}
+                                        @can('ver servicios')
+                                            <a href="{{ route('admin.servicios.show', $service) }}"
+                                               class="text-slate-400 hover:text-blue-500 transition-colors">
+                                                <i class="ph ph-eye text-lg"></i>
+                                            </a>
+                                        @else
+                                            <span class="text-slate-300 cursor-not-allowed" title="No tienes permiso para ver">
+                                                <i class="ph ph-eye text-lg"></i>
+                                            </span>
+                                        @endcan
+
+                                        {{-- EDITAR - Solo con permiso --}}
+                                        @can('editar servicios')
+                                            <a href="{{ route('admin.servicios.edit', $service) }}"
+                                               class="text-slate-400 hover:text-mso-gold transition-colors">
+                                                <i class="ph ph-pencil text-lg"></i>
+                                            </a>
+                                        @else
+                                            <span class="text-slate-300 cursor-not-allowed" title="No tienes permiso para editar">
+                                                <i class="ph ph-pencil text-lg"></i>
+                                            </span>
+                                        @endcan
+
+                                        {{-- ELIMINAR - Solo con permiso --}}
+                                        @can('eliminar servicios')
+                                            <button onclick="deleteService({{ $service->id }}, '{{ $service->title }}')"
+                                                    class="text-slate-400 hover:text-red-500 transition-colors">
+                                                <i class="ph ph-trash text-lg"></i>
+                                            </button>
+                                        @else
+                                            <span class="text-slate-300 cursor-not-allowed" title="No tienes permiso para eliminar">
+                                                <i class="ph ph-trash text-lg"></i>
+                                            </span>
+                                        @endcan
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-slate-400">
+                                    <i class="ph ph-warning text-3xl block mb-2"></i>
+                                    No hay servicios registrados
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    @else
+        <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+            <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+            <p class="font-bold">Acceso Denegado</p>
+            <p class="text-sm">No tienes permisos para ver los servicios.</p>
+        </div>
+    @endcanany
 </div>
 
 <!-- Modal de confirmación para eliminar -->

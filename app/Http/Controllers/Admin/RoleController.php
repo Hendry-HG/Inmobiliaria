@@ -50,7 +50,6 @@ class RoleController extends Controller
     {
         $this->checkSuperAdminAccess();
 
-        //  OBTENER SOLO PERMISOS DEL SISTEMA
         $allPermissions = Cache::remember('permissions_grouped', 3600, function () {
             return Permission::all()
                 ->filter(function($permission) {
@@ -85,7 +84,7 @@ class RoleController extends Controller
 
         $role = Role::create(['name' => $name]);
 
-        //  FILTRAR PERMISOS DEL SIDEBAR
+        // Filtrar SOLO permisos del sistema (no sidebar)
         $filteredPermissions = array_filter($request->permissions ?? [], function($p) {
             return !str_starts_with($p, 'sidebar.');
         });
@@ -116,7 +115,6 @@ class RoleController extends Controller
 
         $role->load('permissions');
 
-        //  OBTENER SOLO PERMISOS DEL SISTEMA
         $allPermissions = Cache::remember('permissions_grouped', 3600, function () {
             return Permission::all()
                 ->filter(function($permission) {
@@ -150,32 +148,38 @@ class RoleController extends Controller
         $name = strip_tags(trim($request->name));
         $oldName = $role->name;
 
-        //  OBTENER PERMISOS ACTUALES DEL ROL
+        // ==========================================
+        //  MANTENER PERMISOS DEL SIDEBAR
+        // ==========================================
+
+        //  Obtener permisos ACTUALES del rol
+        $role->load('permissions');
         $currentPermissions = $role->permissions->pluck('name')->toArray();
 
-
-        $systemPermissions = array_filter($currentPermissions, function($p) {
-            return !str_starts_with($p, 'sidebar.');
-        });
-
-        $sidebarPermissionsFromRequest = array_filter($request->permissions ?? [], function($p) {
+        //  Separar permisos del SIDEBAR (los que empiezan con 'sidebar.')
+        $sidebarPermissions = array_values(array_filter($currentPermissions, function($p) {
             return str_starts_with($p, 'sidebar.');
-        });
+        }));
 
-        //  FILTRAR PERMISOS DEL SISTEMA DEL REQUEST
-        $systemPermissionsFromRequest = array_filter($request->permissions ?? [], function($p) {
+        //  Obtener permisos del SISTEMA desde el request
+        $systemPermissionsFromRequest = array_values(array_filter($request->permissions ?? [], function($p) {
             return !str_starts_with($p, 'sidebar.');
-        });
+        }));
 
-
+        //   COMBINAR PERMISOS DEL SISTEMA (nuevos) + PERMISOS DEL SIDEBAR (mantener)
         $allPermissions = array_merge(
-            array_values($systemPermissions),
-            array_values($systemPermissionsFromRequest),
-            array_values($sidebarPermissionsFromRequest)
+            $systemPermissionsFromRequest,
+            $sidebarPermissions  //  MANTENER los permisos del sidebar
         );
 
+        //  Eliminar duplicados
+        $allPermissions = array_unique($allPermissions);
+
+        //  Actualizar nombre del rol
         $role->update(['name' => $name]);
-        $role->syncPermissions(array_unique($allPermissions));
+
+        //  Sincronizar TODOS los permisos (sistema + sidebar)
+        $role->syncPermissions($allPermissions);
 
         $user = Auth::user();
         $userEmail = $user ? $user->email : 'Sistema';
@@ -183,12 +187,27 @@ class RoleController extends Controller
         Log::info('Rol actualizado', [
             'old_name' => $oldName,
             'new_name' => $name,
-            'permissions' => $allPermissions,
+            'system_permissions' => $systemPermissionsFromRequest,
+            'sidebar_permissions' => $sidebarPermissions,
+            'total_permissions' => $allPermissions,
             'updated_by' => $userEmail,
             'ip' => request()->ip()
         ]);
 
+        // ==========================================
+        // LIMPIAR CACHÉ
+        // ==========================================
         Cache::forget('permissions_grouped');
+        Cache::forget('roles_with_permissions');
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // RECARGAR PERMISOS DEL USUARIO AUTENTICADO
+        if (Auth::check()) {
+            $user = Auth::user();
+            Cache::forget('user_permissions_' . $user->id);
+            $permissionService = new PermissionService($user);
+            $permissionService->refresh();
+        }
 
         return redirect()->route('super-admin.roles.index')
             ->with('success', 'Rol actualizado correctamente.');

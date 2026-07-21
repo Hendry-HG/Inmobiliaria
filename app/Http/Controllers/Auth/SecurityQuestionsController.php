@@ -13,6 +13,8 @@ class SecurityQuestionsController extends Controller
 {
     public function showRecoveryForm()
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO
+        session()->regenerateToken();
         return view('auth.security-recovery');
     }
 
@@ -25,6 +27,8 @@ class SecurityQuestionsController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user->hasSecurityQuestions()) {
+            //  REGENERAR TOKEN DESPUÉS DE ERROR
+            session()->regenerateToken();
             return back()->withErrors([
                 'email' => 'Este usuario no tiene configuradas preguntas de seguridad. Por favor, usa la recuperación por correo electrónico.'
             ]);
@@ -33,11 +37,17 @@ class SecurityQuestionsController extends Controller
         // Guardar email en sesión
         session(['security_recovery_email' => $user->email]);
 
+        //  REGENERAR TOKEN ANTES DE REDIRIGIR
+        session()->regenerateToken();
+
         return redirect()->route('security.questions.show', ['email' => $user->email]);
     }
 
     public function showQuestions(Request $request)
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO
+        session()->regenerateToken();
+
         $email = $request->email ?? session('security_recovery_email');
 
         if (!$email) {
@@ -72,6 +82,8 @@ class SecurityQuestionsController extends Controller
 
         for ($i = 0; $i < 3; $i++) {
             if (!Hash::check($answers[$i], $user->{'security_answer_' . ($i + 1)})) {
+                //  REGENERAR TOKEN DESPUÉS DE ERROR
+                session()->regenerateToken();
                 return back()->withErrors([
                     'answers' => 'Una o más respuestas son incorrectas. Por favor, inténtalo de nuevo.'
                 ])->withInput();
@@ -87,6 +99,9 @@ class SecurityQuestionsController extends Controller
             $user->save();
         }
 
+        //  REGENERAR TOKEN ANTES DE REDIRIGIR
+        session()->regenerateToken();
+
         // Redirigir al formulario de restablecimiento
         return redirect()->route('password.reset', [
             'token' => $token,
@@ -96,6 +111,8 @@ class SecurityQuestionsController extends Controller
 
     public function showReactivationForm()
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO
+        session()->regenerateToken();
         return view('auth.security-reactivation');
     }
 
@@ -108,10 +125,14 @@ class SecurityQuestionsController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if ($user->is_active) {
+            //  REGENERAR TOKEN DESPUÉS DE REDIRIGIR
+            session()->regenerateToken();
             return redirect()->route('login')->with('status', 'Tu cuenta ya está activa. Puedes iniciar sesión.');
         }
 
         if (!$user->hasSecurityQuestions()) {
+            //  REGENERAR TOKEN DESPUÉS DE ERROR
+            session()->regenerateToken();
             return back()->withErrors([
                 'email' => 'Este usuario no tiene configuradas preguntas de seguridad. Contacta al administrador.'
             ]);
@@ -119,11 +140,17 @@ class SecurityQuestionsController extends Controller
 
         session(['security_reactivation_email' => $user->email]);
 
+        //  REGENERAR TOKEN ANTES DE REDIRIGIR
+        session()->regenerateToken();
+
         return redirect()->route('security.reactivation.questions', ['email' => $user->email]);
     }
 
     public function showReactivationQuestions(Request $request)
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO
+        session()->regenerateToken();
+
         $email = $request->email ?? session('security_reactivation_email');
 
         if (!$email) {
@@ -150,6 +177,8 @@ class SecurityQuestionsController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if ($user->is_active) {
+            //  REGENERAR TOKEN DESPUÉS DE REDIRIGIR
+            session()->regenerateToken();
             return redirect()->route('login')->with('status', 'Tu cuenta ya está activa.');
         }
 
@@ -162,6 +191,8 @@ class SecurityQuestionsController extends Controller
 
         for ($i = 0; $i < 3; $i++) {
             if (!Hash::check($answers[$i], $user->{'security_answer_' . ($i + 1)})) {
+                //  REGENERAR TOKEN DESPUÉS DE ERROR
+                session()->regenerateToken();
                 return back()->withErrors([
                     'answers' => 'Una o más respuestas son incorrectas. Por favor, inténtalo de nuevo.'
                 ])->withInput();
@@ -178,6 +209,9 @@ class SecurityQuestionsController extends Controller
             'Tu cuenta ha sido reactivada exitosamente.',
             'success'
         );
+
+        //  REGENERAR TOKEN ANTES DE REDIRIGIR
+        session()->regenerateToken();
 
         return redirect()->route('login')->with('status', '¡Tu cuenta ha sido reactivada exitosamente! Ahora puedes iniciar sesión.');
     }

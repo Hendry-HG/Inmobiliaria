@@ -6,18 +6,29 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-    <!-- Header -->
+    {{-- ============================================= --}}
+    {{-- HEADER - Solo con permisos                    --}}
+    {{-- ============================================= --}}
+    @canany(['ver categorias', 'gestionar categorias', 'crear categoria'])
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
             <h2 class="text-xl font-bold text-slate-800">Listado de Categorías</h2>
-            <a href="{{ route('admin.categories.create') }}"
-               class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
-                <i class="ph ph-plus-circle text-lg"></i> Nueva Categoría
-            </a>
+
+            {{-- BOTÓN NUEVA CATEGORÍA - Solo con permiso --}}
+            @can('crear categoria')
+                <a href="{{ route('admin.categories.create') }}"
+                   class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors shadow-sm flex items-center gap-2">
+                    <i class="ph ph-plus-circle text-lg"></i> Nueva Categoría
+                </a>
+            @endcan
         </div>
     </div>
+    @endcanany
 
-    <!-- Tabla de Categorías -->
+    {{-- ============================================= --}}
+    {{-- TABLA DE CATEGORÍAS - Solo con permiso --}}
+    {{-- ============================================= --}}
+    @canany(['ver categorias', 'gestionar categorias'])
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -55,14 +66,29 @@
                         <td class="p-4 text-slate-500">{{ $category->properties_count ?? 0 }}</td>
                         <td class="p-4 text-right">
                             <div class="flex justify-end gap-2">
-                                <a href="{{ route('admin.categories.edit', $category) }}"
-                                   class="text-slate-400 hover:text-mso-blue transition-colors p-1">
-                                    <i class="ph ph-pencil-simple text-lg"></i>
-                                </a>
-                                <button onclick="openDeleteModal({{ $category->id }}, '{{ $category->name }}', '{{ route('admin.categories.destroy', $category) }}')"
-                                        class="text-slate-400 hover:text-red-500 transition-colors p-1">
-                                    <i class="ph ph-trash text-lg"></i>
-                                </button>
+                                {{-- EDITAR - Solo con permiso --}}
+                                @can('editar categoria')
+                                    <a href="{{ route('admin.categories.edit', $category) }}"
+                                       class="text-slate-400 hover:text-mso-blue transition-colors p-1">
+                                        <i class="ph ph-pencil-simple text-lg"></i>
+                                    </a>
+                                @else
+                                    <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para editar">
+                                        <i class="ph ph-pencil-simple text-lg"></i>
+                                    </span>
+                                @endcan
+
+                                {{-- ELIMINAR - Solo con permiso --}}
+                                @can('eliminar categoria')
+                                    <button onclick="openDeleteModal({{ $category->id }}, '{{ $category->name }}', '{{ route('admin.categories.destroy', $category) }}')"
+                                            class="text-slate-400 hover:text-red-500 transition-colors p-1">
+                                        <i class="ph ph-trash text-lg"></i>
+                                    </button>
+                                @else
+                                    <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para eliminar">
+                                        <i class="ph ph-trash text-lg"></i>
+                                    </span>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -72,9 +98,11 @@
                             <div class="flex flex-col items-center gap-2">
                                 <i class="ph ph-folder-open text-4xl text-slate-300"></i>
                                 <p>No hay categorías registradas</p>
-                                <a href="{{ route('admin.categories.create') }}" class="text-mso-blue hover:underline text-sm">
-                                    Crear la primera categoría
-                                </a>
+                                @can('crear categoria')
+                                    <a href="{{ route('admin.categories.create') }}" class="text-mso-blue hover:underline text-sm">
+                                        Crear la primera categoría
+                                    </a>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -86,6 +114,16 @@
             {{ $categories->links() }}
         </div>
     </div>
+    @else
+    {{-- ============================================= --}}
+    {{-- MENSAJE DE ACCESO DENEGADO --}}
+    {{-- ============================================= --}}
+    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+        <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+        <p class="font-bold">Acceso Denegado</p>
+        <p class="text-sm">No tienes permisos para ver las categorías.</p>
+    </div>
+    @endcanany
 </div>
 
 <!-- Modal de Confirmación para Eliminar -->
@@ -100,18 +138,17 @@
                 <h3 class="text-lg font-bold text-slate-900 text-center mb-2">¿Eliminar categoría?</h3>
                 <p class="text-sm text-slate-500 text-center mb-6">
                     ¿Estás seguro de eliminar la categoría "<span id="categoryName" class="font-semibold text-slate-700"></span>"?
-                    @if(isset($category) && $category->properties_count > 0)
-                        <br><span class="text-xs text-red-500">Tiene {{ $category->properties_count }} propiedades asociadas.</span>
-                    @endif
                     <br><span class="text-xs text-red-500">Esta acción no se puede deshacer.</span>
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3 justify-center">
                     <button onclick="closeDeleteModal()" class="px-6 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
                         Cancelar
                     </button>
-                    <button onclick="confirmDelete()" class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
-                        <i class="ph ph-trash"></i> Sí, eliminar
-                    </button>
+                    @can('eliminar categoria')
+                        <button onclick="confirmDelete()" class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="ph ph-trash"></i> Sí, eliminar
+                        </button>
+                    @endcan
                 </div>
             </div>
         </div>

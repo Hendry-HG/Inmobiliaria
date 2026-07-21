@@ -58,28 +58,36 @@
         </span>
     </td>
 
-    @if(isset($isAdmin) && $isAdmin)
-        <td class="p-4 text-slate-600">
-            {{ $property->user->name ?? 'N/A' }}
-        </td>
-    @endif
+    @can('ver usuarios')
+        @if(isset($isAdmin) && $isAdmin)
+            <td class="p-4 text-slate-600">
+                {{ $property->user->name ?? 'N/A' }}
+            </td>
+        @endif
+    @endcan
 
     {{-- ============================================= --}}
-    {{-- ACCIONES - SOLO ASESOR PUEDE EDITAR Y ELIMINAR --}}
+    {{-- ACCIONES - Con permisos específicos           --}}
     {{-- ============================================= --}}
     <td class="p-4 text-right">
         <div class="flex justify-end gap-2">
-            {{-- VER - Todos los roles pueden ver --}}
-            <a href="{{ $showRoute }}"
-               class="text-green-600 hover:text-green-800 font-medium p-1"
-               title="Ver detalle">
-                <i class="ph ph-eye text-lg"></i>
-            </a>
+            {{-- VER - Todos pueden ver si tienen permiso --}}
+            @can('ver propiedades')
+                <a href="{{ $showRoute }}"
+                   class="text-green-600 hover:text-green-800 font-medium p-1"
+                   title="Ver detalle">
+                    <i class="ph ph-eye text-lg"></i>
+                </a>
+            @else
+                <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para ver">
+                    <i class="ph ph-eye text-lg"></i>
+                </span>
+            @endcan
 
             {{-- ============================================= --}}
-            {{-- EDITAR - SOLO ASESOR --}}
+            {{-- EDITAR - Solo con permiso                     --}}
             {{-- ============================================= --}}
-            @role('Asesor Inmobiliario')
+            @can('editar propiedad')
                 @php
                     $editRoute = (isset($isAdmin) && $isAdmin)
                         ? route('admin.properties.edit', $property)
@@ -91,16 +99,15 @@
                     <i class="ph ph-pencil text-lg"></i>
                 </a>
             @else
-                {{-- Mostrar icono deshabilitado para otros roles --}}
-                <span class="text-slate-300 cursor-not-allowed p-1" title="Solo asesores pueden editar">
+                <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para editar">
                     <i class="ph ph-pencil text-lg"></i>
                 </span>
-            @endrole
+            @endcan
 
             {{-- ============================================= --}}
-            {{-- ELIMINAR - SOLO ASESOR --}}
+            {{-- ELIMINAR - Solo con permiso                   --}}
             {{-- ============================================= --}}
-            @role('Asesor Inmobiliario')
+            @can('eliminar propiedad')
                 @php
                     $deleteRoute = (isset($isAdmin) && $isAdmin)
                         ? route('admin.properties.destroy', $property)
@@ -112,17 +119,16 @@
                     <i class="ph ph-trash text-lg"></i>
                 </button>
             @else
-                {{-- Mostrar icono deshabilitado para otros roles --}}
-                <span class="text-slate-300 cursor-not-allowed p-1" title="Solo asesores pueden eliminar">
+                <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para eliminar">
                     <i class="ph ph-trash text-lg"></i>
                 </span>
-            @endrole
+            @endcan
         </div>
     </td>
 </tr>
 @empty
 <tr>
-    <td colspan="{{ (isset($isAdmin) && $isAdmin) ? '6' : '5' }}"
+    <td colspan="{{ (isset($isAdmin) && $isAdmin && auth()->user()->can('ver usuarios')) ? '6' : '5' }}"
         class="p-8 text-center text-slate-500">
         <i class="ph ph-house-line text-4xl mb-2 block"></i>
         No se encontraron propiedades.

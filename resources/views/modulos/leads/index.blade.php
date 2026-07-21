@@ -49,6 +49,7 @@
     </div>
 
     {{-- Tabla de Leads --}}
+    @canany(['ver leads', 'gestionar leads'])
     <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-slate-500">
@@ -102,22 +103,53 @@
                         </td>
                         <td class="px-3 sm:px-6 py-3 sm:py-4 text-right">
                             <div class="flex items-center justify-end gap-1 sm:gap-2">
-                                <button onclick="openShowModal({{ $lead->id }})"
-                                    class="text-slate-500 hover:text-mso-blue transition-colors p-1" title="Ver">
-                                    <i class="ph ph-eye text-base sm:text-lg"></i>
-                                </button>
-                                <button onclick="openEditModal({{ $lead->id }})"
-                                    class="text-slate-500 hover:text-mso-blue transition-colors p-1" title="Editar">
-                                    <i class="ph ph-pencil-simple text-base sm:text-lg"></i>
-                                </button>
-                                <button onclick="openStatusModal({{ $lead->id }}, '{{ $lead->status }}')"
-                                    class="text-slate-500 hover:text-mso-blue transition-colors p-1" title="Cambiar Estado">
-                                    <i class="ph ph-arrow-counter-clockwise text-base sm:text-lg"></i>
-                                </button>
-                                <button onclick="openDeleteModal({{ $lead->id }}, '{{ addslashes($lead->name) }}')"
-                                    class="text-slate-500 hover:text-red-500 transition-colors p-1" title="Eliminar">
-                                    <i class="ph ph-trash text-base sm:text-lg"></i>
-                                </button>
+                                {{-- VER - Solo con permiso --}}
+                                @can('ver leads')
+                                    <button onclick="openShowModal({{ $lead->id }})"
+                                        class="text-slate-500 hover:text-mso-blue transition-colors p-1" title="Ver">
+                                        <i class="ph ph-eye text-base sm:text-lg"></i>
+                                    </button>
+                                @else
+                                    <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para ver">
+                                        <i class="ph ph-eye text-base sm:text-lg"></i>
+                                    </span>
+                                @endcan
+
+                                {{-- EDITAR - Solo con permiso --}}
+                                @can('editar lead')
+                                    <button onclick="openEditModal({{ $lead->id }})"
+                                        class="text-slate-500 hover:text-mso-blue transition-colors p-1" title="Editar">
+                                        <i class="ph ph-pencil-simple text-base sm:text-lg"></i>
+                                    </button>
+                                @else
+                                    <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para editar">
+                                        <i class="ph ph-pencil-simple text-base sm:text-lg"></i>
+                                    </span>
+                                @endcan
+
+                                {{-- CAMBIAR ESTADO - Solo con permiso --}}
+                                @can('cambiar estado lead')
+                                    <button onclick="openStatusModal({{ $lead->id }}, '{{ $lead->status }}')"
+                                        class="text-slate-500 hover:text-mso-blue transition-colors p-1" title="Cambiar Estado">
+                                        <i class="ph ph-arrow-counter-clockwise text-base sm:text-lg"></i>
+                                    </button>
+                                @else
+                                    <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para cambiar estado">
+                                        <i class="ph ph-arrow-counter-clockwise text-base sm:text-lg"></i>
+                                    </span>
+                                @endcan
+
+                                {{-- ELIMINAR - Solo con permiso --}}
+                                @can('eliminar lead')
+                                    <button onclick="openDeleteModal({{ $lead->id }}, '{{ addslashes($lead->name) }}')"
+                                        class="text-slate-500 hover:text-red-500 transition-colors p-1" title="Eliminar">
+                                        <i class="ph ph-trash text-base sm:text-lg"></i>
+                                    </button>
+                                @else
+                                    <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para eliminar">
+                                        <i class="ph ph-trash text-base sm:text-lg"></i>
+                                    </span>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -143,6 +175,16 @@
             {{ $leads->links('pagination::tailwind') }}
         </div>
     </div>
+    @else
+    {{-- ============================================= --}}
+    {{-- MENSAJE DE ACCESO DENEGADO --}}
+    {{-- ============================================= --}}
+    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+        <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+        <p class="font-bold">Acceso Denegado</p>
+        <p class="text-sm">No tienes permisos para ver los leads.</p>
+    </div>
+    @endcanany
 </div>
 
 {{-- ============================================================ --}}
@@ -252,11 +294,13 @@
                         class="px-6 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
                     Cancelar
                 </button>
-                <button type="submit" id="confirmDeleteBtn"
-                        class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
-                    <i class="ph ph-trash"></i>
-                    Sí, eliminar
-                </button>
+                @can('eliminar lead')
+                    <button type="submit" id="confirmDeleteBtn"
+                            class="px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2">
+                        <i class="ph ph-trash"></i>
+                        Sí, eliminar
+                    </button>
+                @endcan
             </div>
         </div>
     </div>
@@ -569,6 +613,7 @@
             deleteLeadId = null;
         };
 
+        @can('eliminar lead')
         document.getElementById('confirmDeleteBtn')?.addEventListener('click', function(e) {
             e.preventDefault();
             const id = deleteLeadId;
@@ -602,6 +647,7 @@
                 alert('Error al eliminar el lead');
             });
         });
+        @endcan
 
         // ============================================================
         // TOAST NOTIFICATIONS

@@ -212,7 +212,6 @@
             sidebarOpen: true,
             isMobile: window.innerWidth < 1024,
             init() {
-                // Recuperar estado guardado solo para desktop
                 if (!this.isMobile) {
                     const saved = localStorage.getItem('sidebarOpen');
                     if (saved !== null) {
@@ -223,11 +222,9 @@
                     });
                 }
 
-                // Detectar cambios de tamaño
                 window.addEventListener('resize', () => {
                     this.isMobile = window.innerWidth < 1024;
                     if (!this.isMobile) {
-                        // Cerrar sidebar móvil si está abierto
                         const sidebar = document.getElementById('sidebar');
                         const overlay = document.getElementById('sidebar-overlay');
                         if (sidebar) sidebar.classList.remove('mobile-open');
@@ -262,7 +259,7 @@
 
                 <div class="flex items-center gap-3 md:gap-4 flex-shrink-0">
 
-                    {{-- NOTIFICACIONES --}}
+                    {{-- NOTIFICACIONES DEL SISTEMA (CAMPANA) --}}
                     @php
                         $notifications = Auth::user()->unreadNotifications()->limit(10)->get();
                     @endphp
@@ -346,36 +343,105 @@
                         </div>
                     </div>
 
-                    {{-- Perfil --}}
-                    <a href="{{ route('profile.index') }}" class="relative hidden sm:block group flex-shrink-0">
-                        <img src="{{ Auth::user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=c5a059&color=fff&size=40' }}"
-                             class="w-9 h-9 rounded-full border-2 border-slate-200 object-cover group-hover:border-mso-gold transition-colors"
-                             alt="{{ Auth::user()->name }}">
-                    </a>
-
-                    {{-- Cerrar Sesión --}}
-                    <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">
-                        @csrf
-                        <button type="submit" class="flex items-center gap-1 text-sm text-slate-500 hover:text-red-500 transition-colors">
-                            <span class="hidden md:inline">Salir</span>
-                            <i class="ph ph-sign-out text-lg"></i>
+                    {{-- PERFIL Y MENÚ DESPLEGABLE UNIFICADO --}}
+                    <div x-data="{
+                        openProfileMenu: false,
+                        toggleMenu() {
+                            this.openProfileMenu = !this.openProfileMenu;
+                        },
+                        closeMenu() {
+                            this.openProfileMenu = false;
+                        }
+                    }" class="relative">
+                        {{-- Botón del perfil (visible en todos los tamaños) --}}
+                        <button @click="toggleMenu()" @click.away="closeMenu()" class="flex items-center gap-2 group focus:outline-none">
+                            <img src="{{ Auth::user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=c5a059&color=fff&size=40' }}"
+                                 class="w-9 h-9 rounded-full border-2 border-slate-200 object-cover group-hover:border-mso-gold transition-colors"
+                                 alt="{{ Auth::user()->name }}">
+                            <span class="hidden sm:inline-block text-sm font-medium text-slate-700 group-hover:text-mso-gold transition-colors">
+                                {{ Auth::user()->name }}
+                            </span>
+                            <i class="ph ph-caret-down hidden sm:inline-block text-slate-400 group-hover:text-mso-gold transition-colors text-xs"></i>
                         </button>
-                    </form>
+
+                        {{-- Menú desplegable unificado --}}
+                        <div x-show="openProfileMenu" 
+                             x-transition:enter="transition ease-out duration-150" 
+                             x-transition:enter-start="opacity-0 scale-95" 
+                             x-transition:enter-end="opacity-100 scale-100" 
+                             class="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-2xl z-50 py-1 origin-top-right">
+                            
+                            {{-- Opción: Perfil --}}
+                            <a href="{{ route('profile.index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-mso-gold transition-colors">
+                                <i class="ph ph-user-circle text-xl text-slate-400"></i>
+                                <span>Mi perfil</span>
+                            </a>
+
+                            {{-- Divisor --}}
+                            <hr class="my-1 border-slate-100">
+
+                            {{-- Opción: Cerrar sesión (unificada) --}}
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                                    <i class="ph ph-sign-out text-xl"></i>
+                                    <span>Cerrar sesión</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </header>
 
-            {{-- Contenido --}}
+            {{-- ============================================ --}}
+            {{-- CONTENIDO PRINCIPAL CON NOTIFICACIONES --}}
+            {{-- ============================================ --}}
             <div class="dashboard-content custom-scroll">
+                {{-- NOTIFICACIONES DEL SISTEMA (COMPONENTE) --}}
                 @if(session('success'))
-                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-r shadow-sm animate-fade-in-down">
-                        <div class="flex items-center"><i class="ph ph-check-circle text-xl mr-2"></i><p>{{ session('success') }}</p></div>
-                    </div>
+                    <x-notification 
+                        type="success" 
+                        :message="session('success')"
+                        title="¡Operación exitosa!"
+                    />
                 @endif
+
                 @if(session('error'))
-                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r shadow-sm animate-fade-in-down">
-                        <div class="flex items-center"><i class="ph ph-warning-circle text-xl mr-2"></i><p>{{ session('error') }}</p></div>
-                    </div>
+                    <x-notification 
+                        type="error" 
+                        :message="session('error')"
+                        title="¡Error!"
+                    />
                 @endif
+
+                @if(session('warning'))
+                    <x-notification 
+                        type="warning" 
+                        :message="session('warning')"
+                        title="¡Atención!"
+                    />
+                @endif
+
+                @if(session('info'))
+                    <x-notification 
+                        type="info" 
+                        :message="session('info')"
+                        title="Información"
+                    />
+                @endif
+
+                {{-- Errores de validación --}}
+                @if($errors->any())
+                    <x-notification type="error" title="Errores de validación">
+                        <ul class="list-disc list-inside text-sm mt-1 space-y-1">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-notification>
+                @endif
+
+                {{-- Contenido de la vista --}}
                 @yield('content')
             </div>
         </main>
@@ -425,33 +491,100 @@
                 closeBtn.addEventListener('click', closeMobileSidebar);
             }
 
-            // Cerrar con Escape
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeMobileSidebar();
                 }
             });
 
-            // Cerrar al hacer clic en el overlay
             const overlay = document.getElementById('sidebar-overlay');
             if (overlay) {
                 overlay.addEventListener('click', closeMobileSidebar);
             }
 
-            // Cerrar al redimensionar a desktop
             window.addEventListener('resize', function() {
                 if (window.innerWidth >= 1024) {
                     closeMobileSidebar();
                 }
             });
 
-            // Prevenir que el sidebar móvil se cierre al hacer clic dentro
             const sidebar = document.getElementById('sidebar');
             if (sidebar) {
                 sidebar.addEventListener('click', function(e) {
                     e.stopPropagation();
                 });
             }
+
+            // ============================================
+            // REFRESCAR TOKEN CSRF EN EL DASHBOARD
+            // ============================================
+            function refreshCsrfToken() {
+                fetch('/refresh-csrf', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.csrf_token) {
+                        document.querySelectorAll('form input[name="_token"]').forEach(input => {
+                            input.value = data.csrf_token;
+                        });
+                        const metaTag = document.querySelector('meta[name="csrf-token"]');
+                        if (metaTag) {
+                            metaTag.content = data.csrf_token;
+                        }
+                        console.log(' Token CSRF actualizado (dashboard)');
+                    }
+                })
+                .catch(() => {
+                    console.warn(' No se pudo refrescar el token');
+                });
+            }
+
+            // Refrescar token cada 5 minutos en el dashboard
+            setInterval(refreshCsrfToken, 300000);
+
+            // Verificar si hay error de sesión expirada
+            if (window.location.search.includes('session_expired')) {
+                alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                const url = new URL(window.location);
+                url.searchParams.delete('session_expired');
+                window.history.replaceState({}, document.title, url.toString());
+            }
+
+            // ============================================
+            // PREVENIR DOBLE CLIC EN FORMULARIOS
+            // ============================================
+            document.querySelectorAll('form').forEach(form => {
+                let isSubmitting = false;
+                form.addEventListener('submit', function(e) {
+                    if (isSubmitting) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        isSubmitting = true;
+                        const originalText = submitBtn.textContent;
+                        submitBtn.textContent = ' ENVIANDO...';
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.7';
+                        submitBtn.style.cursor = 'wait';
+                        setTimeout(() => {
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '1';
+                            submitBtn.style.cursor = 'pointer';
+                            isSubmitting = false;
+                        }, 30000);
+                    }
+                });
+            });
+
+            // Exponer función globalmente
+            window.refreshCsrfToken = refreshCsrfToken;
         });
     </script>
 

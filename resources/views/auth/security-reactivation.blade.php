@@ -74,3 +74,40 @@
     </div>
 </div>
 @endsection
+
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function refreshCsrfToken() {
+            fetch('/refresh-csrf', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_token) {
+                    document.querySelectorAll('form input[name="_token"]').forEach(input => {
+                        input.value = data.csrf_token;
+                    });
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.content = data.csrf_token;
+                    }
+                }
+            })
+            .catch(() => {});
+        }
+
+        setInterval(refreshCsrfToken, 300000);
+
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            const url = new URL(window.location);
+            url.searchParams.delete('session_expired');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+    });
+</script>
+@endpush

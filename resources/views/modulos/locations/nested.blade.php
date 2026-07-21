@@ -19,32 +19,19 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-    @if(session('success'))
-    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-check-circle mr-2"></i>{{ session('success') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-warning-circle mr-2"></i>{{ session('error') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
-    <!-- Breadcrumbs y Navegación -->
+    {{-- ============================================= --}}
+    {{-- BREADCRUMBS Y NAVEGACIÓN --}}
+    {{-- ============================================= --}}
     <div class="flex items-center text-sm text-slate-500">
         <a href="{{ route('admin.locations.index') }}" class="hover:text-mso-blue">País</a>
         <span class="mx-2">/</span>
         <span class="text-slate-800 font-semibold">{{ $parent->name }}</span>
     </div>
 
-    <!-- Panel Principal -->
+    {{-- ============================================= --}}
+    {{-- PANEL PRINCIPAL - Solo con permisos --}}
+    {{-- ============================================= --}}
+    @canany(['ver ' . $levelLower . 's', 'gestionar ubicaciones'])
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -52,6 +39,8 @@
                 <p class="text-sm text-slate-500">Gestionando {{ $levelPluralLower }} de {{ $parent->name }}</p>
             </div>
 
+            {{-- FORMULARIO PARA AGREGAR - Solo con permiso --}}
+            @can('crear ' . $levelLower . 's')
             <form action="{{ $createRoute }}" method="POST" class="w-full md:w-auto flex gap-2" autocomplete="off">
                 @csrf
                 <input type="hidden" name="{{ strtolower($level) == 'estado' ? 'country_id' : (strtolower($level) == 'municipio' ? 'state_id' : (strtolower($level) == 'parroquia' ? 'municipality_id' : 'parish_id')) }}" value="{{ $parentId }}">
@@ -71,6 +60,7 @@
                     Agregar {{ $levelLower }}
                 </button>
             </form>
+            @endcan
         </div>
 
         <div class="overflow-x-auto">
@@ -107,13 +97,20 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button data-id="{{ $item->id }}"
-                                    data-name="{{ $item->name }}"
-                                    data-type="{{ $level }}"
-                                    onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.type)"
-                                    class="text-red-500 hover:text-red-700">
-                                <i class="ph ph-trash text-lg"></i>
-                            </button>
+                            {{-- ELIMINAR - Solo con permiso --}}
+                            @can('eliminar ' . $levelLower . 's')
+                                <button data-id="{{ $item->id }}"
+                                        data-name="{{ $item->name }}"
+                                        data-type="{{ $level }}"
+                                        onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.type)"
+                                        class="text-red-500 hover:text-red-700">
+                                    <i class="ph ph-trash text-lg"></i>
+                                </button>
+                            @else
+                                <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para eliminar">
+                                    <i class="ph ph-trash text-lg"></i>
+                                </span>
+                            @endcan
                             <form id="form-delete-{{ $item->id }}" action="{{ route($destroyRoute, $item) }}" method="POST" class="hidden">
                                 @csrf
                                 @method('DELETE')
@@ -128,6 +125,16 @@
             {{ $items->links() }}
         </div>
     </div>
+    @else
+    {{-- ============================================= --}}
+    {{-- MENSAJE DE ACCESO DENEGADO                    --}}
+    {{-- ============================================= --}}
+    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+        <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+        <p class="font-bold">Acceso Denegado</p>
+        <p class="text-sm">No tienes permisos para ver {{ $levelPluralLower }}.</p>
+    </div>
+    @endcanany
 
     <!-- Botón Atrás -->
     <a href="{{ $backRoute }}" class="inline-flex items-center text-slate-500 hover:text-slate-800 font-medium">
@@ -146,9 +153,11 @@
             <h3 class="text-xl font-bold text-gray-800" id="modal-title">¿Eliminar?</h3>
             <p class="text-sm text-gray-500 mt-2" id="modal-message">¿Estás seguro de eliminar este elemento? Esta acción no se puede deshacer.</p>
             <div class="flex justify-center gap-3 mt-6">
-                <button onclick="confirmDelete()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                    Sí, eliminar
-                </button>
+                @can('eliminar ' . $levelLower . 's')
+                    <button onclick="confirmDelete()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        Sí, eliminar
+                    </button>
+                @endcan
                 <button onclick="closeDeleteModal()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
                     Cancelar
                 </button>

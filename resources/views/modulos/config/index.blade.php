@@ -15,22 +15,6 @@
             <p class="text-sm text-slate-500 mt-1">Personaliza la apariencia y contenido de la página de inicio</p>
         </div>
 
-        @if(session('success'))
-            <div class="mx-6 mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2">
-                <i class="ph ph-check-circle text-xl"></i>
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if($errors->any())
-            <div class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                <ul class="list-disc list-inside">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
 
         <form action="{{ route('admin.config.update') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-8">
             @csrf
@@ -171,7 +155,7 @@
                     {{-- Campo de búsqueda --}}
                     <div class="relative mb-3">
                         <input type="text" id="propertySearch"
-                               placeholder="🔍 Buscar propiedad por nombre, ubicación o ID..."
+                               placeholder=" Buscar propiedad por nombre, ubicación o ID..."
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
 
@@ -350,14 +334,14 @@
                     imageElement.remove();
                 }
                 updateDeletedImages(index);
-                showToast('Imagen eliminada correctamente', 'success');
+                // NOTIFICACIÓN ELIMINADA - Usa el layout
             } else {
-                showToast(data.message || 'Error al eliminar la imagen', 'error');
+                alert(data.message || 'Error al eliminar la imagen');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showToast('Error al eliminar la imagen', 'error');
+            alert('Error al eliminar la imagen');
         });
     }
 
@@ -485,41 +469,8 @@
     });
 
     // ============================================================
-    // TOAST / NOTIFICACIONES
+    // NOTIFICACIONES ELIMINADAS - Usan el layout
     // ============================================================
-    function showToast(message, type = 'info') {
-        let container = document.getElementById('toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
-            document.body.appendChild(container);
-        }
-
-        const toast = document.createElement('div');
-        const bgColor = type === 'success' ? 'bg-green-500' :
-                        type === 'error' ? 'bg-red-500' :
-                        'bg-mso-blue';
-
-        toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-x-full`;
-        toast.innerHTML = `
-            <i class="ph ${type === 'success' ? 'ph-check-circle' : type === 'error' ? 'ph-warning-circle' : 'ph-info'} text-lg"></i>
-            <span class="text-sm">${message}</span>
-        `;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 10);
-
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => {
-                toast.remove();
-            }, 300);
-        }, 3000);
-    }
 
     // ============================================================
     // INICIALIZAR

@@ -59,10 +59,10 @@
     }
 @endphp
 
-{{-- ============================================= --}}
-{{-- BOTÓN DE CONFIGURACIÓN - Solo con permiso --}}
-{{-- ============================================= --}}
-@canany(['configurar agenda', 'editar configuración'])
+{{-- ==================================================== --}}
+{{-- BOTÓN DE CONFIGURACIÓN - Solo con permiso específico --}}
+{{-- ==================================================== --}}
+@can('configurar agenda')
 <div class="mb-4 flex justify-end">
     <a href="{{ route('citas.configuracion') }}"
        class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition-all duration-200 text-slate-600 hover:text-mso-blue group">
@@ -70,7 +70,7 @@
         <span class="text-sm font-medium">Configurar Agenda</span>
     </a>
 </div>
-@endcanany
+@endcan
 
 {{-- MODAL DE VISTA PREVIA DE PROPIEDAD - GLOBAL PARA TODOS LOS ROLES --}}
 <div id="propertyPreviewModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm p-4">
@@ -88,7 +88,7 @@
 </div>
 
 {{-- ============================================= --}}
-{{-- CONTENIDO PRINCIPAL - Solo si tiene permisos --}}
+{{-- CONTENIDO PRINCIPAL - Solo si tiene permisos  --}}
 {{-- ============================================= --}}
 @canany(['ver citas', 'gestionar citas'])
 
@@ -286,7 +286,7 @@
     @endif
 
     {{-- ============================================= --}}
-    {{-- VISTA PARA ADMIN --}}
+    {{-- VISTA PARA ADMIN                              --}}
     {{-- ============================================= --}}
     @if($isAdmin)
     <div class="space-y-6">
@@ -485,7 +485,7 @@
     @endif
 
     {{-- ============================================= --}}
-    {{-- VISTA PARA CLIENTE - Solo para rol Cliente --}}
+    {{-- VISTA PARA CLIENTE - Solo para rol Cliente    --}}
     {{-- ============================================= --}}
     @hasrole('Cliente')
     <div class="bg-white rounded-2xl shadow-sm border">
@@ -617,7 +617,7 @@ function reloadPageWithDelay(delay = 1500) {
 }
 
 // ============================================
-// VISTA PREVIA DE PROPIEDAD - CORREGIDA
+// VISTA PREVIA DE PROPIEDAD
 // ============================================
 window.showPropertyPreview = function(appointmentId) {
     const appointment = allAppointments.find(a => a.id === appointmentId);

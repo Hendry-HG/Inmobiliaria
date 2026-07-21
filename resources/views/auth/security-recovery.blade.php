@@ -82,10 +82,10 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-envelope text-gray-400"></i>
                         </div>
-                        <input type="email" name="email" id="email" 
+                        <input type="email" name="email" id="email"
                                value="{{ old('email') }}"
                                class="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none @error('email') border-red-500 @enderror"
-                               placeholder="tucorreo@ejemplo.com" 
+                               placeholder="tucorreo@ejemplo.com"
                                autocomplete="email"
                                required autofocus>
                     </div>
@@ -121,3 +121,40 @@
     </div>
 </div>
 @endsection
+
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function refreshCsrfToken() {
+            fetch('/refresh-csrf', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_token) {
+                    document.querySelectorAll('form input[name="_token"]').forEach(input => {
+                        input.value = data.csrf_token;
+                    });
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.content = data.csrf_token;
+                    }
+                }
+            })
+            .catch(() => {});
+        }
+
+        setInterval(refreshCsrfToken, 300000);
+
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            const url = new URL(window.location);
+            url.searchParams.delete('session_expired');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+    });
+</script>
+@endpush

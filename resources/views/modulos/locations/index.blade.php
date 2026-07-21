@@ -6,25 +6,14 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-    @if(session('success'))
-    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-check-circle mr-2"></i>{{ session('success') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
+    {{-- ============================================= --}}
+    {{-- NOTIFICACIONES ELIMINADAS - Usan el layout    --}}
+    {{-- ============================================= --}}
 
-    @if(session('error'))
-    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-warning-circle mr-2"></i>{{ session('error') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
-    <!-- Panel Principal -->
+    {{-- ============================================= --}}
+    {{-- PANEL PRINCIPAL - Solo con permisos           --}}
+    {{-- ============================================= --}}
+    @canany(['ver paises', 'gestionar ubicaciones'])
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -32,6 +21,8 @@
                 <p class="text-sm text-slate-500">Gestionando los países del sistema</p>
             </div>
 
+            {{-- FORMULARIO PARA AGREGAR PAÍS - Solo con permiso --}}
+            @can('crear paises')
             <form action="{{ route('admin.locations.country.store') }}" method="POST" class="w-full md:w-auto flex gap-2" autocomplete="off">
                 @csrf
                 <div class="relative flex-1">
@@ -44,13 +35,14 @@
                            maxlength="100"
                            pattern="^[a-zA-ZáéíóúñÑ\s\-\.]+$"
                            title="Solo letras, espacios, guiones y puntos">
-                    <div class="text-xs text-slate-400 mt-1">Solo letras, sin espacios, guiones y puntos</div>
+                    <div class="text-xs text-slate-400 mt-1">Solo letras, espacios, guiones y puntos</div>
                 </div>
                 <button type="submit" class="bg-mso-gold text-mso-blue px-3 py-1 rounded-lg text-xs font-semibold hover:bg-mso-blue hover:text-white transition-colors whitespace-nowrap shadow-sm hover:shadow-md flex items-center gap-1">
                     <i class="ph ph-plus text-sm"></i>
                     Agregar País
                 </button>
             </form>
+            @endcan
         </div>
 
         <div class="overflow-x-auto">
@@ -75,12 +67,19 @@
                             </a>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button data-id="{{ $country->id }}"
-                                    data-name="{{ $country->name }}"
-                                    onclick="openDeleteModal(this.dataset.id, this.dataset.name, 'País')"
-                                    class="text-red-500 hover:text-red-700">
-                                <i class="ph ph-trash text-lg"></i>
-                            </button>
+                            {{-- ELIMINAR - Solo con permiso --}}
+                            @can('eliminar paises')
+                                <button data-id="{{ $country->id }}"
+                                        data-name="{{ $country->name }}"
+                                        onclick="openDeleteModal(this.dataset.id, this.dataset.name, 'País')"
+                                        class="text-red-500 hover:text-red-700">
+                                    <i class="ph ph-trash text-lg"></i>
+                                </button>
+                            @else
+                                <span class="text-slate-300 cursor-not-allowed p-1" title="No tienes permiso para eliminar">
+                                    <i class="ph ph-trash text-lg"></i>
+                                </span>
+                            @endcan
                             <form id="form-delete-{{ $country->id }}" action="{{ route('admin.locations.country.destroy', $country) }}" method="POST" class="hidden">
                                 @csrf
                                 @method('DELETE')
@@ -95,6 +94,16 @@
             {{ $countries->links() }}
         </div>
     </div>
+    @else
+    {{-- ============================================= --}}
+    {{-- MENSAJE DE ACCESO DENEGADO                    --}}
+    {{-- ============================================= --}}
+    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+        <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+        <p class="font-bold">Acceso Denegado</p>
+        <p class="text-sm">No tienes permisos para ver los países.</p>
+    </div>
+    @endcanany
 </div>
 
 <!-- MODAL DE ELIMINACIÓN MEJORADO -->

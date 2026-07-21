@@ -96,13 +96,13 @@
 
     {{-- HEADER --}}
     <div class="header">
-        <h1>📊 {{ $data['titulo'] }}</h1>
+        <h1> {{ $data['titulo'] }}</h1>
         <p>Generado: {{ $data['fecha_generacion'] }}</p>
     </div>
 
     {{-- MÉTRICAS PRINCIPALES --}}
     <div class="section">
-        <div class="section-title">📈 Métricas Principales</div>
+        <div class="section-title"> Métricas Principales</div>
         <div class="grid-2">
             @foreach($data['metricas'] as $key => $value)
             <div class="metric-card">
@@ -115,7 +115,7 @@
 
     {{-- PROPIEDADES POR CATEGORÍA --}}
     <div class="section">
-        <div class="section-title">🏠 Propiedades por Categoría</div>
+        <div class="section-title"> Propiedades por Categoría</div>
         <table>
             <thead>
                 <tr>
@@ -140,7 +140,7 @@
 
     {{-- CITAS POR ESTADO --}}
     <div class="section">
-        <div class="section-title">📅 Citas por Estado</div>
+        <div class="section-title"> Citas por Estado</div>
         <table>
             <thead>
                 <tr>
@@ -165,7 +165,7 @@
 
     {{-- LEADS POR ESTADO --}}
     <div class="section">
-        <div class="section-title">🎯 Leads por Estado</div>
+        <div class="section-title"> Leads por Estado</div>
         <table>
             <thead>
                 <tr>
@@ -190,7 +190,7 @@
 
     {{-- TOP ASESORES --}}
     <div class="section">
-        <div class="section-title">🏆 Top Asesores</div>
+        <div class="section-title"> Top Asesores</div>
         <table>
             <thead>
                 <tr>

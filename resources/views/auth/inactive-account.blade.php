@@ -29,7 +29,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('security.reactivation.verify.email') }}" method="POST" class="space-y-6">
+            <form action="{{ route('security.reactivation.verify.email') }}" method="POST" class="space-y-6" id="reactivation-form">
                 @csrf
 
                 <div>
@@ -49,7 +49,7 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mso-gold hover:bg-mso-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mso-gold transition-colors">
+                <button type="submit" id="submit-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mso-gold hover:bg-mso-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mso-gold transition-colors">
                     <i class="ph ph-shield-check mr-2"></i>
                     Verificar Identidad
                 </button>
@@ -74,3 +74,75 @@
     </div>
 </div>
 @endsection
+
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        // REFRESCAR TOKEN CSRF AUTOMÁTICAMENTE
+        // ============================================
+        function refreshCsrfToken() {
+            fetch('/refresh-csrf', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_token) {
+                    document.querySelectorAll('form input[name="_token"]').forEach(input => {
+                        input.value = data.csrf_token;
+                    });
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.content = data.csrf_token;
+                    }
+                    console.log(' Token CSRF actualizado (reactivación)');
+                }
+            })
+            .catch(() => {
+                console.warn(' No se pudo refrescar el token');
+            });
+        }
+
+        // Refrescar token cada 5 minutos
+        setInterval(refreshCsrfToken, 300000);
+
+        // Verificar si hay error de sesión expirada
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, intenta nuevamente.');
+            const url = new URL(window.location);
+            url.searchParams.delete('session_expired');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+
+        // ============================================
+        // PREVENCIÓN DE DOBLE CLIC
+        // ============================================
+        const reactivationForm = document.getElementById('reactivation-form');
+        let isSubmitting = false;
+
+        if (reactivationForm) {
+            reactivationForm.addEventListener('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                isSubmitting = true;
+                const submitBtn = document.getElementById('submit-btn');
+                const originalText = submitBtn.textContent;
+
+                submitBtn.textContent = 'VERIFICANDO...';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+                submitBtn.style.cursor = 'wait';
+
+                console.log('📤 Enviando formulario de reactivación...');
+                return true;
+            });
+        }
+    });
+</script>
+@endpush

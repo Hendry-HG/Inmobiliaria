@@ -268,6 +268,40 @@
         });
 
         console.log(' Funciones de modal cargadas globalmente');
+
+        // ============================================
+        // REFRESCAR TOKEN CSRF EN LANDING
+        // ============================================
+        function refreshCsrfToken() {
+            fetch('/refresh-csrf', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_token) {
+                    document.querySelectorAll('form input[name="_token"]').forEach(input => {
+                        input.value = data.csrf_token;
+                    });
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.content = data.csrf_token;
+                    }
+                    console.log(' Token CSRF actualizado (landing)');
+                }
+            })
+            .catch(() => {
+                console.warn(' No se pudo refrescar el token');
+            });
+        }
+
+        // Refrescar token cada 5 minutos
+        setInterval(refreshCsrfToken, 300000);
+
+        // Exponer función globalmente
+        window.refreshCsrfToken = refreshCsrfToken;
     </script>
 
     @stack('js')

@@ -12,24 +12,6 @@
         </a>
     </div>
 
-    @if(session('success'))
-    <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-check-circle mr-2"></i>{{ session('success') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-warning-circle mr-2"></i>{{ session('error') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">

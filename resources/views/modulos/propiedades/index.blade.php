@@ -12,9 +12,9 @@
                 <h2 class="text-xl font-bold text-slate-800">Listado de Inmuebles</h2>
 
                 {{-- ============================================= --}}
-                {{-- BOTÓN NUEVA PROPIEDAD - SOLO ASESOR --}}
+                {{-- BOTÓN NUEVA PROPIEDAD - Solo con permiso --}}
                 {{-- ============================================= --}}
-                @role('Asesor Inmobiliario')
+                @can('crear propiedad')
                     @php
                         $createRoute = (isset($isAdmin) && $isAdmin) ? route('admin.properties.create') : route('asesor.properties.create');
                     @endphp
@@ -23,12 +23,11 @@
                         <i class="ph ph-plus-circle text-lg"></i> Nueva Propiedad
                     </a>
                 @else
-                    {{-- Mostrar mensaje informativo para otros roles --}}
                     <span class="text-sm text-slate-400 flex items-center gap-2">
                         <i class="ph ph-lock-simple"></i>
-                        Solo asesores pueden crear propiedades
+                        No tienes permiso para crear propiedades
                     </span>
-                @endrole
+                @endcan
             </div>
 
             <form action="{{ request()->url() }}" method="GET" class="space-y-3">
@@ -116,19 +115,21 @@
                                placeholder="$ Max" class="border rounded-lg px-4 py-2 text-sm w-32">
                     </div>
 
-                    @if(isset($isAdmin) && $isAdmin && isset($asesores) && $asesores->count() > 0)
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Asesor</label>
-                            <select name="user_id" class="border rounded-lg px-4 py-2 text-sm bg-white">
-                                <option value="">Todos los Asesores</option>
-                                @foreach($asesores as $asesor)
-                                    <option value="{{ $asesor->id }}" {{ request('user_id') == $asesor->id ? 'selected' : '' }}>
-                                        {{ $asesor->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
+                    @can('ver usuarios')
+                        @if(isset($isAdmin) && $isAdmin && isset($asesores) && $asesores->count() > 0)
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Asesor</label>
+                                <select name="user_id" class="border rounded-lg px-4 py-2 text-sm bg-white">
+                                    <option value="">Todos los Asesores</option>
+                                    @foreach($asesores as $asesor)
+                                        <option value="{{ $asesor->id }}" {{ request('user_id') == $asesor->id ? 'selected' : '' }}>
+                                            {{ $asesor->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                    @endcan
 
                     <button type="submit" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700">
                         <i class="ph ph-funnel mr-1"></i> Filtrar
@@ -140,46 +141,58 @@
             </form>
         </div>
 
-        <!-- Tabla -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                            <th class="p-4">Propiedad</th>
-                            <th class="p-4">Precio</th>
-                            <th class="p-4">Ubicación</th>
-                            <th class="p-4">Estado</th>
-                            @if(isset($isAdmin) && $isAdmin)
-                                <th class="p-4">Asesor</th>
-                            @endif
-                            <th class="p-4 text-right">Acciones</th>
-                        </tr>
-                    </thead>
+        {{-- ============================================= --}}
+        {{-- TABLA - Solo con permiso --}}
+        {{-- ============================================= --}}
+        @canany(['ver propiedades', 'gestionar propiedades'])
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4">Propiedad</th>
+                                <th class="p-4">Precio</th>
+                                <th class="p-4">Ubicación</th>
+                                <th class="p-4">Estado</th>
+                                @can('ver usuarios')
+                                    @if(isset($isAdmin) && $isAdmin)
+                                        <th class="p-4">Asesor</th>
+                                    @endif
+                                @endcan
+                                <th class="p-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
 
-                    <tbody
-                        x-data="{
-                            rowsHtml: @js(View::make('modulos.propiedades._rows', ['properties' => $properties, 'isAdmin' => $isAdmin ?? false, 'isAsesor' => $isAsesor ?? false])->render()),
-                            loading: false
-                        }"
-                        x-init="initTablePolling()"
-                        x-html="rowsHtml"
-                        class="divide-y divide-slate-100 text-sm relative transition-opacity duration-300"
-                        :class="loading ? 'opacity-50' : 'opacity-100'"
-                    >
-                        <div x-show="loading" x-cloak class="absolute inset-0 bg-white/30 flex items-center justify-center z-10 backdrop-blur-sm pointer-events-none">
-                            <div class="bg-white p-2 rounded-lg shadow-lg border border-slate-100">
-                                <i class="ph ph-spinner animate-spin text-xl text-mso-gold"></i>
+                        <tbody
+                            x-data="{
+                                rowsHtml: @js(View::make('modulos.propiedades._rows', ['properties' => $properties, 'isAdmin' => $isAdmin ?? false, 'isAsesor' => $isAsesor ?? false])->render()),
+                                loading: false
+                            }"
+                            x-init="initTablePolling()"
+                            x-html="rowsHtml"
+                            class="divide-y divide-slate-100 text-sm relative transition-opacity duration-300"
+                            :class="loading ? 'opacity-50' : 'opacity-100'"
+                        >
+                            <div x-show="loading" x-cloak class="absolute inset-0 bg-white/30 flex items-center justify-center z-10 backdrop-blur-sm pointer-events-none">
+                                <div class="bg-white p-2 rounded-lg shadow-lg border border-slate-100">
+                                    <i class="ph ph-spinner animate-spin text-xl text-mso-gold"></i>
+                                </div>
                             </div>
-                        </div>
-                    </tbody>
+                        </tbody>
 
-                </table>
+                    </table>
+                </div>
+                <div class="p-4 border-t border-slate-100 flex justify-center">
+                    {{ $properties->appends(request()->query())->links() }}
+                </div>
             </div>
-            <div class="p-4 border-t border-slate-100 flex justify-center">
-                {{ $properties->appends(request()->query())->links() }}
+        @else
+            <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+                <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+                <p class="font-bold">Acceso Denegado</p>
+                <p class="text-sm">No tienes permisos para ver las propiedades.</p>
             </div>
-        </div>
+        @endcanany
     </div>
 
     <!-- MODAL DE CONFIRMACIÓN PARA ELIMINAR -->

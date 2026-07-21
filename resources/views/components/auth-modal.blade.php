@@ -515,7 +515,6 @@
         if (forgotForm) forgotForm.classList.add('hidden');
         if (forgotTab) forgotTab.classList.add('hidden');
 
-        //  OCULTAR LA BARRA DE PROGRESO POR DEFECTO
         if (stepIndicator) stepIndicator.classList.add('hidden');
         if (progressContainer) progressContainer.classList.add('hidden');
 
@@ -534,11 +533,9 @@
             if (modalTitle) modalTitle.textContent = 'Crear Cuenta';
             if (modalSubtitle) modalSubtitle.textContent = 'Únete a MSO Grupo Inmobiliario';
 
-            //  MOSTRAR LA BARRA DE PROGRESO Y EL INDICADOR SOLO EN REGISTRO
             if (stepIndicator) stepIndicator.classList.remove('hidden');
             if (progressContainer) progressContainer.classList.remove('hidden');
 
-            // Resetear al paso 1
             goToStep(1);
         } else if (tab === 'forgot') {
             if (forgotForm) forgotForm.classList.remove('hidden');
@@ -560,35 +557,29 @@
         if (step < 1 || step > totalSteps) return;
         if (isSubmitting) return;
 
-        // Validar paso actual antes de avanzar
         if (step > currentStep) {
             if (!validateStep(currentStep)) {
                 return;
             }
         }
 
-        // Ocultar todos los pasos
         for (let i = 1; i <= totalSteps; i++) {
             const stepEl = document.getElementById(`step-${i}`);
             if (stepEl) stepEl.classList.add('hidden');
         }
 
-        // Mostrar el paso seleccionado
         const targetStep = document.getElementById(`step-${step}`);
         if (targetStep) targetStep.classList.remove('hidden');
 
         currentStep = step;
 
-        // Actualizar barra de progreso
         updateProgress(step);
 
-        // Actualizar indicador de paso
         const indicator = document.getElementById('step-indicator');
         if (indicator) {
             indicator.textContent = `Paso ${step} de ${totalSteps}`;
         }
 
-        // Actualizar subtítulo
         const subtitle = document.getElementById('modal-subtitle');
         const titles = {
             1: 'Completa tus datos personales y de contacto',
@@ -599,7 +590,6 @@
             subtitle.textContent = titles[step] || 'Completa todos los campos';
         }
 
-        // Scroll al inicio del contenido
         const container = document.querySelector('.custom-scrollbar');
         if (container) container.scrollTop = 0;
     };
@@ -1154,12 +1144,12 @@
             const submitBtn = document.getElementById('register-submit');
             const originalText = submitBtn.textContent;
 
-            submitBtn.textContent = '⏳ ENVIANDO...';
+            submitBtn.textContent = ' ENVIANDO...';
             submitBtn.disabled = true;
             submitBtn.style.opacity = '0.7';
             submitBtn.style.cursor = 'wait';
 
-            console.log('📤 Enviando formulario...');
+            console.log(' Enviando formulario...');
             return true;
         });
     }
@@ -1187,6 +1177,38 @@
     }
 
     // ============================================
+    // REFRESCAR TOKEN CSRF AUTOMÁTICAMENTE
+    // ============================================
+    function refreshCsrfToken() {
+        fetch('/refresh-csrf', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.csrf_token) {
+                // Actualizar token en TODOS los formularios del modal
+                document.querySelectorAll('#auth-modal form input[name="_token"]').forEach(input => {
+                    input.value = data.csrf_token;
+                });
+
+                // Actualizar meta tag
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    metaTag.content = data.csrf_token;
+                }
+
+                console.log(' Token CSRF actualizado automáticamente');
+            }
+        })
+        .catch(() => {
+            console.warn(' No se pudo refrescar el token');
+        });
+    }
+
+    // ============================================
     // INICIALIZAR TODO
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
@@ -1208,7 +1230,20 @@
             showSuccessModal();
         }
 
-        console.log(' Todas las validaciones activas');
+        // ============================================
+        // SOLUCIÓN PARA ERROR 419 - REFRESCAR TOKEN
+        // ============================================
+
+        // Refrescar token cada 5 minutos
+        setInterval(refreshCsrfToken, 300000);
+
+        // Verificar si hay error de sesión expirada al cargar
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            window.location.href = window.location.pathname;
+        }
+
+        console.log('✅ Todas las validaciones activas');
     });
 
     // ============================================
@@ -1216,6 +1251,7 @@
     // ============================================
     window.goToStep = goToStep;
     window.showSuccessModal = showSuccessModal;
+    window.refreshCsrfToken = refreshCsrfToken;
 
 })();
 </script>

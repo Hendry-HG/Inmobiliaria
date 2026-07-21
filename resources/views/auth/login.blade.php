@@ -278,7 +278,7 @@
                 {{-- Campo: Email --}}
                 <div class="form-group">
                     <label for="email">Correo Electrónico</label>
-                    <input id="email" name="email" type="email" 
+                    <input id="email" name="email" type="email"
                            autocomplete="email" required
                            class="form-input @error('email') form-input-error @enderror"
                            placeholder="ejemplo@correo.com"
@@ -291,7 +291,7 @@
                 {{-- Campo: Contraseña --}}
                 <div class="form-group">
                     <label for="password">Contraseña</label>
-                    <input id="password" name="password" type="password" 
+                    <input id="password" name="password" type="password"
                            autocomplete="current-password" required
                            class="form-input @error('password') form-input-error @enderror"
                            placeholder="••••••••">
@@ -347,7 +347,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // ============================================
-        //  PREVENCIÓN DE DOBLE CLIC EN LOGIN
+        // PREVENCIÓN DE DOBLE CLIC EN LOGIN
         // ============================================
         const loginForm = document.getElementById('login-form');
         let isSubmitting = false;
@@ -363,18 +363,18 @@
                 const submitBtn = document.getElementById('login-submit');
                 const originalText = submitBtn.textContent;
 
-                submitBtn.textContent = '⏳ INICIANDO SESIÓN...';
+                submitBtn.textContent = ' INICIANDO SESIÓN...';
                 submitBtn.disabled = true;
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'wait';
 
-                console.log('📤 Enviando formulario de login...');
+                console.log(' Enviando formulario de login...');
                 return true;
             });
         }
 
         // ============================================
-        //  VALIDACIÓN DE EMAIL EN TIEMPO REAL
+        // VALIDACIÓN DE EMAIL EN TIEMPO REAL
         // ============================================
         const emailInput = document.getElementById('email');
         if (emailInput) {
@@ -386,6 +386,46 @@
                     this.style.borderBottomColor = '';
                 }
             });
+        }
+
+        // ============================================
+        // REFRESCAR TOKEN CSRF (para la página de login)
+        // ============================================
+        function refreshCsrfToken() {
+            fetch('/refresh-csrf', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_token) {
+                    const tokenInput = document.querySelector('#login-form input[name="_token"]');
+                    if (tokenInput) {
+                        tokenInput.value = data.csrf_token;
+                    }
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.content = data.csrf_token;
+                    }
+                    console.log(' Token CSRF actualizado (página login)');
+                }
+            })
+            .catch(() => {
+                console.warn(' No se pudo refrescar el token en login');
+            });
+        }
+
+        // Refrescar token cada 5 minutos en la página de login
+        setInterval(refreshCsrfToken, 300000);
+
+        // Verificar si hay error de sesión expirada
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            const url = new URL(window.location);
+            url.searchParams.delete('session_expired');
+            window.history.replaceState({}, document.title, url.toString());
         }
     });
 </script>

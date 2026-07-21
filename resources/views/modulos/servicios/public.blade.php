@@ -33,8 +33,11 @@
     @endif
 
     {{-- Grid de Servicios --}}
+    {{-- ============================================= --}}
+    {{-- Los servicios públicos solo se muestran si están activos --}}
+    {{-- ============================================= --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @foreach($services as $service)
+        @forelse($services as $service)
             <div class="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 group border border-slate-100">
                 {{-- Imagen del servicio --}}
                 @if($service->image)
@@ -87,7 +90,12 @@
                     @endif
                 </div>
             </div>
-        @endforeach
+        @empty
+            <div class="col-span-full text-center py-12">
+                <i class="ph ph-warning text-4xl text-slate-300 block mb-3"></i>
+                <p class="text-slate-500">No hay servicios disponibles en este momento.</p>
+            </div>
+        @endforelse
     </div>
 
     {{-- Sección de Asesores --}}
@@ -105,26 +113,22 @@
                              class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-mso-gold mb-4"
                              alt="{{ $asesor->full_name ?? $asesor->name }}">
 
-                        {{-- ✅ Nombre completo (Nombre + Apellido) --}}
                         <h4 class="font-bold text-slate-800 text-lg">{{ $asesor->full_name ?? $asesor->name }}</h4>
 
                         <p class="text-xs text-slate-500">{{ $asesor->email }}</p>
 
-                        {{-- ✅ Teléfono desde el modelo User --}}
                         @if($asesor->phone)
                             <p class="text-sm text-slate-600 mt-1">
                                 <i class="ph ph-phone text-mso-gold"></i> {{ $asesor->phone }}
                             </p>
                         @endif
 
-                        {{-- ✅ Especialización desde el modelo User --}}
                         @if($asesor->specialization)
                             <span class="inline-block mt-2 text-xs font-medium px-3 py-1 rounded-full bg-mso-gold/20 text-mso-gold">
                                 {{ $asesor->specialization }}
                             </span>
                         @endif
 
-                        {{-- ✅ Biografía/Descripción del asesor --}}
                         @if($asesor->bio)
                             <div class="mt-3 text-sm text-slate-600 line-clamp-3">
                                 {{ $asesor->bio }}
@@ -138,7 +142,6 @@
                             </span>
                         </div>
 
-                        {{-- ✅ Redes Sociales (si existen) --}}
                         @if($asesor->social_links)
                             <div class="mt-3 flex justify-center gap-3">
                                 @if(isset($asesor->social_links['whatsapp']))
@@ -217,7 +220,6 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Galería de servicios
         @if(isset($galleryImages) && $galleryImages->isNotEmpty())
         new Swiper('.service-gallery', {
             slidesPerView: 1,

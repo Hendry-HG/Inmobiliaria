@@ -18,9 +18,10 @@ class LoginController extends Controller
         $this->middleware('guest')->except(['logout', 'showInactiveAccount', 'requestReactivation', 'reactivateAccount']);
     }
 
-
     public function showLoginForm()
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO DE LOGIN
+        session()->regenerateToken();
         return view('auth.login');
     }
 
@@ -66,20 +67,27 @@ class LoginController extends Controller
                 'ip' => $request->ip()
             ]);
 
+            //  REGENERAR TOKEN DESPUÉS DE ERROR
+            session()->regenerateToken();
+
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales no coinciden con nuestros registros.'],
             ]);
         }
 
         if (!$user->is_active) {
+            //  REGENERAR TOKEN ANTES DE REDIRIGIR
+            session()->regenerateToken();
             session(['reactivation_email' => $user->email]);
             return redirect()->route('account.inactive')
                 ->with('warning', 'Tu cuenta se encuentra inactiva.');
         }
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
+        //  REGENERAR SESIÓN Y TOKEN ANTES DE LOGIN
+        $request->session()->regenerate();
+        $request->session()->regenerateToken();
 
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $permissionService = new PermissionService($user);
             $dashboardRoute = $permissionService->getDashboardRoute();
 
@@ -91,8 +99,14 @@ class LoginController extends Controller
                 'dashboard' => $dashboardRoute
             ]);
 
+            //  REGENERAR SESIÓN DESPUÉS DE LOGIN
+            $request->session()->regenerate();
+
             return redirect()->intended($dashboardRoute);
         }
+
+        //  REGENERAR TOKEN DESPUÉS DE ERROR
+        session()->regenerateToken();
 
         throw ValidationException::withMessages([
             'email' => ['Hubo un problema al iniciar sesión.'],
@@ -121,6 +135,8 @@ class LoginController extends Controller
         }
 
         if ($user->is_active) {
+            //  REGENERAR TOKEN ANTES DE REDIRIGIR
+            session()->regenerateToken();
             return redirect()->route('login')->with('success', 'Tu cuenta ya está activa. Puedes iniciar sesión.');
         }
 
@@ -144,9 +160,16 @@ class LoginController extends Controller
                         ->subject('Solicitud de Reactivación de Cuenta - ' . config('app.name'));
             });
 
+            //  REGENERAR TOKEN DESPUÉS DE ENVIAR CORREO
+            session()->regenerateToken();
+
             return back()->with('success', 'Hemos enviado un correo con las instrucciones para reactivar tu cuenta.');
         } catch (\Exception $e) {
             Log::error('Error al enviar correo de reactivación: ' . $e->getMessage());
+
+            //  REGENERAR TOKEN DESPUÉS DE ERROR
+            session()->regenerateToken();
+
             return back()->with('error', 'Hubo un problema al enviar el correo.');
         }
     }
@@ -164,11 +187,17 @@ class LoginController extends Controller
             ->first();
 
         if (!$tokenData) {
+            //  REGENERAR TOKEN ANTES DE REDIRIGIR
+            session()->regenerateToken();
             return redirect()->route('login')->with('error', 'El enlace de reactivación es inválido.');
         }
 
         if (\Carbon\Carbon::parse($tokenData->created_at)->addHours(24)->isPast()) {
             \Illuminate\Support\Facades\DB::table('account_reactivation_tokens')->where('email', $request->email)->delete();
+
+            //  REGENERAR TOKEN ANTES DE REDIRIGIR
+            session()->regenerateToken();
+
             return redirect()->route('login')->with('error', 'El enlace de reactivación ha expirado.');
         }
 
@@ -180,14 +209,32 @@ class LoginController extends Controller
 
         session()->forget('reactivation_email');
 
+        //  REGENERAR TOKEN ANTES DE REDIRIGIR
+        session()->regenerateToken();
+
         return redirect()->route('login')->with('success', '¡Tu cuenta ha sido reactivada exitosamente!');
     }
 
     public function logout(Request $request)
     {
         Auth::logout();
+
+        //  INVALIDAR SESIÓN COMPLETAMENTE
         $request->session()->invalidate();
+
+        //  REGENERAR TOKEN CSRF
         $request->session()->regenerateToken();
+
+        //  REGENERAR ID DE SESIÓN (SEGURIDAD EXTRA)
+        $request->session()->regenerate();
+
+        //  LIMPIAR COOKIES DE SESIÓN
+        foreach ($request->cookies->all() as $name => $value) {
+            if (str_contains($name, 'session') || str_contains($name, 'laravel')) {
+                setcookie($name, '', time() - 3600, '/');
+            }
+        }
+
         return redirect('/');
     }
 }

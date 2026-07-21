@@ -96,19 +96,6 @@
             </div>
         </div>
 
-        @if(session('success'))
-            <div class="mx-6 mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2">
-                <i class="ph ph-check-circle text-xl"></i>
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
-                <i class="ph ph-warning-circle text-xl"></i>
-                {{ session('error') }}
-            </div>
-        @endif
 
         <form action="{{ route('citas.configuracion.update') }}" method="POST" class="p-6 space-y-6">
             @csrf

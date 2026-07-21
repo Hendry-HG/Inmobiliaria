@@ -6,21 +6,32 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- Header -->
+    {{-- ============================================= --}}
+    {{-- HEADER - Solo con permiso                     --}}
+    {{-- ============================================= --}}
+    @canany(['ver configuración', 'actualizar configuracion telefonica'])
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h2 class="text-xl font-bold text-slate-800">Configuración Telefónica por País</h2>
                 <p class="text-sm text-slate-500 mt-1">Define el formato, código y longitud de teléfono para cada país</p>
             </div>
-            <button onclick="openPresetModal()" class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors flex items-center gap-2 shadow-sm">
-                <i class="ph ph-download-simple text-lg"></i>
-                Cargar Numeros
-            </button>
+
+            {{-- BOTÓN CARGAR PRESETS - Solo con permiso --}}
+            @can('actualizar configuracion telefonica')
+                <button onclick="openPresetModal()" class="bg-mso-gold text-mso-blue px-4 py-2 rounded-lg font-bold hover:bg-mso-blue hover:text-white transition-colors flex items-center gap-2 shadow-sm">
+                    <i class="ph ph-download-simple text-lg"></i>
+                    Cargar Numeros
+                </button>
+            @endcan
         </div>
     </div>
+    @endcanany
 
-    <!-- Tabla de Países -->
+    {{-- ============================================= --}}
+    {{-- TABLA DE PAÍSES - Solo con permiso            --}}
+    {{-- ============================================= --}}
+    @canany(['ver configuración', 'actualizar configuracion telefonica'])
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -71,11 +82,18 @@
                             </span>
                         </td>
                         <td class="p-4 text-right">
-                            <a href="{{ route('admin.phones.edit', $country) }}"
-                               class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1">
-                                <i class="ph ph-pencil"></i>
-                                Configurar
-                            </a>
+                            {{-- EDITAR - Solo con permiso --}}
+                            @can('actualizar configuracion telefonica')
+                                <a href="{{ route('admin.phones.edit', $country) }}"
+                                   class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1">
+                                    <i class="ph ph-pencil"></i>
+                                    Configurar
+                                </a>
+                            @else
+                                <span class="text-slate-400 text-sm" title="No tienes permiso para editar">
+                                    <i class="ph ph-lock-simple"></i>
+                                </span>
+                            @endcan
                         </td>
                     </tr>
                     @empty
@@ -94,9 +112,22 @@
             {{ $countries->links() }}
         </div>
     </div>
+    @else
+    {{-- ============================================= --}}
+    {{-- MENSAJE DE ACCESO DENEGADO                    --}}
+    {{-- ============================================= --}}
+    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+        <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+        <p class="font-bold">Acceso Denegado</p>
+        <p class="text-sm">No tienes permisos para ver la configuración telefónica.</p>
+    </div>
+    @endcanany
 </div>
 
-<!-- Modal de Presets -->
+{{-- ============================================= --}}
+{{-- MODAL DE PRESETS - Solo con permiso           --}}
+{{-- ============================================= --}}
+@can('actualizar configuracion telefonica')
 <div id="preset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <div class="bg-mso-blue px-6 py-4 flex justify-between items-center flex-shrink-0">
@@ -125,6 +156,7 @@
         </div>
     </div>
 </div>
+@endcan
 
 @push('js')
 <script>
@@ -234,13 +266,7 @@ document.getElementById('preset-modal')?.addEventListener('click', (e) => {
     if (e.target === document.getElementById('preset-modal')) closePresetModal();
 });
 
-@if(session('success'))
-    const toast = document.createElement('div');
-    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 animate-slide-up';
-    toast.innerHTML = '<i class="ph ph-check-circle mr-2"></i>{{ session("success") }}';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-@endif
+
 </script>
 
 <style>

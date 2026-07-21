@@ -12,6 +12,9 @@ class ResetPasswordController extends Controller
 {
     public function showResetForm(Request $request, $token = null)
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO
+        session()->regenerateToken();
+
         return view('auth.reset-password', [
             'token' => $token,
             'email' => $request->email
@@ -36,6 +39,9 @@ class ResetPasswordController extends Controller
                 $user->save();
             }
         );
+
+        //  REGENERAR TOKEN DESPUÉS DE RESTABLECER LA CONTRASEÑA
+        session()->regenerateToken();
 
         return $status === Password::PASSWORD_RESET
             ? redirect()->route('login')->with('status', __($status))

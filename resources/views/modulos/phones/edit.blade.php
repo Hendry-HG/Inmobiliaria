@@ -6,24 +6,10 @@
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    @if(session('success'))
-    <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-check-circle mr-2"></i>{{ session('success') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
-        <span><i class="ph ph-warning-circle mr-2"></i>{{ session('error') }}</span>
-        <button onclick="this.parentElement.remove()" class="text-red-700 hover:text-red-900">
-            <i class="ph ph-x"></i>
-        </button>
-    </div>
-    @endif
-
+    {{-- ============================================= --}}
+    {{-- FORMULARIO - Solo con permiso                 --}}
+    {{-- ============================================= --}}
+    @can('actualizar configuracion telefonica')
     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
         <div class="bg-slate-50 p-6 border-b border-slate-200">
             <div class="flex items-center gap-3">
@@ -192,6 +178,19 @@
             <li>• La <strong>longitud</strong> se refiere solo a los dígitos locales (sin el código de país).</li>
         </ul>
     </div>
+    @else
+    {{-- ============================================= --}}
+    {{-- MENSAJE DE ACCESO DENEGADO --}}
+    {{-- ============================================= --}}
+    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
+        <i class="ph ph-lock-simple text-3xl mb-2 block"></i>
+        <p class="font-bold">Acceso Denegado</p>
+        <p class="text-sm">No tienes permisos para editar la configuración telefónica.</p>
+        <a href="{{ route('admin.phones.index') }}" class="text-mso-blue hover:underline mt-2 inline-block">
+            Volver al listado
+        </a>
+    </div>
+    @endcan
 </div>
 
 @push('js')
@@ -311,14 +310,7 @@ function applyPresetAndClose(iso, code, format, min, max) {
     setTimeout(() => confirmToast.remove(), 3000);
 }
 
-// Mostrar mensaje de éxito si existe
-@if(session('success'))
-    const successToast = document.createElement('div');
-    successToast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 animate-slide-up';
-    successToast.innerHTML = '<i class="ph ph-check-circle mr-2"></i>{{ session("success") }}';
-    document.body.appendChild(successToast);
-    setTimeout(() => successToast.remove(), 4000);
-@endif
+// NOTIFICACIONES ELIMINADAS - Usan el layout
 </script>
 
 <style>

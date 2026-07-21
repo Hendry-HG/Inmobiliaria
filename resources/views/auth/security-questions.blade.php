@@ -23,15 +23,15 @@
                     <i class="ph ph-x-circle inline-block mr-1"></i>
                     <ul class="list-disc list-inside">
                         @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>  <!--  ESCAPADO -->
+                            <li>{{ $error }}</li>
                         @endforeach
                     </ul>
                 </div>
             @endif
 
             <form action="{{ route('security.verify.answers') }}" method="POST" class="space-y-6">
-                @csrf  <!--  CSRF OBLIGATORIO -->
-                <input type="hidden" name="email" value="{{ session('security_recovery_email') }}">  <!-- ✅ USAR SESIÓN -->
+                @csrf
+                <input type="hidden" name="email" value="{{ session('security_recovery_email') }}">
 
                 @foreach($questions as $index => $question)
                     <div>
@@ -41,7 +41,7 @@
                         <p class="text-gray-900 font-medium mb-2">{{ $question }}</p>
                         <input type="text" name="answer_{{ $index + 1 }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
-                               placeholder="Tu respuesta" 
+                               placeholder="Tu respuesta"
                                autocomplete="off"
                                required>
                     </div>
@@ -65,3 +65,73 @@
     </div>
 </div>
 @endsection
+
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        // REFRESCAR TOKEN CSRF AUTOMÁTICAMENTE
+        // ============================================
+        function refreshCsrfToken() {
+            fetch('/refresh-csrf', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_token) {
+                    document.querySelectorAll('form input[name="_token"]').forEach(input => {
+                        input.value = data.csrf_token;
+                    });
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.content = data.csrf_token;
+                    }
+                    console.log(' Token CSRF actualizado');
+                }
+            })
+            .catch(() => {
+                console.warn(' No se pudo refrescar el token');
+            });
+        }
+
+        setInterval(refreshCsrfToken, 300000);
+
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            const url = new URL(window.location);
+            url.searchParams.delete('session_expired');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+
+        // Prevenir doble clic
+        document.querySelectorAll('form').forEach(form => {
+            let isSubmitting = false;
+            form.addEventListener('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    isSubmitting = true;
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = '⏳ ENVIANDO...';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+                    submitBtn.style.cursor = 'wait';
+                    setTimeout(() => {
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                        isSubmitting = false;
+                    }, 30000);
+                }
+            });
+        });
+    });
+</script>
+@endpush

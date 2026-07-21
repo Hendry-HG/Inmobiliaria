@@ -48,17 +48,18 @@
         </div>
 
         <!-- Banner Promocional -->
-        <div class="bg-gradient-to-r from-mso-blue to-slate-800 rounded-2xl p-8 text-white relative overflow-hidden">
-            <div class="relative z-10 max-w-lg">
-                <h3 class="font-serif text-2xl font-bold mb-2">¿Buscas algo específico?</h3>
-                <p class="text-slate-300 text-sm mb-6">Nuestros asesores pueden realizar búsquedas personalizadas para ti.</p>
-                <button onclick="showSection('chat')" class="bg-mso-gold text-slate-900 px-6 py-2 rounded-lg text-sm font-bold hover:bg-white transition-colors">
-                    Contactar Asesor
-                </button>
-            </div>
-            <i class="ph ph-house-line absolute -bottom-4 -right-4 text-9xl text-white/5 rotate-12"></i>
-        </div>
-
+<div class="bg-gradient-to-r from-mso-blue to-slate-800 rounded-2xl p-8 text-white relative overflow-hidden">
+    <div class="relative z-10 max-w-lg">
+        <h3 class="font-serif text-2xl font-bold mb-2">¿Buscas algo específico?</h3>
+        <p class="text-slate-300 text-sm mb-6">Nuestros asesores pueden realizar búsquedas personalizadas para ti.</p>
+        <a href="{{ route('chat.index') }}" 
+           class="inline-block bg-mso-gold text-slate-900 px-6 py-2 rounded-lg text-sm font-bold hover:bg-white transition-colors">
+            <i class="ph ph-chat-circle mr-2"></i>
+            Contactar Asesor
+        </a>
+    </div>
+    <i class="ph ph-house-line absolute -bottom-4 -right-4 text-9xl text-white/5 rotate-12"></i>
+</div>
         <!-- Propiedades Recientemente Vistas -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
             <h3 class="font-serif text-xl font-bold text-slate-800 mb-4">Propiedades Recientes</h3>

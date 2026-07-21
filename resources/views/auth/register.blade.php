@@ -287,7 +287,7 @@
         flex-shrink: 0;
     }
 
-    /*  SOLUCIÓN PARA EL AUTORELLENADO */
+    /* SOLUCIÓN PARA EL AUTORELLENADO */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
@@ -423,7 +423,7 @@
 
                     {{-- Botón Siguiente Paso 1 --}}
                     <div class="flex justify-end pt-2">
-                        <button type="button" onclick="goToStep(2)" 
+                        <button type="button" onclick="goToStep(2)"
                                 class="px-6 py-2 bg-mso-gold text-slate-900 font-medium rounded-sm hover:bg-yellow-600 transition-colors text-sm">
                             Siguiente <i class="ph ph-arrow-right ml-1"></i>
                         </button>
@@ -498,11 +498,11 @@
 
                     {{-- Botones Paso 2 --}}
                     <div class="flex justify-between pt-2">
-                        <button type="button" onclick="goToStep(1)" 
+                        <button type="button" onclick="goToStep(1)"
                                 class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-sm hover:bg-slate-300 transition-colors text-sm">
                             <i class="ph ph-arrow-left mr-1"></i> Anterior
                         </button>
-                        <button type="button" onclick="goToStep(3)" 
+                        <button type="button" onclick="goToStep(3)"
                                 class="px-6 py-2 bg-mso-gold text-slate-900 font-medium rounded-sm hover:bg-yellow-600 transition-colors text-sm">
                             Siguiente <i class="ph ph-arrow-right ml-1"></i>
                         </button>
@@ -697,11 +697,11 @@
 
                     {{-- Botones Paso 3 --}}
                     <div class="flex justify-between pt-2">
-                        <button type="button" onclick="goToStep(2)" 
+                        <button type="button" onclick="goToStep(2)"
                                 class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-sm hover:bg-slate-300 transition-colors text-sm">
                             <i class="ph ph-arrow-left mr-1"></i> Anterior
                         </button>
-                        <button type="submit" id="register-submit" 
+                        <button type="submit" id="register-submit"
                                 class="px-8 py-2 bg-mso-gold text-slate-900 font-bold rounded-sm hover:bg-yellow-600 transition-colors shadow-lg text-sm">
                             <i class="ph ph-check-circle mr-1"></i> CREAR CUENTA
                         </button>
@@ -847,16 +847,45 @@
         if (!hasSpecial) requirements.push('caracter especial (@$!%*?&)');
 
         if (requirements.length === 0) {
-            strengthDiv.innerHTML = '✅ Contraseña segura';
+            strengthDiv.innerHTML = ' Contraseña segura';
             strengthDiv.className = 'text-xs mt-1 text-green-600';
         } else {
-            strengthDiv.innerHTML = '⚠️ Falta: ' + requirements.join(', ');
+            strengthDiv.innerHTML = ' Falta: ' + requirements.join(', ');
             strengthDiv.className = 'text-xs mt-1 text-red-500';
         }
     }
 
     // ============================================
-    //  VALIDACIÓN DE CONFIRMACIÓN DE CONTRASEÑA
+    //  REFRESCAR TOKEN CSRF
+    // ============================================
+    function refreshCsrfToken() {
+        fetch('/refresh-csrf', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.csrf_token) {
+                const tokenInput = document.querySelector('#register-form input[name="_token"]');
+                if (tokenInput) {
+                    tokenInput.value = data.csrf_token;
+                }
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    metaTag.content = data.csrf_token;
+                }
+                console.log(' Token CSRF actualizado (registro)');
+            }
+        })
+        .catch(() => {
+            console.warn(' No se pudo refrescar el token en registro');
+        });
+    }
+
+    // ============================================
+    //  INICIALIZAR
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
         const pass = document.getElementById('password');
@@ -875,10 +904,23 @@
             });
         }
 
-        // ============================================
-        //  UBICACIONES
-        // ============================================
+        // Inicializar ubicaciones
         initLocationSelects();
+
+        // ============================================
+        //  REFRESCAR TOKEN CADA 5 MINUTOS
+        // ============================================
+        setInterval(refreshCsrfToken, 300000);
+
+        // ============================================
+        //  VERIFICAR SESIÓN EXPIRADA
+        // ============================================
+        if (window.location.search.includes('session_expired')) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            const url = new URL(window.location);
+            url.searchParams.delete('session_expired');
+            window.history.replaceState({}, document.title, url.toString());
+        }
 
         // ============================================
         //  ENVÍO DEL FORMULARIO CON PREVENCIÓN DE DOBLE CLIC
@@ -905,7 +947,7 @@
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'wait';
 
-                console.log('📤 Enviando formulario...');
+                console.log('📤 Enviando formulario de registro...');
                 return true;
             });
         }
@@ -1029,6 +1071,7 @@
     // Exponer funciones globales
     window.goToStep = goToStep;
     window.validatePassword = validatePassword;
+    window.refreshCsrfToken = refreshCsrfToken;
 </script>
 @endpush
 @endsection

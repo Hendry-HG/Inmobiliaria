@@ -10,6 +10,8 @@ class ForgotPasswordController extends Controller
 {
     public function showLinkRequestForm()
     {
+        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO
+        session()->regenerateToken();
         return view('auth.forgot-password');
     }
 
@@ -20,6 +22,9 @@ class ForgotPasswordController extends Controller
         $status = Password::sendResetLink(
             $request->only('email')
         );
+
+        //  REGENERAR TOKEN DESPUÉS DE ENVIAR EL CORREO
+        session()->regenerateToken();
 
         return $status === Password::RESET_LINK_SENT
             ? back()->with(['status' => __($status)])
