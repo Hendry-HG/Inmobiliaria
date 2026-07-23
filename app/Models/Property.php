@@ -1,12 +1,11 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\PropertyImage;
@@ -30,8 +29,7 @@ class Property extends Model
         'sector', 'city', 'state', 'country', 'zip_code', 'bedrooms', 'bathrooms',
         'parking_spaces', 'area', 'land_area', 'floors', 'year_built', 'type',
         'status', 'features', 'user_id', 'category_id',
-        'views', 'inquiries', 'is_featured', 'featured_until', 'meta_data'
-        // latitude y longitude ELIMINADOS
+        'views', 'inquiries', 'meta_data', 'is_featured', 'featured_until'
     ];
 
     protected $casts = [
@@ -39,7 +37,7 @@ class Property extends Model
         'meta_data' => 'array',
         'price' => 'decimal:2',
         'is_featured' => 'boolean',
-        'featured_until' => 'date',
+        'featured_until' => 'datetime',
     ];
 
     // ==========================================
@@ -143,7 +141,7 @@ class Property extends Model
     }
 
     // ==========================================
-    // ACCESSORS
+    // ACCESSORS - IMÁGENES (VERSIÓN PRODUCCIÓN)
     // ==========================================
 
     public function getPrimaryImageAttribute()
@@ -152,25 +150,70 @@ class Property extends Model
                ?? $this->images()->first();
     }
 
+    /**
+     * OBTIENE LA URL DE LA IMAGEN PRINCIPAL
+     * - Verifica que el archivo exista
+     * - Si no existe, muestra placeholder con el título
+     * - Funciona en local y producción
+     */
     public function getPrimaryImageUrlAttribute()
     {
-        $image = $this->primary_image;
-        return $image ? asset('storage/' . $image->image_path) : 'https://via.placeholder.com/800x600?text=Sin+Imagen';
+         $image = $this->primary_image;
+
+    if ($image && !empty($image->image_path)) {
+        // Limpiar la ruta
+        $path = str_replace(['public/', 'storage/'], '', $image->image_path);
+
+        // Generar la URL correcta
+        return asset('storage/' . $path);
     }
 
+    $title = $this->title ?? 'Propiedad';
+    return 'https://ui-avatars.com/api/?name=' . urlencode($title) . '&background=c5a059&color=fff&size=400';
+    }
+
+    /**
+     * OBTIENE LA URL DE LA MINIATURA
+     */
     public function getThumbnailUrlAttribute()
     {
         $image = $this->primary_image;
-        if ($image && $image->thumbnail_path) {
-            return asset('storage/' . $image->thumbnail_path);
+
+        if ($image && !empty($image->thumbnail_path)) {
+            $path = $image->thumbnail_path;
+            $path = str_replace('public/', '', $path);
+            $path = str_replace('storage/', '', $path);
+
+            if (Storage::disk('public')->exists($path)) {
+                return asset('storage/' . $path);
+            }
         }
+
         return $this->primary_image_url;
     }
+
+    /**
+     * ALIAS PARA primary_image_url (MÁS SIMPLE DE USAR)
+     */
+    public function getImageUrlAttribute()
+    {
+        return $this->primary_image_url;
+    }
+
+    // ==========================================
+    // ACCESSORS - PRECIO Y UBICACIÓN
+    // ==========================================
 
     public function getFormattedPriceAttribute()
     {
         $currency = $this->price_currency ?? 'USD';
-        return $currency . ' ' . number_format($this->price, 2);
+        $symbols = [
+            'USD' => '$',
+            'EUR' => '€',
+            'VES' => 'Bs. ',
+        ];
+        $symbol = $symbols[$currency] ?? '$';
+        return $symbol . ' ' . number_format($this->price, 2);
     }
 
     public function getFullLocationAttribute()

@@ -190,10 +190,10 @@
                 @endif
 
                 {{-- ========================================== --}}
-                {{-- GESTIÓN --}}
+                {{-- GESTIÓN (Solo para Asesor y Admin) --}}
                 {{-- ========================================== --}}
                 @if($isAsesor || $isAdminOrSuper)
-                @if($canSee('sidebar.leads') || $canSee('sidebar.appointments'))
+                @if($canSee('sidebar.leads'))
                 <li class="pt-3" x-show="sidebarOpen" x-transition:enter.duration.300ms>
                     <p class="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gestión</p>
                 </li>
@@ -214,24 +214,26 @@
                     </div>
                 </li>
                 @endif
+                @endif
+                @endif
 
-                {{-- CITAS --}}
+                {{-- ========================================== --}}
+                {{-- CITAS - FUERA DEL BLOQUE DE GESTIÓN --}}
+                {{-- ========================================== --}}
                 @if($canSee('sidebar.appointments'))
                 <li class="relative group">
                     <a href="{{ route('citas.index') }}"
                        class="nav-item flex items-center gap-3 px-2 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('citas*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}"
                        :class="sidebarOpen ? 'justify-start' : 'justify-center'">
                         <i class="ph ph-calendar-check text-xl flex-shrink-0"></i>
-                        <span class="nav-text" :class="sidebarOpen ? 'nav-text-visible' : 'nav-text-hidden'" x-show="sidebarOpen" x-transition:enter.duration.300ms>Citas</span>
+                        <span class="nav-text" :class="sidebarOpen ? 'nav-text-visible' : 'nav-text-hidden'" x-show="sidebarOpen" x-transition:enter.duration.300ms>Mis Citas</span>
                     </a>
                     <div x-show="!sidebarOpen" x-cloak
                          class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-lg border border-slate-700">
-                        Citas
+                        Mis Citas
                         <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45 border-l border-b border-slate-700"></div>
                     </div>
                 </li>
-                @endif
-                @endif
                 @endif
 
                 {{-- ========================================== --}}
@@ -568,9 +570,9 @@
         </a>
         @endif
 
-        {{-- GESTIÓN --}}
+        {{-- GESTIÓN (Solo para Asesor y Admin) --}}
         @if($isAsesor || $isAdminOrSuper)
-        @if($canSee('sidebar.leads') || $canSee('sidebar.appointments'))
+        @if($canSee('sidebar.leads'))
         <div class="pt-3">
             <p class="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gestión</p>
         </div>
@@ -582,15 +584,15 @@
             <i class="ph ph-users-three text-xl"></i> Leads
         </a>
         @endif
+        @endif
+        @endif
 
-        {{-- CITAS --}}
+        {{-- CITAS - FUERA DEL BLOQUE DE GESTIÓN --}}
         @if($canSee('sidebar.appointments'))
         <a href="{{ route('citas.index') }}"
            class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-700/50 transition-colors {{ request()->routeIs('citas*') ? 'bg-slate-700/50 text-mso-gold' : 'text-slate-300 hover:text-white' }}">
-            <i class="ph ph-calendar-check text-xl"></i> Citas
+            <i class="ph ph-calendar-check text-xl"></i> Mis Citas
         </a>
-        @endif
-        @endif
         @endif
 
         {{-- CHAT --}}

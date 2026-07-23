@@ -11,6 +11,7 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                        <i class="ph ph-heart-straight text-mso-gold"></i>
                         Mis Propiedades Favoritas
                     </h1>
                     <p class="text-gray-600">
@@ -31,12 +32,12 @@
 
         {{-- Grid de propiedades favoritas --}}
         @if($paginatedProperties->count() > 0)
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="favoritesGrid">
                 @foreach($paginatedProperties as $property)
-                    <div class="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+                    <div class="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300" id="property-{{ $property->id }}">
 
                         {{-- Imagen --}}
-                        <a href="{{ route('catalogo.show', $property->id) }}" class="block relative h-48 overflow-hidden bg-gray-100">
+                        <div class="relative h-48 overflow-hidden bg-gray-100">
                             <img src="{{ $property->primary_image_url }}"
                                  alt="{{ $property->title }}"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -53,18 +54,15 @@
                                 </span>
                             </div>
 
-                            {{-- Botón eliminar favorito --}}
-                            <form action="{{ route('favorites.destroy', $property->id) }}" method="POST" class="absolute top-3 right-3">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md"
-                                        onclick="return confirm('¿Eliminar esta propiedad de favoritos?')"
-                                        title="Eliminar de favoritos">
-                                    <i class="ph-fill ph-heart text-base"></i>
-                                </button>
-                            </form>
-                        </a>
+                            {{-- Botón eliminar favorito con JavaScript --}}
+                            <button type="button"
+                                    onclick="eliminarFavorito({{ $property->id }})"
+                                    class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md z-10"
+                                    title="Eliminar de favoritos"
+                                    id="btn-fav-{{ $property->id }}">
+                                <i class="ph-fill ph-heart text-base"></i>
+                            </button>
+                        </div>
 
                         {{-- Contenido --}}
                         <div class="p-4">
@@ -156,4 +154,79 @@
         overflow: hidden;
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+function eliminarFavorito(propertyId) {
+    if (!confirm('¿Eliminar esta propiedad de favoritos?')) {
+        return;
+    }
+
+    // Mostrar loading en el botón
+    const btn = document.getElementById(`btn-fav-${propertyId}`);
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin text-base"></i>';
+    btn.disabled = true;
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    if (!token) {
+        alert('Error: Token CSRF no encontrado');
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        return;
+    }
+
+    fetch(`/favorites/${propertyId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Eliminar la tarjeta del DOM con animación
+            const card = document.getElementById(`property-${propertyId}`);
+            if (card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                    card.remove();
+                    // Actualizar contador
+                    const totalElement = document.querySelector('.text-gray-600 .font-semibold');
+                    if (totalElement) {
+                        const currentTotal = parseInt(totalElement.textContent);
+                        totalElement.textContent = currentTotal - 1;
+                    }
+                    // Verificar si no hay más favoritos
+                    const grid = document.getElementById('favoritesGrid');
+                    if (grid && grid.children.length === 0) {
+                        setTimeout(() => location.reload(), 500);
+                    }
+                }, 300);
+            }
+        } else {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            alert(data.message || 'Error al eliminar de favoritos');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        alert('Error de conexión. Intenta nuevamente.');
+    });
+}
+</script>
 @endpush

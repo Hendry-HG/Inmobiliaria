@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
@@ -8,6 +7,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Models\AppointmentSetting;
 use App\Traits\AuditTrait;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,9 +17,12 @@ class AppointmentController extends Controller
 {
     use AuditTrait;
 
-    public function __construct()
+    protected $permissionService;
+
+    public function __construct(PermissionService $permissionService)
     {
         $this->middleware('auth')->except(['createPublic']);
+        $this->permissionService = $permissionService;
     }
 
     private function getUserRoles($userId)
@@ -145,20 +148,41 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|email',
-                'phone' => 'required|string',
-                'date' => 'required|date|after:now',
-                'property_id' => 'required|exists:properties,id',
-                'message' => 'nullable|string'
-            ]);
+            $user = Auth::user();
 
-            $property = Property::find($request->property_id);
-            if (!$property) {
-                return response()->json(['success' => false, 'message' => 'Propiedad no encontrada.'], 404);
+            // 1. VERIFICAR PERMISO USANDO PERMISSIONSERVICE
+            if (!$this->permissionService->hasPermission('crear cita')) {
+                Log::warning('Intento de crear cita sin permiso', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para agendar citas. Contacta al administrador.'
+                ], 403);
             }
 
+            // 2. VALIDAR DATOS
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'phone' => 'required|string|max:20',
+                'date' => 'required|date|after:now',
+                'property_id' => 'required|exists:properties,id',
+                'message' => 'nullable|string|max:500'
+            ]);
+
+            // 3. BUSCAR PROPIEDAD
+            $property = Property::find($request->property_id);
+            if (!$property) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Propiedad no encontrada.'
+                ], 404);
+            }
+
+            // 4. VERIFICAR DISPONIBILIDAD DEL ASESOR
             $settings = AppointmentSetting::getForUser($property->user_id);
 
             if (!$settings->is_active) {
@@ -168,6 +192,7 @@ class AppointmentController extends Controller
                 ], 400);
             }
 
+            // 5. VERIFICAR HORARIO DISPONIBLE
             $dateTime = new \DateTime($request->date);
             $time = $dateTime->format('H:i');
             $dateStr = $dateTime->format('Y-m-d');
@@ -177,12 +202,13 @@ class AppointmentController extends Controller
             if (!$canSchedule['available']) {
                 return response()->json([
                     'success' => false,
-                    'message' => $canSchedule['reason']
+                    'message' => $canSchedule['reason'] ?? 'Horario no disponible para esta fecha.'
                 ], 400);
             }
 
+            // 6. CREAR LA CITA
             $appointment = Appointment::create([
-                'user_id'       => Auth::id(),
+                'user_id'       => $user->id,
                 'property_id'   => $property->id,
                 'asesor_id'     => $property->user_id,
                 'scheduled_date'=> $request->date,
@@ -190,24 +216,42 @@ class AppointmentController extends Controller
                 'contact_email' => $request->email,
                 'contact_phone' => $request->phone,
                 'message'       => $request->message,
-                'status'        => 'pending'
+                'status'        => 'pending',
+                'notes'         => null
             ]);
 
-            //  AUDITORÍA - CREACIÓN DE CITA
-            $this->logCreated($appointment, (Auth::user()?->full_name ?? 'Sistema') . ' SOLICITÓ una cita para "' . ($property->title ?? 'Propiedad #' . $property->id) . '" el ' . $request->date);
+            // 7. LOG DE AUDITORÍA
+            $this->logCreated(
+                $appointment,
+                ($user->full_name ?? $user->name) . ' solicitó una cita para "' . ($property->title ?? 'Propiedad #' . $property->id) . '" el ' . $request->date
+            );
 
-            Log::info('Nueva cita creada', ['id' => $appointment->id, 'user' => Auth::id()]);
+            Log::info('Nueva cita creada', [
+                'appointment_id' => $appointment->id,
+                'user_id' => $user->id,
+                'property_id' => $property->id,
+                'date' => $request->date
+            ]);
 
             return response()->json([
                 'success' => true,
-                'message' => '¡Cita agendada correctamente!'
+                'message' => '¡Cita agendada correctamente! Te enviaremos la confirmación a tu correo.'
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('Error creating appointment: ' . $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agendar: ' . $e->getMessage()
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error creando cita: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al agendar la cita. Por favor, intenta de nuevo más tarde.'
             ], 500);
         }
     }
@@ -234,7 +278,7 @@ class AppointmentController extends Controller
             $appointment->status = $request->status;
             $appointment->save();
 
-            //  AUDITORÍA - CAMBIO DE ESTADO DE CITA
+            // AUDITORÍA
             $statusLabels = [
                 'pending' => 'Pendiente',
                 'confirmed' => 'Confirmada',
@@ -244,9 +288,10 @@ class AppointmentController extends Controller
             ];
 
             $this->logAudit('updated', $appointment, $oldValues, $appointment->toArray(),
-                (Auth::user()?->full_name ?? 'Sistema') . ' CAMBIÓ el estado de la cita para "' . ($appointment->property?->title ?? 'Propiedad #' . $appointment->property_id) . '" de "' . ($statusLabels[$oldStatus] ?? $oldStatus) . '" a "' . ($statusLabels[$request->status] ?? $request->status) . '"'
+                ($user->full_name ?? $user->name) . ' cambió el estado de la cita de "' . ($statusLabels[$oldStatus] ?? $oldStatus) . '" a "' . ($statusLabels[$request->status] ?? $request->status) . '"'
             );
 
+            // NOTIFICACIÓN AL CLIENTE
             if ($appointment->user) {
                 try {
                     $appointment->user->createNotification(
@@ -256,7 +301,7 @@ class AppointmentController extends Controller
                         route('citas.index')
                     );
                 } catch (\Exception $e) {
-                    Log::warning('Error al enviar notificación: ' . $e->getMessage());
+                    Log::warning('Error enviando notificación: ' . $e->getMessage());
                 }
             }
 
@@ -322,12 +367,13 @@ class AppointmentController extends Controller
 
             $appointment->save();
 
-            //  AUDITORÍA - REPROGRAMACIÓN DE CITA
+            // AUDITORÍA
             $this->logAudit('updated', $appointment, $oldValues, $appointment->toArray(),
-                (Auth::user()?->full_name ?? 'Sistema') . ' REPROGRAMÓ la cita para "' . ($appointment->property?->title ?? 'Propiedad #' . $appointment->property_id) . '" para el ' . ($appointment->scheduled_date ? $appointment->scheduled_date->format('d/m/Y H:i') : '')
+                ($user->full_name ?? $user->name) . ' reprogramó la cita para el ' . ($appointment->scheduled_date ? $appointment->scheduled_date->format('d/m/Y H:i') : '')
             );
 
-            if ($appointment->user && $request->has('scheduled_date') && $request->filled('scheduled_date')) {
+            // NOTIFICACIÓN
+            if ($appointment->user && $request->has('scheduled_date')) {
                 try {
                     $appointment->user->createNotification(
                         'Cita Reprogramada',
@@ -336,7 +382,7 @@ class AppointmentController extends Controller
                         route('citas.index')
                     );
                 } catch (\Exception $e) {
-                    Log::warning('Error al enviar notificación: ' . $e->getMessage());
+                    Log::warning('Error enviando notificación: ' . $e->getMessage());
                 }
             }
 

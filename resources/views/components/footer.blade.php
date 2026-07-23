@@ -5,7 +5,7 @@
             <div class="col-span-1 md:col-span-1">
                 <a href="{{ route('home') }}" class="flex items-center gap-3 group mb-6">
                     <div class="w-12 h-12 border-2 border-mso-gold flex items-center justify-center overflow-hidden rounded-xl transition-all duration-300 group-hover:scale-105 bg-white">
-                        <img src="{{ url('/favicon-96x96.png') }}"
+                        <img src="{{ asset('favicon-96x96.png') }}"
                              alt="MSO Inmobiliaria"
                              class="w-10 h-10 object-contain transition-all duration-300"
                              loading="lazy"

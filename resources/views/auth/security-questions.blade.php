@@ -118,7 +118,7 @@
                 if (submitBtn) {
                     isSubmitting = true;
                     const originalText = submitBtn.textContent;
-                    submitBtn.textContent = '⏳ ENVIANDO...';
+                    submitBtn.textContent = ' ENVIANDO...';
                     submitBtn.disabled = true;
                     submitBtn.style.opacity = '0.7';
                     submitBtn.style.cursor = 'wait';

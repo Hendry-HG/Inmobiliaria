@@ -19,9 +19,7 @@ class PropertyImage extends Model
         'is_primary' => 'boolean',
     ];
 
-    // ==========================================
-    // EVENTO PARA ELIMINAR ARCHIVOS FÍSICOS
-    // ==========================================
+    
     protected static function booted()
     {
         static::deleting(function ($image) {
@@ -42,13 +40,13 @@ class PropertyImage extends Model
         return $this->belongsTo(Property::class);
     }
 
-    // Accessor para la URL de la imagen
+    
     public function getUrlAttribute()
     {
         return asset('storage/' . $this->image_path);
     }
 
-    // Accessor para la URL de la miniatura
+   
     public function getThumbnailUrlAttribute()
     {
         if ($this->thumbnail_path) {
@@ -57,7 +55,7 @@ class PropertyImage extends Model
         return $this->url;
     }
 
-    // Accessor para verificar si el archivo existe
+    
     public function getExistsAttribute()
     {
         return Storage::disk('public')->exists($this->image_path);

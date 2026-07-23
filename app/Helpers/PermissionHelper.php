@@ -6,9 +6,7 @@ namespace App\Helpers;
 use App\Services\PermissionService;
 
 if (!function_exists('permission')) {
-    /**
-     * Obtener una instancia del servicio de permisos
-     */
+    
     function permission($user = null)
     {
         if ($user) {

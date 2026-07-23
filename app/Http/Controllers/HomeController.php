@@ -1,32 +1,42 @@
 <?php
-// app/Http/Controllers/HomeController.php
 
 namespace App\Http\Controllers;
 
+use App\Models\Property;
+use App\Models\State;
+use App\Models\SiteConfiguration;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
     public function index()
     {
-         $venezuelaId = 1; // ID de Venezuela
+        $venezuelaId = 1;
 
-    $states = \App\Models\State::where('country_id', $venezuelaId)
-        ->orderBy('name')
-        ->get()
-        ->map(function($state) {
-            $state->properties_count = \App\Models\Property::where('status', 'publicada')
-                ->where('state_id', $state->id)
-                ->count();
-            return $state;
+        // Estados
+        $states = Cache::remember('home_states', 3600, function() use ($venezuelaId) {
+            return State::where('country_id', $venezuelaId)
+                ->withCount(['properties' => function($q) {
+                    $q->where('status', 'publicada');
+                }])
+                ->orderBy('name')
+                ->get();
         });
 
-    return view('home', compact('states'));
-    }
+        // Propiedades destacadas
+        $config = SiteConfiguration::getConfig();
+        $featuredProperties = $config->getFeaturedProperties();
 
-    public function dashboard()
-    {
-        // Redirigir al dashboard específico según el rol
-        return redirect()->route('dashboard');
+        // SOLO 1 PROPIEDAD RECIENTE
+        $recentProperties = Cache::remember('home_recent_properties', 1800, function() {
+            return Property::with(['primaryImage', 'user'])
+                ->where('status', 'publicada')
+                ->latest()
+                ->limit(1)
+                ->get();
+        });
+
+        return view('home', compact('states', 'featuredProperties', 'recentProperties'));
     }
 }

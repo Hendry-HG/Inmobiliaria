@@ -1,11 +1,12 @@
 <?php
 
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppointmentSetting;
 use App\Models\Appointment;
+use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -13,14 +14,21 @@ use Illuminate\Support\Facades\Log;
 
 class AppointmentSettingController extends Controller
 {
-    public function __construct()
+    protected $permissionService;
+
+    public function __construct(PermissionService $permissionService)
     {
         $this->middleware('auth');
-        $this->middleware('role:Super Admin|Administrador|Asesor Inmobiliario');
+        $this->permissionService = $permissionService;
     }
 
     public function index()
     {
+        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        if (!$this->permissionService->hasPermission('ver configuración')) {
+            abort(403, 'No tienes permiso para ver la configuración de citas.');
+        }
+
         $settings = AppointmentSetting::getForUser(Auth::id());
         $configuredDays = $settings->getConfiguredDays();
 
@@ -29,7 +37,15 @@ class AppointmentSettingController extends Controller
 
     public function update(Request $request)
     {
-        Log::info(' Configuración recibida', [
+        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        if (!$this->permissionService->hasPermission('editar configuración')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para editar la configuración de citas.'
+            ], 403);
+        }
+
+        Log::info('Configuración recibida', [
             'user_id' => Auth::id(),
             'daily_config' => $request->input('daily_config'),
             'all_data' => $request->all()
@@ -71,11 +87,11 @@ class AppointmentSettingController extends Controller
             foreach ($days as $day) {
                 $max = (int) $request->input("daily_config.{$day}.max", 0);
                 $hours = $request->input("daily_config.{$day}.hours", []);
-                
+
                 if (is_string($hours)) {
                     $hours = explode(',', $hours);
                 }
-                
+
                 if (is_array($hours)) {
                     $hours = array_filter($hours, function($h) {
                         return !empty($h) && is_string($h);
@@ -109,7 +125,7 @@ class AppointmentSettingController extends Controller
 
             $settings->save();
 
-            Log::info(' Configuración guardada', [
+            Log::info('Configuración guardada', [
                 'user_id' => Auth::id(),
                 'daily_config' => $dailyConfig,
                 'hours_saved' => $dailyConfig['monday']['hours'] ?? []
@@ -118,10 +134,10 @@ class AppointmentSettingController extends Controller
             Cache::forget("appointment_settings_{$settings->user_id}");
 
             return redirect()->route('citas.configuracion')
-                ->with('success', ' Configuración de citas actualizada correctamente.');
+                ->with('success', 'Configuración de citas actualizada correctamente.');
 
         } catch (\Exception $e) {
-            Log::error(' Error al actualizar configuración de citas', [
+            Log::error('Error al actualizar configuración de citas', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -135,6 +151,7 @@ class AppointmentSettingController extends Controller
 
     public function getAvailableSlots(Request $request)
     {
+        //  PÚBLICO PARA USUARIOS AUTENTICADOS
         $request->validate([
             'date' => 'required|date|after_or_equal:today',
             'asesor_id' => 'required|exists:users,id',
@@ -142,7 +159,11 @@ class AppointmentSettingController extends Controller
 
         try {
             $settings = AppointmentSetting::getForUser($request->asesor_id);
-            
+
+            if (!$settings) {
+                $settings = $this->createDefaultSettings($request->asesor_id);
+            }
+
             if (!$settings->is_active) {
                 return response()->json([
                     'success' => false,
@@ -203,6 +224,7 @@ class AppointmentSettingController extends Controller
 
     public function getAvailableDays(Request $request)
     {
+        //  PÚBLICO PARA USUARIOS AUTENTICADOS
         $request->validate([
             'year' => 'required|integer|min:2024|max:2030',
             'month' => 'required|integer|min:1|max:12',
@@ -210,8 +232,22 @@ class AppointmentSettingController extends Controller
         ]);
 
         try {
+            // Verificar que el asesor existe
+            $asesor = User::find($request->asesor_id);
+            if (!$asesor || !$asesor->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El asesor no está disponible.'
+                ], 404);
+            }
+
             $settings = AppointmentSetting::getForUser($request->asesor_id);
-            
+
+            // Si no tiene configuración, crear una por defecto
+            if (!$settings) {
+                $settings = $this->createDefaultSettings($request->asesor_id);
+            }
+
             $year = $request->year;
             $month = $request->month;
             $today = date('Y-m-d');
@@ -276,6 +312,14 @@ class AppointmentSettingController extends Controller
 
     public function addException(Request $request)
     {
+        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        if (!$this->permissionService->hasPermission('editar configuración')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para agregar excepciones.'
+            ], 403);
+        }
+
         $request->validate([
             'date' => 'required|date|after:today',
             'reason' => 'required|string|max:255',
@@ -283,6 +327,11 @@ class AppointmentSettingController extends Controller
 
         try {
             $settings = AppointmentSetting::getForUser(Auth::id());
+
+            if (!$settings) {
+                $settings = $this->createDefaultSettings(Auth::id());
+            }
+
             $exceptions = $settings->exceptions ?? [];
 
             foreach ($exceptions as $key => $exception) {
@@ -325,12 +374,28 @@ class AppointmentSettingController extends Controller
 
     public function removeException(Request $request)
     {
+        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        if (!$this->permissionService->hasPermission('editar configuración')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para eliminar excepciones.'
+            ], 403);
+        }
+
         $request->validate([
             'date' => 'required|date',
         ]);
 
         try {
             $settings = AppointmentSetting::getForUser(Auth::id());
+
+            if (!$settings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay configuración para este usuario.'
+                ], 404);
+            }
+
             $exceptions = array_filter($settings->exceptions ?? [], function($exception) use ($request) {
                 return $exception['date'] !== $request->date;
             });
@@ -356,5 +421,37 @@ class AppointmentSettingController extends Controller
                 'message' => 'Error al eliminar la excepción.'
             ], 500);
         }
+    }
+
+    /**
+     * Crear configuración por defecto para un asesor
+     */
+    private function createDefaultSettings($userId)
+    {
+        $settings = AppointmentSetting::firstOrCreate(
+            ['user_id' => $userId],
+            [
+                'is_active' => true,
+                'apply_always' => true,
+                'slot_duration' => 30,
+                'break_duration' => 5,
+                'notify_client' => true,
+                'reminder_minutes' => 60,
+                'daily_config' => [
+                    'monday' => ['max' => 5, 'hours' => ['09:00', '10:00', '11:00', '14:00', '15:00']],
+                    'tuesday' => ['max' => 5, 'hours' => ['09:00', '10:00', '11:00', '14:00', '15:00']],
+                    'wednesday' => ['max' => 5, 'hours' => ['09:00', '10:00', '11:00', '14:00', '15:00']],
+                    'thursday' => ['max' => 5, 'hours' => ['09:00', '10:00', '11:00', '14:00', '15:00']],
+                    'friday' => ['max' => 5, 'hours' => ['09:00', '10:00', '11:00', '14:00', '15:00']],
+                    'saturday' => ['max' => 0, 'hours' => []],
+                    'sunday' => ['max' => 0, 'hours' => []],
+                ],
+                'exceptions' => []
+            ]
+        );
+
+        Cache::forget("appointment_settings_{$userId}");
+
+        return $settings;
     }
 }

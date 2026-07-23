@@ -85,10 +85,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         'security_questions' => 'array',
     ];
 
-    // ==========================================
-    // ACCESORS (GETTERS)
-    // ==========================================
-
+    
     public function getFullNameAttribute()
     {
         if ($this->last_name) {
@@ -133,7 +130,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     }
 
     // ==========================================
-    // ACCESSORS DE UBICACIÓN
+    //  UBICACIÓN
     // ==========================================
 
     public function getCountryNameAttribute()

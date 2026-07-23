@@ -1,16 +1,42 @@
+@props(['properties' => null])
+
 @php
+    if (is_null($properties)) {
+        $config = App\Models\SiteConfiguration::getConfig();
+        $featuredIds = $config->featured_properties ?? [];
+
+        //  Obtener las propiedades correctamente
+        if (is_string($featuredIds)) {
+            $featuredIds = json_decode($featuredIds, true) ?? [];
+        }
+
+        if (is_array($featuredIds) && !empty($featuredIds)) {
+            $properties = App\Models\Property::whereIn('id', $featuredIds)
+                ->where('status', 'publicada')
+                ->with(['primaryImage', 'user'])
+                ->get();
+        } else {
+            $properties = collect();
+        }
+    }
+
+    //  Verificar que $properties es una colección
+    if (!$properties instanceof \Illuminate\Support\Collection) {
+        $properties = collect();
+    }
+
+    //  Obtener la configuración para los badges
     $config = App\Models\SiteConfiguration::getConfig();
-    $properties = $config->getFeaturedProperties();
 @endphp
 
 <section id="propiedades" class="py-8 sm:py-12 md:py-20 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 sm:mb-6 md:mb-10">
         <div class="animate-fade-in-up w-full sm:w-auto">
             <span class="text-mso-gold font-bold tracking-widest uppercase text-[8px] sm:text-[10px] md:text-xs mb-1 sm:mb-2 block">
-                {{ $config->featured_badge }}
+                {{ $config->featured_badge ?? 'Colección Exclusiva' }}
             </span>
             <h2 class="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-serif text-slate-900">
-                {{ $config->featured_title }}
+                {{ $config->featured_title ?? 'Propiedades Destacadas' }}
             </h2>
         </div>
         <a href="{{ route('catalogo.index') }}"
@@ -35,8 +61,11 @@
                                     <img src="{{ $property->primary_image_url }}"
                                          alt="{{ $property->title }}"
                                          loading="lazy"
+                                         width="320"
+                                         height="240"
+                                         decoding="async"
                                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                         onerror="this.src='https://via.placeholder.com/800x600?text=Sin+Imagen'">
+                                         onerror="this.src='https://via.placeholder.com/320x240?text=Sin+Imagen'">
 
                                     {{-- Badge de tipo --}}
                                     <div class="absolute top-2 left-2 sm:top-3 sm:left-3 bg-mso-gold text-mso-blue text-[8px] xs:text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full z-10">
@@ -80,14 +109,13 @@
                                     </h3>
 
                                     <div class="flex items-center gap-0.5 xs:gap-1 text-[10px] xs:text-xs sm:text-sm text-slate-500 mt-0.5 xs:mt-1">
-                                        <!-- Ubicación con SVG -->
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 256 256" class="text-mso-gold flex-shrink-0">
                                             <path fill="currentColor" d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.5,64.7,42,96.4a216.6,216.6,0,0,0,36.6,30.6a8.1,8.1,0,0,0,8.9,0c4.2-2.8,12.8-8.8,24.6-20.4c14.2-13.9,27.4-31.4,38.1-50.4c9.9-17.5,15.3-34.2,15.8-50.2A88.1,88.1,0,0,0,128,16Zm0,160c-15.2,0-56-20.8-56-72a56,56,0,1,1,112,0C184,155.2,143.2,176,128,176Z"/>
                                         </svg>
                                         <span class="line-clamp-1">{{ $property->location ?? $property->address ?? $property->full_location ?? 'Ubicación no especificada' }}</span>
                                     </div>
 
-                                    {{-- Características con SVG icons --}}
+                                    {{-- Características --}}
                                     <div class="flex flex-wrap items-center gap-1 xs:gap-2 sm:gap-3 md:gap-4 mt-2 xs:mt-3 text-[10px] xs:text-xs sm:text-sm text-slate-600">
                                         @if($property->bedrooms)
                                             <span class="flex items-center gap-0.5">
@@ -138,10 +166,8 @@
                     @endforeach
                 </div>
 
-                {{-- Paginación --}}
                 <div class="swiper-pagination !bottom-0 !relative !mt-4 sm:!mt-6 md:!mt-8"></div>
 
-                {{-- Navegación --}}
                 <div class="swiper-button-next !hidden md:!flex !text-mso-gold !w-8 !h-8 lg:!w-10 lg:!h-10 !bg-white/80 !rounded-full !shadow-lg hover:!bg-white transition-colors after:!text-sm lg:after:!text-lg"></div>
                 <div class="swiper-button-prev !hidden md:!flex !text-mso-gold !w-8 !h-8 lg:!w-10 lg:!h-10 !bg-white/80 !rounded-full !shadow-lg hover:!bg-white transition-colors after:!text-sm lg:after:!text-lg"></div>
             </div>
@@ -153,12 +179,12 @@
                 const swiper = new Swiper('.featured-carousel', {
                     slidesPerView: 1,
                     centeredSlides: true,
-                    loop: false, // ❌ LOOP DESACTIVADO - Soluciona el problema en desktop
+                    loop: false,
                     spaceBetween: 16,
                     slideToClickedSlide: true,
                     autoplay: {
                         delay: 4000,
-                        disableOnInteraction: true, //  Se detiene al interactuar
+                        disableOnInteraction: true,
                         pauseOnMouseEnter: true,
                     },
                     pagination: {
@@ -205,7 +231,7 @@
                             slidesPerView: 3,
                             spaceBetween: 24,
                             centeredSlides: false,
-                            loop: false, // Loop desactivado en desktop
+                            loop: false,
                         },
                         1280: {
                             slidesPerView: 4,

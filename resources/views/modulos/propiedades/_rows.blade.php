@@ -10,7 +10,8 @@
             <a href="{{ $showRoute }}">
                 <img src="{{ $property->primary_image_url }}"
                      class="w-12 h-12 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition-opacity"
-                     onerror="this.src='https://via.placeholder.com/100x100?text=Error'">
+                     alt="{{ $property->title }}"
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($property->title) }}&background=c5a059&color=fff&size=48'">
             </a>
             <div>
                 <a href="{{ $showRoute }}"
@@ -66,12 +67,8 @@
         @endif
     @endcan
 
-    {{-- ============================================= --}}
-    {{-- ACCIONES - Con permisos específicos           --}}
-    {{-- ============================================= --}}
     <td class="p-4 text-right">
         <div class="flex justify-end gap-2">
-            {{-- VER - Todos pueden ver si tienen permiso --}}
             @can('ver propiedades')
                 <a href="{{ $showRoute }}"
                    class="text-green-600 hover:text-green-800 font-medium p-1"
@@ -84,9 +81,6 @@
                 </span>
             @endcan
 
-            {{-- ============================================= --}}
-            {{-- EDITAR - Solo con permiso                     --}}
-            {{-- ============================================= --}}
             @can('editar propiedad')
                 @php
                     $editRoute = (isset($isAdmin) && $isAdmin)
@@ -104,9 +98,6 @@
                 </span>
             @endcan
 
-            {{-- ============================================= --}}
-            {{-- ELIMINAR - Solo con permiso                   --}}
-            {{-- ============================================= --}}
             @can('eliminar propiedad')
                 @php
                     $deleteRoute = (isset($isAdmin) && $isAdmin)

@@ -21,17 +21,13 @@ class ReportSnapshot extends Model
         'sent_at' => 'datetime',
     ];
 
-    /**
-     * Relación con el usuario que generó el reporte
-     */
+    
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Scope para buscar reportes por tipo
-     */
+   
     public function scopeOfType($query, $type)
     {
         return $query->where('report_type', $type);

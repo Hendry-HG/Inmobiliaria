@@ -88,7 +88,7 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'mso_grupoinmobiliaria'),
+            'database' => env('DB_DATABASE', 'mso_grupoinmobiliaria_hendryanellysh_dennysb_eleomarp'),
             'username' => env('DB_USERNAME', 'postgres'),
             'password' => env('DB_PASSWORD', '12345'),
             'charset' => env('DB_CHARSET', 'utf8'),

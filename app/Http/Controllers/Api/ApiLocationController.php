@@ -95,34 +95,32 @@ class ApiLocationController extends Controller
     }
 
     public function getPhoneConfig($countryId)
-{
-    $country = Country::find($countryId);
+    {
+        $country = Country::find($countryId);
 
-    if (!$country) {
+        if (!$country) {
+            return response()->json([
+                'code' => '+58',
+                'mask' => '000-0000000',
+                'minLength' => 10,
+                'maxLength' => 10,
+                'placeholder' => '412 1234567'
+            ]);
+        }
+
         return response()->json([
-            'code' => '+58',
-            'mask' => '000-0000000',
-            'minLength' => 10,
-            'maxLength' => 10,
-            'placeholder' => '412 1234567'
+            'code' => '+' . $country->phone_code,
+            'mask' => $country->phone_mask ?? '000-0000000',
+            'minLength' => $country->phone_min_length ?? 10,
+            'maxLength' => $country->phone_max_length ?? 10,
+            'placeholder' => $this->generatePlaceholder($country->phone_mask ?? '000-0000000')
         ]);
     }
 
-    return response()->json([
-        'code' => '+' . $country->phone_code,
-        'mask' => $country->phone_mask,
-        'minLength' => $country->phone_min_length,
-        'maxLength' => $country->phone_max_length,
-        'placeholder' => $this->generatePlaceholder($country->phone_mask)
-    ]);
-}
-
-private function generatePlaceholder($mask)
-{
-    // Convertir máscara "000-0000000" en placeholder "412 1234567"
-    $placeholder = str_replace('0', '1', $mask);
-    $placeholder = str_replace('1', 'X', $placeholder);
-    return $placeholder;
-}
-
+    private function generatePlaceholder($mask)
+    {
+        $placeholder = str_replace('0', '1', $mask);
+        $placeholder = str_replace('1', 'X', $placeholder);
+        return $placeholder;
+    }
 }

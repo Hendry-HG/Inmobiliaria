@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SiteConfiguration extends Model
 {
@@ -30,15 +31,26 @@ class SiteConfiguration extends Model
     ];
 
     /**
-     * Obtener la configuración (singleton)
+     * Obtener configuración con caché
      */
     public static function getConfig()
     {
-        return self::first() ?? self::createDefault();
+        return Cache::remember('site_config', 3600, function() {
+            return self::first() ?? self::createDefault();
+        });
     }
 
     /**
-     * Crear configuración por defecto SIN imágenes
+     * Limpiar caché de configuración
+     */
+    public static function clearCache()
+    {
+        Cache::forget('site_config');
+        Cache::forget('featured_properties');
+    }
+
+    /**
+     * Crear configuración por defecto
      */
     public static function createDefault()
     {
@@ -47,7 +59,7 @@ class SiteConfiguration extends Model
             'hero_title_line1' => 'El Arte de',
             'hero_title_line2' => 'Vivir Bien',
             'hero_subtitle' => 'Descubre una curaduría exclusiva de propiedades de lujo en las mejores zonas de Venezuela.',
-            'hero_images' => [], // ← ARRAY VACÍO
+            'hero_images' => [],
             'hero_image_paths' => null,
             'featured_badge' => 'Colección Exclusiva',
             'featured_title' => 'Propiedades Destacadas',
@@ -61,33 +73,86 @@ class SiteConfiguration extends Model
     }
 
     /**
+     *  Sincronizar propiedades destacadas automáticamente al guardar
+     */
+    protected static function booted()
+    {
+        static::saved(function ($config) {
+            if ($config->wasChanged('featured_properties')) {
+                $ids = $config->featured_properties ?? [];
+
+                // Desmarcar todas las propiedades como destacadas
+                Property::where('is_featured', true)->update(['is_featured' => false]);
+
+                // Marcar las nuevas propiedades destacadas
+                if (!empty($ids)) {
+                    Property::whereIn('id', $ids)
+                        ->where('status', 'publicada')
+                        ->update(['is_featured' => true]);
+                }
+
+                // Limpiar caché
+                self::clearCache();
+            }
+        });
+
+        static::deleted(function () {
+            self::clearCache();
+        });
+    }
+
+    /**
+     *  Obtener propiedades destacadas
+     */
+    public function getFeaturedProperties()
+    {
+        return Cache::remember('featured_properties', 3600, function() {
+            // Nivel 1: IDs en la configuración
+            if (!empty($this->featured_properties)) {
+                $properties = Property::whereIn('id', $this->featured_properties)
+                    ->where('status', 'publicada')
+                    ->with(['primaryImage', 'user'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                if ($properties->isNotEmpty()) {
+                    return $properties;
+                }
+            }
+
+            // Nivel 2: Propiedades con is_featured = true
+            $properties = Property::with(['primaryImage', 'user'])
+                ->where('status', 'publicada')
+                ->where('is_featured', true)
+                ->orderBy('created_at', 'desc')
+                ->limit(6)
+                ->get();
+
+            if ($properties->isNotEmpty()) {
+                return $properties;
+            }
+
+            // Nivel 3: Propiedades más recientes (fallback final)
+            return Property::with(['primaryImage', 'user'])
+                ->where('status', 'publicada')
+                ->orderBy('created_at', 'desc')
+                ->limit(6)
+                ->get();
+        });
+    }
+
+    /**
      * Obtener todas las imágenes del hero (combinando URLs y subidas)
      */
     public function getHeroImagesAttribute($value)
     {
         $images = json_decode($value, true) ?? [];
 
-        // Si hay imágenes subidas localmente, combinarlas
         if ($this->hero_image_paths) {
             $uploadedImages = json_decode($this->hero_image_paths, true) ?? [];
             $images = array_merge($images, $uploadedImages);
         }
 
         return $images;
-    }
-
-    /**
-     * Obtener las propiedades destacadas
-     */
-    public function getFeaturedProperties()
-    {
-        if (empty($this->featured_properties)) {
-            return collect();
-        }
-
-        return Property::whereIn('id', $this->featured_properties)
-            ->where('status', 'publicada')
-            ->with('primaryImage')
-            ->get();
     }
 }

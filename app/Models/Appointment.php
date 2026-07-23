@@ -25,9 +25,7 @@ class Appointment extends Model
         'property_sold' => 'boolean',
     ];
 
-    // ==========================================
-    // RELACIONES
-    // ==========================================
+  
 
     public function user()
     {
@@ -44,9 +42,7 @@ class Appointment extends Model
         return $this->belongsTo(User::class, 'asesor_id');
     }
 
-    // ==========================================
-    // SCOPES
-    // ==========================================
+    
 
     public function scopeForRole($query, $user)
     {
@@ -67,9 +63,7 @@ class Appointment extends Model
         return $query->where('status', 'pending');
     }
 
-    // ==========================================
-    // ACCESSORS
-    // ==========================================
+    
 
     public function getTimeAttribute()
     {

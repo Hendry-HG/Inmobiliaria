@@ -33,9 +33,7 @@ trait AuditTrait
             $description = "{$userName} {$eventLabel} " . class_basename($subject) . " '{$subjectName}'";
         }
 
-        // ==========================================
-        // CONVERTIR A JSON ANTES DE GUARDAR
-        // ==========================================
+        
         $oldJson = $this->toJson($oldValues);
         $newJson = $this->toJson($newValues);
 

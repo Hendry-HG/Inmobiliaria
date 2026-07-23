@@ -16,11 +16,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\RateLimiter;
 
 class ChatController extends Controller
 {
     private const MAX_MESSAGE_LENGTH = 1000;
-    private const TYPING_TIMEOUT = 30; // segundos
+    private const TYPING_THROTTLE = 3;
+    private const TYPING_CACHE_KEY_PREFIX = 'typing_';
+    private const MAX_MESSAGES_PER_MINUTE = 30;
 
     public function __construct()
     {
@@ -29,10 +32,11 @@ class ChatController extends Controller
         $this->middleware('throttle:100,1')->only(['getMessages', 'getConversations']);
     }
 
-    /**
-     * Obtiene los roles de un usuario con caché.
-     */
-    private function getUserRoles($userId): array
+    // ==========================================
+    // HELPERS PRIVADOS
+    // ==========================================
+
+    private function getUserRoles(int $userId): array
     {
         return Cache::remember("user_roles_{$userId}", 300, function () use ($userId) {
             return DB::table('model_has_roles')
@@ -44,110 +48,138 @@ class ChatController extends Controller
         });
     }
 
-    /**
-     * Limpia la caché de roles de un usuario.
-     */
-    private function clearUserRolesCache($userId): void
+    private function clearUserCache(int $userId): void
     {
         Cache::forget("user_roles_{$userId}");
+        Cache::forget("user_permissions_{$userId}");
     }
 
-    /**
-     * Muestra la vista principal del chat.
-     */
+    private function getReceiverId(Conversation $conversation, int $userId): int
+    {
+        return $userId === $conversation->client_id
+            ? $conversation->asesor_id
+            : $conversation->client_id;
+    }
+
+    private function canUserAccessConversation(int $userId, Conversation $conversation): bool
+    {
+        return in_array($userId, [$conversation->client_id, $conversation->asesor_id]);
+    }
+
+    private function formatMessage(Message $message): array
+    {
+        return [
+            'id' => $message->id,
+            'content' => $message->content,
+            'user_id' => $message->user_id,
+            'user_name' => $message->user->full_name ?? $message->user->name ?? 'Usuario',
+            'user_avatar' => $message->user->profile_photo_url ?? null,
+            'formatted_time' => $message->created_at->format('H:i'),
+            'is_read' => $message->is_read,
+            'created_at' => $message->created_at->toISOString(),
+        ];
+    }
+
+    private function formatConversation(Conversation $conversation, User $user, bool $isCliente): array
+    {
+        $otherUser = $isCliente ? $conversation->asesor : $conversation->client;
+
+        return [
+            'id' => $conversation->id,
+            'other_user' => [
+                'id' => $otherUser->id,
+                'name' => $otherUser->full_name ?? $otherUser->name,
+                'avatar' => $otherUser->profile_photo_url,
+                'is_online' => $otherUser->is_online ?? false,
+                'email' => $otherUser->email,
+                'specialization' => $otherUser->specialization,
+                'last_seen' => $otherUser->last_seen_at?->diffForHumans(),
+            ],
+            'unread_count' => Message::where('conversation_id', $conversation->id)
+                ->where('user_id', '!=', $user->id)
+                ->where('is_read', false)
+                ->count(),
+            'last_message' => $conversation->lastMessage?->content,
+            'last_message_time' => $conversation->lastMessage?->created_at?->diffForHumans(),
+        ];
+    }
+
+    // ==========================================
+    // VISTA PRINCIPAL
+    // ==========================================
+
     public function index()
     {
         $user = Auth::user();
-        $userRoles = $this->getUserRoles($user->id);
+        $roles = $this->getUserRoles($user->id);
 
-        $isAsesor = in_array('Asesor Inmobiliario', $userRoles);
-        $isCliente = in_array('Cliente', $userRoles);
-        $isAdmin = in_array('Super Admin', $userRoles) || in_array('Administrador', $userRoles);
+        $isAsesor = in_array('Asesor Inmobiliario', $roles);
+        $isCliente = in_array('Cliente', $roles);
 
-        Log::info('Chat Index', [
-            'user_id' => $user->id,
-            'roles' => $userRoles,
-            'is_asesor' => $isAsesor,
-            'is_cliente' => $isCliente
-        ]);
+        $conversations = Conversation::query()
+            ->with(['client', 'asesor', 'lastMessage'])
+            ->where($isCliente ? 'client_id' : 'asesor_id', $user->id)
+            ->orderBy('last_message_at', 'desc')
+            ->get()
+            ->map(fn($conv) => $this->formatConversation($conv, $user, $isCliente));
 
-        $conversations = $this->getUserConversations($user);
+        $contactos = $this->getAvailableContactos($user, $isCliente, $isAsesor);
 
-        // Obtener asesores disponibles (para Clientes)
-        $asesoresDisponibles = collect();
-        if ($isCliente) {
-            $asesorIds = $this->getUsersByRole('Asesor Inmobiliario');
-            $asesoresDisponibles = $this->formatAsesoresForClient($user, $asesorIds);
-        }
-
-        // Obtener clientes con citas (para Asesores)
-        $clientesDisponibles = collect();
-        if ($isAsesor) {
-            $clientesDisponibles = $this->formatClientesForAsesor($user);
-        }
+        // ✅ Pasar contactos con el nombre correcto para la vista
+        $asesoresDisponibles = $isCliente ? $contactos : collect();
+        $clientesDisponibles = $isAsesor ? $contactos : collect();
 
         return view('modulos.chat.index', compact(
             'conversations',
             'asesoresDisponibles',
             'clientesDisponibles',
             'isAsesor',
-            'isCliente',
-            'isAdmin'
+            'isCliente'
         ));
     }
 
-    /**
-     * Obtiene IDs de usuarios por rol.
-     */
-    private function getUsersByRole(string $roleName): array
+    private function getAvailableContactos(User $user, bool $isCliente, bool $isAsesor): \Illuminate\Support\Collection
     {
-        return DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('roles.name', $roleName)
-            ->pluck('model_has_roles.model_id')
-            ->toArray();
+        if ($isCliente) {
+            return $this->getAvailableAsesoresForClient($user);
+        }
+
+        if ($isAsesor) {
+            return $this->getAvailableClientesForAsesor($user);
+        }
+
+        return collect();
     }
 
-    /**
-     * Formatea asesores para clientes.
-     */
-    private function formatAsesoresForClient($user, array $asesorIds): \Illuminate\Support\Collection
+    private function getAvailableAsesoresForClient(User $user): \Illuminate\Support\Collection
     {
+        $asesorIds = DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('roles.name', 'Asesor Inmobiliario')
+            ->pluck('model_has_roles.model_id')
+            ->toArray();
+
         if (empty($asesorIds)) {
-            Log::warning('No se encontraron asesores con el rol "Asesor Inmobiliario"');
             return collect();
         }
 
-        $asesores = User::whereIn('id', $asesorIds)
+        return User::whereIn('id', $asesorIds)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get();
-
-        Log::info('Asesores activos encontrados', ['count' => $asesores->count()]);
-
-        return $asesores->map(function ($asesor) use ($user) {
-            $existingConv = Conversation::where('client_id', $user->id)
-                ->where('asesor_id', $asesor->id)
-                ->first();
-
-            $asesor->has_conversation = !is_null($existingConv);
-            $asesor->conversation_id = $existingConv?->id;
-            $asesor->avatar = $asesor->profile_photo_url;
-
-            $hasAppointment = Appointment::where('user_id', $user->id)
-                ->where('asesor_id', $asesor->id)
-                ->exists();
-            $asesor->has_appointment = $hasAppointment;
-            $asesor->specialization = $asesor->specialization ?? 'Asesor inmobiliario';
-
-            return $asesor;
-        });
+            ->get()
+            ->map(fn($asesor) => (object) [
+                'id' => $asesor->id,
+                'name' => $asesor->full_name ?? $asesor->name,
+                'email' => $asesor->email,
+                'avatar' => $asesor->profile_photo_url,
+                'specialization' => $asesor->specialization ?? 'Asesor inmobiliario',
+                'has_conversation' => Conversation::where('client_id', $user->id)
+                    ->where('asesor_id', $asesor->id)
+                    ->exists(),
+            ]);
     }
 
-    /**
-     * Formatea clientes para asesores.
-     */
-    private function formatClientesForAsesor($user): \Illuminate\Support\Collection
+    private function getAvailableClientesForAsesor(User $user): \Illuminate\Support\Collection
     {
         $clienteIds = Appointment::where('asesor_id', $user->id)
             ->whereNotNull('user_id')
@@ -156,602 +188,217 @@ class ChatController extends Controller
             ->toArray();
 
         if (empty($clienteIds)) {
-            Log::warning('No se encontraron citas para este asesor', ['asesor_id' => $user->id]);
             return collect();
         }
 
-        $clientes = User::whereIn('id', $clienteIds)
+        return User::whereIn('id', $clienteIds)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get();
-
-        Log::info('Clientes activos encontrados', [
-            'asesor_id' => $user->id,
-            'count' => $clientes->count()
-        ]);
-
-        return $clientes->map(function ($cliente) use ($user) {
-            $cliente->avatar = $cliente->profile_photo_url;
-            $cliente->has_conversation = Conversation::where('client_id', $cliente->id)
-                ->where('asesor_id', $user->id)
-                ->exists();
-            $cliente->has_appointment = true;
-            return $cliente;
-        });
-    }
-
-    /**
-     * Obtiene las conversaciones del usuario formateadas para la vista.
-     */
-    private function getUserConversations($user): \Illuminate\Support\Collection
-    {
-        $userRoles = $this->getUserRoles($user->id);
-        $isCliente = in_array('Cliente', $userRoles);
-        $isAsesor = in_array('Asesor Inmobiliario', $userRoles);
-
-        $query = Conversation::query();
-
-        if ($isCliente) {
-            $query->where('client_id', $user->id);
-        } elseif ($isAsesor) {
-            $query->where('asesor_id', $user->id);
-        } else {
-            return collect();
-        }
-
-        $conversations = $query->with(['client', 'asesor', 'lastMessage'])
-            ->orderBy('last_message_at', 'desc')
-            ->get();
-
-        return $conversations->map(function ($conv) use ($user, $isCliente) {
-            $otherUser = $isCliente ? $conv->asesor : $conv->client;
-
-            $hasAppointment = Appointment::where(function ($q) use ($user, $otherUser, $isCliente) {
-                if ($isCliente) {
-                    $q->where('user_id', $user->id)->where('asesor_id', $otherUser->id);
-                } else {
-                    $q->where('user_id', $otherUser->id)->where('asesor_id', $user->id);
-                }
-            })->exists();
-
-            return [
-                'id' => $conv->id,
-                'other_user' => [
-                    'id' => $otherUser->id,
-                    'name' => $otherUser->name,
-                    'avatar' => $otherUser->profile_photo_url,
-                    'is_online' => $otherUser->is_online ?? false,
-                    'last_seen' => $otherUser->last_seen_at ? $otherUser->last_seen_at->diffForHumans() : null,
-                    'email' => $otherUser->email,
-                    'phone' => $otherUser->phone,
-                    'has_appointment' => $hasAppointment,
-                    'specialization' => $otherUser->specialization,
-                ],
-                'unread_count' => Message::where('conversation_id', $conv->id)
-                    ->where('user_id', '!=', $user->id)
-                    ->where('is_read', false)
-                    ->count(),
-                'last_message' => $conv->lastMessage?->content,
-                'last_message_time' => $conv->lastMessage?->created_at?->diffForHumans(),
-            ];
-        });
-    }
-
-    /**
-     * Obtiene los asesores disponibles para iniciar chat.
-     */
-    public function getAvailableAsesores()
-    {
-        try {
-            $asesorIds = $this->getUsersByRole('Asesor Inmobiliario');
-
-            $asesores = User::whereIn('id', $asesorIds)
-                ->where('is_active', true)
-                ->select('id', 'name', 'email', 'profile_photo_url as avatar', 'specialization')
-                ->get();
-
-            return response()->json([
-                'success' => true,
-                'asesores' => $asesores
+            ->get()
+            ->map(fn($cliente) => (object) [
+                'id' => $cliente->id,
+                'name' => $cliente->full_name ?? $cliente->name,
+                'email' => $cliente->email,
+                'avatar' => $cliente->profile_photo_url,
             ]);
-        } catch (\Exception $e) {
-            Log::error('Error en getAvailableAsesores', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al obtener asesores'
-            ], 500);
-        }
     }
 
-    /**
-     * Obtiene los mensajes de una conversación específica.
-     */
-    public function getMessages($conversationId)
-    {
-        try {
-            $user = Auth::user();
-            $conversation = Conversation::with(['client', 'asesor'])->findOrFail($conversationId);
+    // ==========================================
+    // API: CONVERSACIONES
+    // ==========================================
 
-            // Verificar autorización
-            if ($user->id !== $conversation->client_id && $user->id !== $conversation->asesor_id) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-
-            // Marcar mensajes como leídos
-            $updated = Message::where('conversation_id', $conversationId)
-                ->where('user_id', '!=', $user->id)
-                ->where('is_read', false)
-                ->update([
-                    'is_read' => true,
-                    'read_at' => now()
-                ]);
-
-            if ($updated > 0) {
-                Log::info('Mensajes marcados como leídos', [
-                    'conversation_id' => $conversationId,
-                    'user_id' => $user->id,
-                    'count' => $updated
-                ]);
-            }
-
-            // Obtener mensajes
-            $messages = $conversation->messages()
-                ->with('user')
-                ->orderBy('created_at', 'asc')
-                ->get()
-                ->map(function ($msg) {
-                    return [
-                        'id' => $msg->id,
-                        'content' => $msg->content,
-                        'user_id' => $msg->user_id,
-                        'user_name' => $msg->user->name,
-                        'user_avatar' => $msg->user->profile_photo_url,
-                        'created_at' => $msg->created_at->toISOString(),
-                        'formatted_time' => $msg->created_at->format('H:i'),
-                        'is_read' => $msg->is_read,
-                    ];
-                });
-
-            // Obtener el otro usuario
-            $userRoles = $this->getUserRoles($user->id);
-            $isCliente = in_array('Cliente', $userRoles);
-            $otherUser = $user->id === $conversation->client_id ? $conversation->asesor : $conversation->client;
-
-            $hasAppointment = Appointment::where(function ($q) use ($user, $otherUser, $isCliente) {
-                if ($isCliente) {
-                    $q->where('user_id', $user->id)->where('asesor_id', $otherUser->id);
-                } else {
-                    $q->where('user_id', $otherUser->id)->where('asesor_id', $user->id);
-                }
-            })->exists();
-
-            $conversationData = [
-                'id' => $conversation->id,
-                'client_id' => $conversation->client_id,
-                'asesor_id' => $conversation->asesor_id,
-                'other_user' => [
-                    'id' => $otherUser->id,
-                    'name' => $otherUser->name,
-                    'avatar' => $otherUser->profile_photo_url,
-                    'specialization' => $otherUser->specialization,
-                    'is_online' => $otherUser->is_online ?? false,
-                    'last_seen' => $otherUser->last_seen_at ? $otherUser->last_seen_at->diffForHumans() : null,
-                    'email' => $otherUser->email,
-                    'phone' => $otherUser->phone,
-                    'has_appointment' => $hasAppointment
-                ]
-            ];
-
-            return response()->json([
-                'success' => true,
-                'messages' => $messages,
-                'conversation' => $conversationData
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Conversación no encontrada'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error('Error en getMessages', [
-                'conversation_id' => $conversationId,
-                'error' => $e->getMessage()
-            ]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al obtener mensajes'
-            ], 500);
-        }
-    }
-
-    /**
-     * Endpoint para refrescar la lista de conversaciones.
-     */
     public function getConversations()
     {
         try {
             $user = Auth::user();
-            $conversations = $this->getUserConversations($user);
+            $roles = $this->getUserRoles($user->id);
+            $isCliente = in_array('Cliente', $roles);
+
+            $conversations = Conversation::query()
+                ->with(['client', 'asesor', 'lastMessage'])
+                ->where($isCliente ? 'client_id' : 'asesor_id', $user->id)
+                ->orderBy('last_message_at', 'desc')
+                ->get()
+                ->map(fn($conv) => $this->formatConversation($conv, $user, $isCliente));
+
             return response()->json([
                 'success' => true,
                 'conversations' => $conversations
             ]);
         } catch (\Exception $e) {
             Log::error('Error en getConversations', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al obtener conversaciones'
-            ], 500);
+            return response()->json(['success' => false, 'error' => 'Error al obtener conversaciones'], 500);
         }
     }
 
-    /**
-     * Inicia una nueva conversación (Como Cliente).
-     */
+    // ==========================================
+    // API: MENSAJES
+    // ==========================================
+
+    public function getMessages($conversationId)
+    {
+        try {
+            $user = Auth::user();
+            $conversation = Conversation::with(['client', 'asesor'])->findOrFail($conversationId);
+
+            if (!$this->canUserAccessConversation($user->id, $conversation)) {
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
+            }
+
+            Message::where('conversation_id', $conversationId)
+                ->where('user_id', '!=', $user->id)
+                ->where('is_read', false)
+                ->update(['is_read' => true, 'read_at' => now()]);
+
+            $messages = $conversation->messages()
+                ->with('user')
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(fn($msg) => $this->formatMessage($msg));
+
+            $roles = $this->getUserRoles($user->id);
+            $isCliente = in_array('Cliente', $roles);
+            $otherUser = $user->id === $conversation->client_id ? $conversation->asesor : $conversation->client;
+
+            return response()->json([
+                'success' => true,
+                'messages' => $messages,
+                'conversation' => [
+                    'id' => $conversation->id,
+                    'other_user' => [
+                        'id' => $otherUser->id,
+                        'name' => $otherUser->full_name ?? $otherUser->name,
+                        'avatar' => $otherUser->profile_photo_url,
+                        'specialization' => $otherUser->specialization,
+                        'is_online' => $otherUser->is_online ?? false,
+                        'email' => $otherUser->email,
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en getMessages', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Error al obtener mensajes'], 500);
+        }
+    }
+
+    // ==========================================
+    // API: INICIAR CONVERSACIÓN
+    // ==========================================
+
     public function startConversation(Request $request)
     {
-        try {
-            $user = Auth::user();
-
-            $validated = $request->validate([
-                'asesor_id' => ['required', 'exists:users,id', Rule::notIn([$user->id])]
-            ]);
-
-            $asesor = User::findOrFail($validated['asesor_id']);
-            $asesorRoles = $this->getUserRoles($asesor->id);
-
-            if (!in_array('Asesor Inmobiliario', $asesorRoles)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'El usuario seleccionado no es un asesor'
-                ], 400);
-            }
-
-            $conversation = Conversation::firstOrCreate(
-                ['client_id' => $user->id, 'asesor_id' => $asesor->id],
-                [
-                    'subject' => 'Chat con ' . $asesor->name,
-                    'last_message_at' => now(),
-                    'is_active' => true
-                ]
-            );
-
-            Log::info('Conversación iniciada', [
-                'client_id' => $user->id,
-                'asesor_id' => $asesor->id,
-                'conversation_id' => $conversation->id
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'conversation_id' => $conversation->id,
-                'asesor' => [
-                    'id' => $asesor->id,
-                    'name' => $asesor->name,
-                    'avatar' => $asesor->profile_photo_url,
-                    'specialization' => $asesor->specialization,
-                    'is_online' => $asesor->is_online ?? false,
-                ]
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('Error en startConversation', [
-                'error' => $e->getMessage(),
-                'user_id' => Auth::id()
-            ]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al iniciar conversación'
-            ], 500);
-        }
+        return $this->startConversationBase($request, 'asesor_id', 'Asesor Inmobiliario');
     }
 
-    /**
-     * Inicia una nueva conversación (Como Asesor).
-     */
     public function startConversationWithCliente(Request $request)
+    {
+        $user = Auth::user();
+        $roles = $this->getUserRoles($user->id);
+
+        if (!in_array('Asesor Inmobiliario', $roles)) {
+            return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
+        }
+
+        return $this->startConversationBase($request, 'cliente_id', null);
+    }
+
+    private function startConversationBase(Request $request, string $idField, ?string $roleCheck)
     {
         try {
             $user = Auth::user();
-            $userRoles = $this->getUserRoles($user->id);
-
-            if (!in_array('Asesor Inmobiliario', $userRoles)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'No autorizado'
-                ], 403);
-            }
 
             $validated = $request->validate([
-                'cliente_id' => ['required', 'exists:users,id', Rule::notIn([$user->id])]
+                $idField => ['required', 'exists:users,id', Rule::notIn([$user->id])]
             ]);
 
-            $cliente = User::findOrFail($validated['cliente_id']);
+            $otherUser = User::findOrFail($validated[$idField]);
 
+            if ($roleCheck && !in_array($roleCheck, $this->getUserRoles($otherUser->id))) {
+                return response()->json(['success' => false, 'error' => 'Usuario no válido para esta acción'], 400);
+            }
+
+            $isCliente = $roleCheck === 'Asesor Inmobiliario';
             $conversation = Conversation::firstOrCreate(
-                ['client_id' => $cliente->id, 'asesor_id' => $user->id],
                 [
-                    'subject' => 'Chat con ' . $cliente->name,
+                    'client_id' => $isCliente ? $user->id : $otherUser->id,
+                    'asesor_id' => $isCliente ? $otherUser->id : $user->id,
+                ],
+                [
+                    'subject' => 'Chat con ' . ($otherUser->full_name ?? $otherUser->name),
                     'last_message_at' => now(),
                     'is_active' => true
                 ]
             );
 
-            Log::info('Conversación iniciada por asesor', [
-                'asesor_id' => $user->id,
-                'cliente_id' => $cliente->id,
-                'conversation_id' => $conversation->id
-            ]);
-
             return response()->json([
                 'success' => true,
-                'conversation_id' => $conversation->id,
-                'cliente' => [
-                    'id' => $cliente->id,
-                    'name' => $cliente->name,
-                    'avatar' => $cliente->profile_photo_url,
-                    'is_online' => $cliente->is_online ?? false,
-                ]
+                'conversation_id' => $conversation->id
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            Log::error('Error en startConversationWithCliente', [
-                'error' => $e->getMessage(),
-                'user_id' => Auth::id()
-            ]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al iniciar conversación'
-            ], 500);
+            Log::error('Error al iniciar conversación', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Error al iniciar conversación'], 500);
         }
     }
 
-    /**
-     * Envía un mensaje nuevo.
-     */
+    // ==========================================
+    // API: ENVIAR MENSAJE
+    // ==========================================
+
     public function sendMessage(Request $request, $conversationId)
     {
         try {
             $user = Auth::user();
             $conversation = Conversation::findOrFail($conversationId);
 
-            // Verificar autorización
-            if ($user->id !== $conversation->client_id && $user->id !== $conversation->asesor_id) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'No autorizado'
-                ], 403);
+            if (!$this->canUserAccessConversation($user->id, $conversation)) {
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
             }
 
-            // Validar contenido
+            $key = "send_message_{$user->id}";
+            if (RateLimiter::tooManyAttempts($key, self::MAX_MESSAGES_PER_MINUTE)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Demasiados mensajes. Espera un momento.'
+                ], 429);
+            }
+            RateLimiter::hit($key, 60);
+
             $validated = $request->validate([
                 'content' => ['required', 'string', 'min:1', 'max:' . self::MAX_MESSAGE_LENGTH]
             ]);
 
-            // Sanitizar contenido (prevenir XSS)
-            $content = strip_tags($validated['content']);
-            $content = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
+            $content = htmlspecialchars(strip_tags($validated['content']), ENT_QUOTES, 'UTF-8');
 
             if (empty(trim($content))) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'El mensaje no puede estar vacío'
-                ], 422);
+                return response()->json(['success' => false, 'error' => 'El mensaje no puede estar vacío'], 422);
             }
 
-            // Crear mensaje
             $message = Message::create([
                 'conversation_id' => $conversationId,
                 'user_id' => $user->id,
                 'content' => $content,
             ]);
 
-            // Actualizar conversación
             $conversation->update(['last_message_at' => now()]);
-
-            // Cargar relación user
             $message->load('user');
 
-            // Determinar receptor
-            $receiverId = $user->id === $conversation->client_id ? $conversation->asesor_id : $conversation->client_id;
-
-            // Broadcast del mensaje
+            $receiverId = $this->getReceiverId($conversation, $user->id);
             broadcast(new NewMessage($message, $conversationId, $receiverId))->toOthers();
 
-            Log::info('Mensaje enviado', [
-                'conversation_id' => $conversationId,
-                'user_id' => $user->id,
-                'message_id' => $message->id
-            ]);
-
             return response()->json([
                 'success' => true,
-                'message' => [
-                    'id' => $message->id,
-                    'content' => $message->content,
-                    'user_id' => $message->user_id,
-                    'user_name' => $message->user->name,
-                    'user_avatar' => $message->user->profile_photo_url,
-                    'created_at' => $message->created_at->toISOString(),
-                    'formatted_time' => $message->created_at->format('H:i'),
-                    'is_read' => $message->is_read,
-                ],
-                'conversation_id' => $conversationId
+                'message' => $this->formatMessage($message)
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Conversación no encontrada'
-            ], 404);
         } catch (\Exception $e) {
-            Log::error('Error en sendMessage', [
-                'conversation_id' => $conversationId,
-                'error' => $e->getMessage()
-            ]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al enviar mensaje'
-            ], 500);
+            Log::error('Error en sendMessage', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Error al enviar mensaje'], 500);
         }
     }
 
-    /**
-     * Marca mensajes como leídos.
-     */
-    public function markAsRead($conversationId)
-    {
-        try {
-            $user = Auth::user();
-            $conversation = Conversation::findOrFail($conversationId);
+    // ==========================================
+    // API: EDITAR MENSAJE
+    // ==========================================
 
-            if ($user->id !== $conversation->client_id && $user->id !== $conversation->asesor_id) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-
-            $updated = Message::where('conversation_id', $conversationId)
-                ->where('user_id', '!=', $user->id)
-                ->where('is_read', false)
-                ->update([
-                    'is_read' => true,
-                    'read_at' => now()
-                ]);
-
-            return response()->json([
-                'success' => true,
-                'updated' => $updated
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error en markAsRead', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al marcar como leído'
-            ], 500);
-        }
-    }
-
-    /**
-     * Obtiene el conteo total de no leídos.
-     */
-    public function getUnreadCount()
-    {
-        try {
-            $user = Auth::user();
-            $conversations = $this->getUserConversations($user);
-            $totalUnread = $conversations->sum('unread_count');
-
-            return response()->json([
-                'success' => true,
-                'unread_count' => $totalUnread
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => true,
-                'unread_count' => 0
-            ]);
-        }
-    }
-
-    /**
-     * Elimina una conversación (solo para el usuario actual).
-     */
-    public function deleteConversation($conversationId)
-    {
-        try {
-            $user = Auth::user();
-            $conversation = Conversation::findOrFail($conversationId);
-
-            if ($user->id !== $conversation->client_id && $user->id !== $conversation->asesor_id) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-
-            // Eliminar mensajes del usuario actual
-            Message::where('conversation_id', $conversationId)
-                ->where('user_id', $user->id)
-                ->delete();
-
-            // Verificar si quedan mensajes
-            $remainingMessages = Message::where('conversation_id', $conversationId)->count();
-
-            if ($remainingMessages === 0) {
-                $conversation->delete();
-                Log::info('Conversación eliminada', [
-                    'conversation_id' => $conversationId,
-                    'user_id' => $user->id
-                ]);
-            }
-
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            Log::error('Error en deleteConversation', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al eliminar conversación'
-            ], 500);
-        }
-    }
-
-    /**
-     * Elimina un mensaje específico con broadcasting.
-     */
-    public function deleteMessage($messageId)
-    {
-        try {
-            $user = Auth::user();
-            $message = Message::with('conversation')->findOrFail($messageId);
-
-            if ($message->user_id !== $user->id) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-
-            $conversation = $message->conversation;
-            $receiverId = $user->id === $conversation->client_id ? $conversation->asesor_id : $conversation->client_id;
-
-            // Broadcast antes de eliminar
-            broadcast(new MessageDeleted($message->id, $conversation->id, $receiverId))->toOthers();
-
-            $message->delete();
-
-            // Verificar si quedan mensajes
-            $remainingMessages = Message::where('conversation_id', $conversation->id)->count();
-
-            if ($remainingMessages === 0) {
-                $conversation->delete();
-                Log::info('Conversación eliminada al eliminar último mensaje', [
-                    'conversation_id' => $conversation->id
-                ]);
-            }
-
-            Log::info('Mensaje eliminado', [
-                'message_id' => $messageId,
-                'user_id' => $user->id
-            ]);
-
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            Log::error('Error en deleteMessage', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al eliminar mensaje'
-            ], 500);
-        }
-    }
-
-    /**
-     * Edita un mensaje con broadcasting.
-     */
     public function editMessage(Request $request, $messageId)
     {
         try {
@@ -759,111 +406,212 @@ class ChatController extends Controller
             $message = Message::with('conversation')->findOrFail($messageId);
 
             if ($message->user_id !== $user->id) {
-                return response()->json(['error' => 'No autorizado'], 403);
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
             }
 
             $validated = $request->validate([
                 'content' => ['required', 'string', 'min:1', 'max:' . self::MAX_MESSAGE_LENGTH]
             ]);
 
-            // Sanitizar contenido
-            $content = strip_tags($validated['content']);
-            $content = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
+            $content = htmlspecialchars(strip_tags($validated['content']), ENT_QUOTES, 'UTF-8');
 
             if (empty(trim($content))) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'El mensaje no puede estar vacío'
-                ], 422);
+                return response()->json(['success' => false, 'error' => 'El mensaje no puede estar vacío'], 422);
             }
 
-            $message->content = $content;
-            $message->save();
+            DB::table('messages')
+                ->where('id', $messageId)
+                ->update(['content' => $content]);
 
-            $conversation = $message->conversation;
-            $receiverId = $user->id === $conversation->client_id ? $conversation->asesor_id : $conversation->client_id;
+            $receiverId = $this->getReceiverId($message->conversation, $user->id);
+            broadcast(new MessageEdited($messageId, $message->conversation_id, $content, $receiverId))->toOthers();
 
-            // Broadcast de edición
-            broadcast(new MessageEdited($message->id, $conversation->id, $message->content, $receiverId))->toOthers();
-
-            Log::info('Mensaje editado', [
-                'message_id' => $messageId,
-                'user_id' => $user->id
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => [
-                    'id' => $message->id,
-                    'content' => $message->content,
-                    'updated_at' => $message->updated_at->toISOString()
-                ]
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
+            return response()->json(['success' => true]);
         } catch (\Exception $e) {
             Log::error('Error en editMessage', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al editar mensaje'
-            ], 500);
+            return response()->json(['success' => false, 'error' => 'Error al editar mensaje'], 500);
         }
     }
 
-    /**
-     * Actualiza el estado de presencia (Online/Offline).
-     */
-    public function updatePresence(Request $request)
+    // ==========================================
+    // API: ELIMINAR MENSAJE
+    // ==========================================
+
+    public function deleteMessage($messageId)
     {
         try {
             $user = Auth::user();
+            $message = Message::with('conversation')->findOrFail($messageId);
+
+            if ($message->user_id !== $user->id) {
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
+            }
+
+            $conversationId = $message->conversation_id;
+            $receiverId = $this->getReceiverId($message->conversation, $user->id);
+
+            broadcast(new MessageDeleted($messageId, $conversationId, $receiverId))->toOthers();
+            $message->delete();
+
+            if (Message::where('conversation_id', $conversationId)->count() === 0) {
+                Conversation::find($conversationId)?->delete();
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Error en deleteMessage', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Error al eliminar mensaje'], 500);
+        }
+    }
+
+    // ==========================================
+    // API: ELIMINAR CONVERSACIÓN
+    // ==========================================
+
+    public function deleteConversation($conversationId)
+    {
+        try {
+            $user = Auth::user();
+            $conversation = Conversation::findOrFail($conversationId);
+
+            if (!$this->canUserAccessConversation($user->id, $conversation)) {
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
+            }
+
+            Message::where('conversation_id', $conversationId)
+                ->where('user_id', $user->id)
+                ->delete();
+
+            if (Message::where('conversation_id', $conversationId)->count() === 0) {
+                $conversation->delete();
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Error en deleteConversation', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Error al eliminar conversación'], 500);
+        }
+    }
+
+    // ==========================================
+    // API: MARCAR COMO LEÍDO
+    // ==========================================
+
+    public function markAsRead($conversationId)
+    {
+        try {
+            $user = Auth::user();
+            $conversation = Conversation::findOrFail($conversationId);
+
+            if (!$this->canUserAccessConversation($user->id, $conversation)) {
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
+            }
+
+            $updated = Message::where('conversation_id', $conversationId)
+                ->where('user_id', '!=', $user->id)
+                ->where('is_read', false)
+                ->update(['is_read' => true, 'read_at' => now()]);
+
+            return response()->json(['success' => true, 'updated' => $updated]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Error al marcar como leído'], 500);
+        }
+    }
+
+    // ==========================================
+    // API: CONTADOR DE NO LEÍDOS
+    // ==========================================
+
+    public function getUnreadCount()
+    {
+        try {
+            $user = Auth::user();
+            $roles = $this->getUserRoles($user->id);
+            $isCliente = in_array('Cliente', $roles);
+
+            $totalUnread = Conversation::query()
+                ->where($isCliente ? 'client_id' : 'asesor_id', $user->id)
+                ->withCount(['messages as unread_count' => function ($q) use ($user) {
+                    $q->where('user_id', '!=', $user->id)->where('is_read', false);
+                }])
+                ->get()
+                ->sum('unread_count');
+
+            return response()->json(['success' => true, 'unread_count' => $totalUnread]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => true, 'unread_count' => 0]);
+        }
+    }
+
+    // ==========================================
+    // API: ESTADO DE PRESENCIA
+    // ==========================================
+
+    public function updatePresence(Request $request)
+    {
+        try {
+            $userId = Auth::id();
+
+            if (!$userId) {
+                return response()->json(['success' => false, 'error' => 'No autenticado'], 401);
+            }
+
             $isOnline = filter_var($request->is_online, FILTER_VALIDATE_BOOLEAN);
 
-            $user->is_online = $isOnline;
-            $user->last_seen_at = $isOnline ? null : now();
-            $user->save();
+            DB::table('users')
+                ->where('id', $userId)
+                ->update([
+                    'is_online' => $isOnline,
+                    'last_seen_at' => $isOnline ? null : now(),
+                ]);
 
-            // Limpiar caché de roles
-            $this->clearUserRolesCache($user->id);
+            $this->clearUserCache($userId);
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             Log::error('Error en updatePresence', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al actualizar presencia'
-            ], 500);
+            return response()->json(['success' => false, 'error' => 'Error al actualizar presencia'], 500);
         }
     }
 
-    /**
-     * Envía el estado de "Escribiendo..." al otro usuario.
-     */
+    // ==========================================
+    // API: ESCRIBIENDO (OPTIMIZADO SIN BUCLES)
+    // ==========================================
+
     public function setTypingStatus(Request $request, $conversationId)
     {
         try {
             $user = Auth::user();
             $conversation = Conversation::findOrFail($conversationId);
 
-            if ($user->id !== $conversation->client_id && $user->id !== $conversation->asesor_id) {
-                return response()->json(['error' => 'No autorizado'], 403);
+            if (!$this->canUserAccessConversation($user->id, $conversation)) {
+                return response()->json(['success' => false, 'error' => 'No autorizado'], 403);
             }
 
             $isTyping = filter_var($request->is_typing, FILTER_VALIDATE_BOOLEAN);
-            $receiverId = $user->id === $conversation->client_id ? $conversation->asesor_id : $conversation->client_id;
+            $receiverId = $this->getReceiverId($conversation, $user->id);
 
+            $cacheKey = self::TYPING_CACHE_KEY_PREFIX . $conversationId . '_' . $user->id;
+
+            if ($isTyping) {
+                // Si ya existe en caché, NO enviar broadcast (evita bucles)
+                if (Cache::has($cacheKey)) {
+                    return response()->json(['success' => true]);
+                }
+                // Guardar en caché por TYPING_THROTTLE segundos
+                Cache::put($cacheKey, true, self::TYPING_THROTTLE);
+            } else {
+                // Si dejó de escribir, limpiar caché
+                Cache::forget($cacheKey);
+            }
+
+            // Broadcast SOLO si cambia el estado o después del throttle
             broadcast(new UserTyping($user, $conversationId, $isTyping, $receiverId))->toOthers();
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             Log::error('Error en setTypingStatus', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al actualizar estado de escritura'
-            ], 500);
+            return response()->json(['success' => false, 'error' => 'Error al actualizar estado de escritura'], 500);
         }
     }
 }

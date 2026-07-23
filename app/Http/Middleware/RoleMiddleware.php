@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Middleware;
 
 use Closure;
@@ -46,12 +45,20 @@ class RoleMiddleware
         // =============================================
         // OBTENER ROLES DIRECTAMENTE DE LA BASE DE DATOS
         // =============================================
-        $userRoles = DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', 'App\\Models\\User')
-            ->pluck('roles.name')
-            ->toArray();
+        try {
+            $userRoles = DB::table('model_has_roles')
+                ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->where('model_has_roles.model_type', 'App\\Models\\User')
+                ->pluck('roles.name')
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('RoleMiddleware - Error obteniendo roles', [
+                'user_id' => $user->id ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+            abort(403, 'Error al verificar permisos.');
+        }
 
         // =============================================
         // LOG DE DEPURACIÓN

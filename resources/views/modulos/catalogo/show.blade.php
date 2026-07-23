@@ -90,7 +90,8 @@
     <img id="mainImage"
          src="{{ $property->primary_image_url }}"
          alt="{{ $property->title }}"
-         class="absolute inset-0 w-full h-full object-cover hero-img-transition">
+         class="absolute inset-0 w-full h-full object-cover hero-img-transition"
+         onerror="this.src='https://ui-avatars.com/api/?name='+encodeURIComponent('{{ $property->title }}')+'&background=c5a059&color=fff&size=400'">
     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none"></div>
 
     {{-- Badges --}}
@@ -128,7 +129,10 @@
             @foreach($property->images as $image)
             <div onclick="changeMainImage(this, '{{ asset('storage/' . $image->image_path) }}')"
                  class="thumbnail flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden cursor-pointer border-2 {{ $image->is_primary ? 'border-mso-gold opacity-100' : 'border-transparent opacity-60' }} hover:opacity-100 hover:scale-105 transition-all relative">
-                <img src="{{ asset('storage/' . $image->image_path) }}" class="w-full h-full object-cover" alt="Miniatura">
+                <img src="{{ asset('storage/' . $image->image_path) }}"
+                     class="w-full h-full object-cover"
+                     alt="Miniatura"
+                     onerror="this.src='https://ui-avatars.com/api/?name=Imagen&background=c5a059&color=fff&size=400'">
                 @if($image->is_primary)
                 <div class="absolute inset-0 bg-mso-gold/20"></div>
                 @endif
@@ -161,6 +165,11 @@
                         @if($property->price_currency)
                         <p class="text-xs text-slate-400 uppercase tracking-widest mt-1">{{ $property->price_currency }}</p>
                         @endif
+                        <div class="mt-2 flex items-center justify-end gap-4 text-xs text-slate-400">
+                            <span class="flex items-center gap-1">
+                                <i class="ph ph-eye"></i> {{ $property->views ?? 0 }} vistas
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -359,8 +368,10 @@
                 <div class="bg-gradient-to-r from-mso-blue to-slate-700 h-16"></div>
                 <div class="px-6 pb-6">
                     <div class="flex justify-center -mt-12">
-                        <img src="{{ $property->user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($property->user->full_name ?? $property->user->name ?? 'Asesor') . '&background=c5a059&color=fff&size=128' }}"
-                             class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl">
+                        <img src="{{ $property->user->profile_photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode($property->user->full_name ?? $property->user->name ?? 'Asesor').'&background=c5a059&color=fff&size=128' }}"
+                             class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl"
+                             alt="{{ $property->user->full_name ?? $property->user->name ?? 'Asesor' }}"
+                             onerror="this.src='https://ui-avatars.com/api/?name='+encodeURIComponent('{{ $property->user->full_name ?? $property->user->name ?? 'Asesor' }}')+'&background=c5a059&color=fff&size=128'">
                     </div>
                     <div class="text-center mt-3">
                         <h4 class="font-bold text-slate-900 text-lg">{{ $property->user->full_name ?? $property->user->name ?? 'Asesor no asignado' }}</h4>
@@ -502,7 +513,8 @@
                 <div class="h-44 bg-slate-100 overflow-hidden relative">
                     <img src="{{ $similar->primary_image_url }}"
                          alt="{{ $similar->title }}"
-                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                         onerror="this.src='https://ui-avatars.com/api/?name='+encodeURIComponent('{{ $similar->title }}')+'&background=c5a059&color=fff&size=400'">
                     @if($similar->category)
                     <div class="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
                         @if($similar->category->icon)
@@ -531,7 +543,9 @@
 <div id="authModal" class="modal-overlay fixed inset-0 z-[200] hidden items-center justify-center p-4">
     <div class="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-center p-8">
         <div class="mb-4">
-            <span class="house-icon">🏠</span>
+            <div class="w-20 h-20 bg-mso-gold/10 rounded-full flex items-center justify-center mx-auto">
+                <i class="ph ph-house text-5xl text-mso-blue"></i>
+            </div>
         </div>
         <h3 class="text-2xl font-bold text-slate-800 mb-2">¡Regístrate para agendar tu visita!</h3>
         <p class="text-slate-500 text-sm mb-6">
@@ -542,7 +556,7 @@
                 <i class="ph ph-sign-in text-lg"></i> Iniciar Sesión
             </a>
             <a href="{{ route('register') }}" class="w-full border-2 border-slate-200 text-slate-700 text-center font-medium py-3.5 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                <i class="ph ph-user-plus text-lg"></i> Crear Cuenta Gratis
+                <i class="ph ph-user-plus text-lg"></i> Crear Cuenta
             </a>
         </div>
         <button onclick="closeAuthModal()" class="mt-6 text-sm text-slate-400 hover:text-slate-600 transition-colors">
@@ -554,11 +568,26 @@
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ============================================================
-    // GALERÍA DE IMÁGENES
-    // ============================================================
     window.changeMainImage = function(element, src) {
-        document.getElementById('mainImage').src = src;
+        const mainImage = document.getElementById('mainImage');
+        if (!mainImage) return;
+
+        mainImage.style.opacity = '0';
+        mainImage.classList.add('scale-105');
+
+        setTimeout(() => {
+            mainImage.src = src;
+            mainImage.onload = function() {
+                mainImage.style.opacity = '1';
+                mainImage.classList.remove('scale-105');
+            };
+            mainImage.onerror = function() {
+                mainImage.src = 'https://ui-avatars.com/api/?name=Imagen&background=c5a059&color=fff&size=400';
+                mainImage.style.opacity = '1';
+                mainImage.classList.remove('scale-105');
+            };
+        }, 200);
+
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.classList.remove('active', 'border-mso-gold', 'opacity-100');
             thumb.classList.add('opacity-60');
@@ -567,9 +596,6 @@ document.addEventListener('DOMContentLoaded', function() {
         element.classList.add('active', 'border-mso-gold', 'opacity-100');
     };
 
-    // ============================================================
-    // MODAL DE AUTENTICACIÓN
-    // ============================================================
     window.openAuthModal = function() {
         const modal = document.getElementById('authModal');
         const content = modal.querySelector('.modal-content');
@@ -598,9 +624,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') closeAuthModal();
     });
 
-    // ============================================================
-    // VARIABLES DEL CALENDARIO
-    // ============================================================
     const asesorId = document.querySelector('input[name="asesor_id"]')?.value;
     let currentDate = new Date();
     let currentYear = currentDate.getFullYear();
@@ -610,9 +633,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-    // ============================================================
-    // FUNCIONES DEL CALENDARIO
-    // ============================================================
     function loadCalendar(year, month) {
         const url = `/api/appointments/available-days?year=${year}&month=${month}&asesor_id=${asesorId}`;
 
@@ -751,9 +771,6 @@ document.addEventListener('DOMContentLoaded', function() {
         timePicker.disabled = false;
     }
 
-    // ============================================================
-    // NAVEGACIÓN DEL CALENDARIO
-    // ============================================================
     document.getElementById('prevMonth')?.addEventListener('click', function() {
         currentMonth--;
         if (currentMonth < 1) {
@@ -772,9 +789,6 @@ document.addEventListener('DOMContentLoaded', function() {
         loadCalendar(currentYear, currentMonth);
     });
 
-    // ============================================================
-    // ENVÍO DEL FORMULARIO
-    // ============================================================
     document.getElementById('appointmentForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -866,9 +880,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ============================================================
-    // INICIALIZAR CALENDARIO
-    // ============================================================
     if (asesorId) {
         loadCalendar(currentYear, currentMonth);
     }

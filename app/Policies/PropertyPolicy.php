@@ -13,12 +13,12 @@ class PropertyPolicy
      */
     public function update(User $user, Property $property): bool
     {
-        // Super Admin y Administrador pueden editar cualquier propiedad
+        
         if ($user->hasRole(['Super Admin', 'Administrador'])) {
             return true;
         }
 
-        // Asesor solo puede editar sus propias propiedades
+      
         if ($user->hasRole('Asesor Inmobiliario')) {
             return $property->user_id === $user->id;
         }

@@ -17,7 +17,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <!-- Tailwind CSS -->
+    {{-- TAILWIND CDN (carga rápida) --}}
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
@@ -50,8 +50,8 @@
         }
     </script>
 
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    {{-- Phosphor Icons (carga diferida) --}}
+    <script src="https://unpkg.com/@phosphor-icons/web@2.0.3" defer></script>
 
     <style>
         /* Reset y estilos base */
@@ -136,173 +136,6 @@
     <!-- Auth Modal -->
     <x-auth-modal />
 
-
-    <script>
-        // ============================================
-        // FUNCIONES GLOBALES PARA MODALES
-        // ============================================
-
-        let modalJustOpened = false;
-
-        function openModal(modalId) {
-            console.log(' Abriendo modal:', modalId);
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                console.log(' Modal abierto:', modalId);
-
-                modalJustOpened = true;
-                setTimeout(() => {
-                    modalJustOpened = false;
-                }, 300);
-
-                if (modalId === 'auth-modal' && typeof switchAuthTab === 'function') {
-                    switchAuthTab('login');
-                }
-            } else {
-                console.error(' Modal no encontrado:', modalId);
-            }
-        }
-
-        function closeModal(modalId) {
-            console.log(' Cerrando modal:', modalId);
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.add('hidden');
-                document.body.style.overflow = '';
-                console.log('Modal cerrado:', modalId);
-            }
-        }
-
-        function switchAuthTab(tab) {
-            console.log(' switchAuthTab llamado con:', tab);
-            const loginForm = document.getElementById('form-login');
-            const registerForm = document.getElementById('form-register');
-            const forgotForm = document.getElementById('form-forgot-password');
-            const loginTab = document.getElementById('tab-login');
-            const registerTab = document.getElementById('tab-register');
-            const forgotTab = document.getElementById('tab-forgot');
-            const modalTitle = document.getElementById('modal-title');
-            const modalSubtitle = document.getElementById('modal-subtitle');
-
-            if (loginForm) loginForm.classList.add('hidden');
-            if (registerForm) registerForm.classList.add('hidden');
-            if (forgotForm) forgotForm.classList.add('hidden');
-            if (forgotTab) forgotTab.classList.add('hidden');
-
-            if (tab === 'login') {
-                if (loginForm) loginForm.classList.remove('hidden');
-                if (loginTab) loginTab.className = 'text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors';
-                if (registerTab) registerTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-                if (forgotTab) forgotTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-                if (modalTitle) modalTitle.textContent = 'Bienvenido';
-                if (modalSubtitle) modalSubtitle.textContent = 'Ingresa a tu cuenta para continuar';
-            } else if (tab === 'register') {
-                if (registerForm) registerForm.classList.remove('hidden');
-                if (registerTab) registerTab.className = 'text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors';
-                if (loginTab) loginTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-                if (forgotTab) forgotTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-                if (modalTitle) modalTitle.textContent = 'Crear Cuenta';
-                if (modalSubtitle) modalSubtitle.textContent = 'Únete a MSO Grupo Inmobiliario';
-            } else if (tab === 'forgot') {
-                if (forgotForm) forgotForm.classList.remove('hidden');
-                if (forgotTab) {
-                    forgotTab.classList.remove('hidden');
-                    forgotTab.className = 'text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors';
-                }
-                if (loginTab) loginTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-                if (registerTab) registerTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-                if (modalTitle) modalTitle.textContent = 'Recuperar Contraseña';
-                if (modalSubtitle) modalSubtitle.textContent = 'Verifica tu identidad con preguntas de seguridad';
-            }
-        }
-
-        // Exponer funciones globalmente
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        window.switchAuthTab = switchAuthTab;
-
-        // Función de prueba para diagnóstico
-        function testModal() {
-            console.log(' TEST: Intentando abrir modal');
-            const modal = document.getElementById('auth-modal');
-            console.log(' Modal encontrado:', modal);
-            if (modal) {
-                modal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                console.log(' Modal abierto desde TEST');
-                if (typeof switchAuthTab === 'function') {
-                    switchAuthTab('login');
-                }
-            } else {
-                console.error(' Modal NO encontrado');
-                alert('Modal no encontrado en el DOM');
-            }
-        }
-        window.testModal = testModal;
-
-        // Cerrar modal con ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const openModals = document.querySelectorAll('[id$="-modal"]:not(.hidden)');
-                openModals.forEach(modal => {
-                    closeModal(modal.id);
-                });
-            }
-        });
-
-        // Cerrar modal al hacer clic fuera
-        document.addEventListener('click', function(e) {
-            if (modalJustOpened) {
-                return;
-            }
-
-            const modal = document.getElementById('auth-modal');
-            if (modal && !modal.classList.contains('hidden')) {
-                const modalContent = modal.querySelector('.bg-white');
-                if (modalContent && !modalContent.contains(e.target)) {
-                    closeModal('auth-modal');
-                }
-            }
-        });
-
-        console.log(' Funciones de modal cargadas globalmente');
-
-        // ============================================
-        // REFRESCAR TOKEN CSRF EN LANDING
-        // ============================================
-        function refreshCsrfToken() {
-            fetch('/refresh-csrf', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.csrf_token) {
-                    document.querySelectorAll('form input[name="_token"]').forEach(input => {
-                        input.value = data.csrf_token;
-                    });
-                    const metaTag = document.querySelector('meta[name="csrf-token"]');
-                    if (metaTag) {
-                        metaTag.content = data.csrf_token;
-                    }
-                    console.log(' Token CSRF actualizado (landing)');
-                }
-            })
-            .catch(() => {
-                console.warn(' No se pudo refrescar el token');
-            });
-        }
-
-        // Refrescar token cada 5 minutos
-        setInterval(refreshCsrfToken, 300000);
-
-        // Exponer función globalmente
-        window.refreshCsrfToken = refreshCsrfToken;
-    </script>
 
     @stack('js')
 </body>

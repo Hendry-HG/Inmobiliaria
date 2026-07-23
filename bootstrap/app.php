@@ -7,6 +7,7 @@ use App\Http\Middleware\CheckAccountActive;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\RefreshUserPermissions;
 
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -25,13 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'refresh.permissions' => RefreshUserPermissions::class,
         ]);
 
-        // Agregar Security Headers a todas las rutas web
         $middleware->append(SecurityHeaders::class);
-
-        //  Agregar RefreshUserPermissions a todas las rutas web
         $middleware->append(RefreshUserPermissions::class);
-
-        // Configurar redirección para invitados
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {

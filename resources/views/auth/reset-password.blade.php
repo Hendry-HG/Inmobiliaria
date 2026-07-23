@@ -189,12 +189,12 @@
                 const submitBtn = document.getElementById('submit-btn');
                 const originalText = submitBtn.textContent;
 
-                submitBtn.textContent = '⏳ RESTABLECIENDO...';
+                submitBtn.textContent = ' RESTABLECIENDO...';
                 submitBtn.disabled = true;
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'wait';
 
-                console.log('📤 Enviando formulario de restablecimiento...');
+                console.log(' Enviando formulario de restablecimiento...');
                 return true;
             });
         }

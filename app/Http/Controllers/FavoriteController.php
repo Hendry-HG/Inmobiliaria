@@ -176,6 +176,21 @@ class FavoriteController extends Controller
     public function destroy($propertyId, Request $request)
     {
         try {
+
+            if ($propertyId === 'clear-all') {
+                Log::warning('Redirigiendo "clear-all" a clearAll');
+                return $this->clearAll($request);
+            }
+
+            // Validar que propertyId sea un número
+            if (!is_numeric($propertyId)) {
+                Log::error('Property ID no es numérico: ' . $propertyId);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID de propiedad inválido'
+                ], 400);
+            }
+
             $user = Auth::user();
 
             if (!$user) {
@@ -225,7 +240,7 @@ class FavoriteController extends Controller
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error al eliminar de favoritos'
+                    'message' => 'Error al eliminar de favoritos: ' . $e->getMessage()
                 ], 500);
             }
 

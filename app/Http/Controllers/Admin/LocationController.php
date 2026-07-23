@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/Admin/LocationController.php
+
 
 namespace App\Http\Controllers\Admin;
 
@@ -12,7 +12,9 @@ use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class LocationController extends Controller
 {
@@ -20,7 +22,7 @@ class LocationController extends Controller
 
     public function __construct()
     {
-        $this->middleware(['auth', 'role:Super Admin|Administrador'])->except([
+        $this->middleware(['auth'])->except([
             'getCountriesForRegister',
             'getStatesForRegister',
             'getMunicipalitiesForRegister',
@@ -29,7 +31,9 @@ class LocationController extends Controller
         ]);
     }
 
-    // ================== MÉTODOS PARA API (SELECTS DINÁMICOS) ==================
+    // ================================================================
+    // MÉTODOS PARA API (SELECTS DINÁMICOS) - PÚBLICOS
+    // ================================================================
 
     public function getCountriesForRegister()
     {
@@ -78,16 +82,168 @@ class LocationController extends Controller
         });
     }
 
-    // ================== PAÍS ==================
+    // ================================================================
+    // MÉTODO DE VERIFICACIÓN DE PERMISOS - VERSIÓN PRODUCCIÓN
+    // ================================================================
+
+    /**
+     * Verifica si el usuario autenticado tiene el permiso requerido
+     *
+     * @param string $permission Nombre del permiso a verificar
+     * @return bool
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    private function checkPermission($permission)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            Log::warning('LocationController - Intento de acceso sin autenticación', [
+                'ip' => request()->ip(),
+                'permission' => $permission
+            ]);
+            abort(401, 'No estás autenticado.');
+        }
+
+        try {
+            // =============================================================
+            // MÉTODO 1: USAR SPATIE DIRECTAMENTE (MÁS RÁPIDO)
+            // =============================================================
+            // Primero intentamos usar los métodos nativos de Spatie
+            if (method_exists($user, 'hasRole') && method_exists($user, 'hasPermissionTo')) {
+                // Super Admin siempre tiene acceso
+                if ($user->hasRole('Super Admin')) {
+                    Log::info('LocationController - Super Admin acceso concedido', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'permission' => $permission
+                    ]);
+                    return true;
+                }
+
+                // Administrador siempre tiene acceso
+                if ($user->hasRole('Administrador')) {
+                    Log::info('LocationController - Administrador acceso concedido', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'permission' => $permission
+                    ]);
+                    return true;
+                }
+
+                // Verificar permiso específico
+                if ($user->hasPermissionTo($permission)) {
+                    Log::info('LocationController - Permiso específico concedido', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'permission' => $permission
+                    ]);
+                    return true;
+                }
+            }
+
+            // =============================================================
+            // MÉTODO 2: FALLBACK CON CONSULTA DIRECTA A BD
+            // =============================================================
+            // Si los métodos de Spatie no están disponibles, usamos consulta directa
+            Log::info('LocationController - Usando fallback de consulta directa a BD', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+
+            // Verificar si es Super Admin o Administrador por consulta directa
+            $userRoles = DB::table('model_has_roles')
+                ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->where('model_has_roles.model_type', 'App\\Models\\User')
+                ->pluck('roles.name')
+                ->toArray();
+
+            Log::info('LocationController - Roles encontrados en BD', [
+                'user_id' => $user->id,
+                'roles' => $userRoles
+            ]);
+
+            // Super Admin siempre tiene acceso
+            if (in_array('Super Admin', $userRoles)) {
+                Log::info('LocationController - Super Admin acceso concedido (fallback)', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+                return true;
+            }
+
+            // Administrador siempre tiene acceso
+            if (in_array('Administrador', $userRoles)) {
+                Log::info('LocationController - Administrador acceso concedido (fallback)', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+                return true;
+            }
+
+            // Verificar permiso específico por consulta directa
+            $hasPermission = DB::table('model_has_permissions')
+                ->join('permissions', 'model_has_permissions.permission_id', '=', 'permissions.id')
+                ->where('model_has_permissions.model_id', $user->id)
+                ->where('model_has_permissions.model_type', 'App\\Models\\User')
+                ->where('permissions.name', $permission)
+                ->exists();
+
+            if ($hasPermission) {
+                Log::info('LocationController - Permiso concedido (fallback BD)', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'permission' => $permission
+                ]);
+                return true;
+            }
+
+            // =============================================================
+            // ACCESO DENEGADO
+            // =============================================================
+            Log::warning('LocationController - Acceso denegado', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_roles' => $userRoles,
+                'required_permission' => $permission,
+                'ip' => request()->ip(),
+                'url' => request()->fullUrl()
+            ]);
+
+            abort(403, 'No tienes permiso para realizar esta acción.');
+
+        } catch (\Exception $e) {
+            // =============================================================
+            // ERROR EN LA VERIFICACIÓN
+            // =============================================================
+            Log::error('LocationController - Error verificando permisos', [
+                'user_id' => $user->id ?? 'unknown',
+                'permission' => $permission,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // En producción, si hay error, denegamos acceso por seguridad
+            abort(403, 'Error al verificar permisos. Contacta al administrador.');
+        }
+    }
+
+    // ================================================================
+    // PAÍS - CRUD
+    // ================================================================
 
     public function indexCountries()
     {
+        $this->checkPermission('ver paises');
         $countries = Country::orderBy('name')->paginate(10);
         return view('modulos.locations.index', compact('countries'));
     }
 
     public function storeCountry(Request $request)
     {
+        $this->checkPermission('crear paises');
+
         $request->validate([
             'name' => [
                 'required',
@@ -116,9 +272,7 @@ class LocationController extends Controller
 
     public function destroyCountry(Country $country)
     {
-        if (!auth()->user()->hasPermissionTo('eliminar paises')) {
-            abort(403, 'No tienes permiso para eliminar países.');
-        }
+        $this->checkPermission('eliminar paises');
 
         if ($country->states()->exists()) {
             return back()->with('error', 'No se puede eliminar el país porque tiene estados asignados.');
@@ -140,10 +294,13 @@ class LocationController extends Controller
         }
     }
 
-    // ================== ESTADO ==================
+    // ================================================================
+    // ESTADO - CRUD
+    // ================================================================
 
     public function indexStates($countryId)
     {
+        $this->checkPermission('ver estados');
         $parent = Country::findOrFail($countryId);
         $items = State::where('country_id', $countryId)
             ->orderBy('name')
@@ -163,6 +320,8 @@ class LocationController extends Controller
 
     public function storeState(Request $request)
     {
+        $this->checkPermission('crear estados');
+
         $request->validate([
             'name' => [
                 'required',
@@ -196,9 +355,7 @@ class LocationController extends Controller
 
     public function destroyState(State $state)
     {
-        if (!auth()->user()->hasPermissionTo('eliminar estados')) {
-            abort(403, 'No tienes permiso para eliminar estados.');
-        }
+        $this->checkPermission('eliminar estados');
 
         if ($state->municipalities()->exists()) {
             return back()->with('error', 'No se puede eliminar el estado porque tiene municipios asignados.');
@@ -221,10 +378,13 @@ class LocationController extends Controller
         }
     }
 
-    // ================== MUNICIPIO ==================
+    // ================================================================
+    // MUNICIPIO - CRUD
+    // ================================================================
 
     public function indexMunicipalities($stateId)
     {
+        $this->checkPermission('ver municipios');
         $parent = State::findOrFail($stateId);
         $items = Municipality::where('state_id', $stateId)
             ->orderBy('name')
@@ -244,6 +404,8 @@ class LocationController extends Controller
 
     public function storeMunicipality(Request $request)
     {
+        $this->checkPermission('crear municipios');
+
         $request->validate([
             'name' => [
                 'required',
@@ -277,9 +439,7 @@ class LocationController extends Controller
 
     public function destroyMunicipality(Municipality $municipality)
     {
-        if (!auth()->user()->hasPermissionTo('eliminar municipios')) {
-            abort(403, 'No tienes permiso para eliminar municipios.');
-        }
+        $this->checkPermission('eliminar municipios');
 
         if ($municipality->parishes()->exists()) {
             return back()->with('error', 'No se puede eliminar el municipio porque tiene parroquias asignadas.');
@@ -302,10 +462,13 @@ class LocationController extends Controller
         }
     }
 
-    // ================== PARROQUIA ==================
+    // ================================================================
+    // PARROQUIA - CRUD
+    // ================================================================
 
     public function indexParishes($municipalityId)
     {
+        $this->checkPermission('ver parroquias');
         $parent = Municipality::findOrFail($municipalityId);
         $items = Parish::where('municipality_id', $municipalityId)
             ->orderBy('name')
@@ -325,6 +488,8 @@ class LocationController extends Controller
 
     public function storeParish(Request $request)
     {
+        $this->checkPermission('crear parroquias');
+
         $request->validate([
             'name' => [
                 'required',
@@ -358,9 +523,7 @@ class LocationController extends Controller
 
     public function destroyParish(Parish $parish)
     {
-        if (!auth()->user()->hasPermissionTo('eliminar parroquias')) {
-            abort(403, 'No tienes permiso para eliminar parroquias.');
-        }
+        $this->checkPermission('eliminar parroquias');
 
         if ($parish->cities()->exists()) {
             return back()->with('error', 'No se puede eliminar la parroquia porque tiene ciudades asignadas.');
@@ -383,10 +546,13 @@ class LocationController extends Controller
         }
     }
 
-    // ================== CIUDAD ==================
+    // ================================================================
+    // CIUDAD - CRUD
+    // ================================================================
 
     public function indexCities($parishId)
     {
+        $this->checkPermission('ver ciudades');
         $parent = Parish::findOrFail($parishId);
         $items = City::where('parish_id', $parishId)
             ->orderBy('name')
@@ -406,6 +572,8 @@ class LocationController extends Controller
 
     public function storeCity(Request $request)
     {
+        $this->checkPermission('crear ciudades');
+
         $request->validate([
             'name' => [
                 'required',
@@ -439,9 +607,7 @@ class LocationController extends Controller
 
     public function destroyCity(City $city)
     {
-        if (!auth()->user()->hasPermissionTo('eliminar ciudades')) {
-            abort(403, 'No tienes permiso para eliminar ciudades.');
-        }
+        $this->checkPermission('eliminar ciudades');
 
         try {
             $parishId = $city->parish_id;
@@ -460,33 +626,41 @@ class LocationController extends Controller
         }
     }
 
-    // ================== LIMPIEZA DE CACHÉ ==================
+    // ================================================================
+    // LIMPIEZA DE CACHÉ
+    // ================================================================
 
     private function clearLocationCache($countryId = null, $stateId = null, $municipalityId = null, $parishId = null)
     {
-        if ($countryId) {
-            Cache::forget("api_states_country_{$countryId}");
-            Cache::forget("api_states_{$countryId}");
-        }
+        try {
+            if ($countryId) {
+                Cache::forget("api_states_country_{$countryId}");
+                Cache::forget("api_states_{$countryId}");
+            }
 
-        if ($stateId) {
-            Cache::forget("api_municipalities_state_{$stateId}");
-            Cache::forget("api_municipalities_{$stateId}");
-        }
+            if ($stateId) {
+                Cache::forget("api_municipalities_state_{$stateId}");
+                Cache::forget("api_municipalities_{$stateId}");
+            }
 
-        if ($municipalityId) {
-            Cache::forget("api_parishes_municipality_{$municipalityId}");
-            Cache::forget("api_parishes_{$municipalityId}");
-        }
+            if ($municipalityId) {
+                Cache::forget("api_parishes_municipality_{$municipalityId}");
+                Cache::forget("api_parishes_{$municipalityId}");
+            }
 
-        if ($parishId) {
-            Cache::forget("api_cities_parish_{$parishId}");
-            Cache::forget("api_cities_{$parishId}");
-        }
+            if ($parishId) {
+                Cache::forget("api_cities_parish_{$parishId}");
+                Cache::forget("api_cities_{$parishId}");
+            }
 
-        Cache::forget('api_countries_list');
-        Cache::forget('api_countries_all');
-        Cache::forget('api_phone_presets');
-        Cache::forget('api_phone_codes');
+            Cache::forget('api_countries_list');
+            Cache::forget('api_countries_all');
+            Cache::forget('api_phone_presets');
+            Cache::forget('api_phone_codes');
+        } catch (\Exception $e) {
+            Log::error('Error limpiando caché de ubicaciones', [
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

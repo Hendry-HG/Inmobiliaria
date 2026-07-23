@@ -381,31 +381,10 @@
                     </div>
                 </div>
 
-                {{-- ============================================ --}}
-                {{-- DESTACADA --}}
-                {{-- ============================================ --}}
-                <div>
-                    <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b">
-                        <i class="ph ph-star text-slate-400 mr-2"></i> Destacada
-                    </h4>
-                    <div class="flex items-center gap-4">
-                        <label class="flex items-center gap-2 text-sm text-slate-700">
-                            <input type="checkbox" name="is_featured" value="1"
-                                {{ old('is_featured', $property->is_featured ?? false) ? 'checked' : '' }}
-                                class="rounded border-slate-300 text-mso-gold focus:ring-mso-gold">
-                            Marcar como propiedad destacada
-                        </label>
-                        @if(isset($property) && $property->featured_until)
-                            <span class="text-xs text-slate-500">Hasta: {{ \Carbon\Carbon::parse($property->featured_until)->format('d/m/Y') }}</span>
-                        @endif
-                    </div>
-                    <div class="mt-2">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de expiración (destacada)</label>
-                        <input type="date" name="featured_until" value="{{ old('featured_until', isset($property) && $property->featured_until ? $property->featured_until->format('Y-m-d') : '') }}"
-                               class="w-full md:w-64 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition">
-                        @error('featured_until') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-                </div>
+                {{-- =======================================================--}}
+                {{--  ELIMINADA LA SECCIÓN DE DESTACADA                     --}}
+                {{-- El administrador gestiona esto desde SiteConfiguration --}}
+                {{-- =======================================================--}}
 
                 {{-- Botones --}}
                 <div class="flex justify-end gap-4 pt-4 border-t border-slate-100">
@@ -420,7 +399,7 @@
         </div>
     @else
         {{-- ============================================= --}}
-        {{-- MENSAJE DE ACCESO DENEGADO --}}
+        {{-- MENSAJE DE ACCESO DENEGADO                    --}}
         {{-- ============================================= --}}
         <div class="bg-red-50 border border-red-200 text-red-700 p-8 rounded-2xl text-center">
             <div class="flex flex-col items-center">

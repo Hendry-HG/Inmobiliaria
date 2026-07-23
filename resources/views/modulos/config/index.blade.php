@@ -15,7 +15,6 @@
             <p class="text-sm text-slate-500 mt-1">Personaliza la apariencia y contenido de la página de inicio</p>
         </div>
 
-
         <form action="{{ route('admin.config.update') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-8">
             @csrf
             @method('PUT')
@@ -149,7 +148,7 @@
                 {{-- Selector de Propiedades Destacadas --}}
                 <div class="mt-4">
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        Seleccionar Propiedades Destacadas ({{ count($featuredIds) }} seleccionadas)
+                        Seleccionar Propiedades Destacadas (<span id="selectedCount">{{ count($featuredIds) }}</span> seleccionadas)
                     </label>
 
                     {{-- Campo de búsqueda --}}
@@ -159,26 +158,24 @@
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
 
-                    {{-- Propiedades Destacadas Actuales --}}
-                    @if($featuredProperties->isNotEmpty())
-                        <div class="mb-3 p-3 bg-mso-gold/10 border border-mso-gold/30 rounded-lg">
-                            <p class="text-sm font-semibold text-slate-700 mb-2"> Propiedades destacadas actualmente:</p>
-                            <div class="flex flex-wrap gap-2" id="selected-properties-container">
-                                @foreach($featuredProperties as $property)
-                                    <span class="selected-property inline-flex items-center gap-2 bg-white border border-mso-gold text-mso-gold px-3 py-1.5 rounded-full text-sm" data-id="{{ $property->id }}">
-                                        <span class="w-6 h-6 rounded-full bg-mso-gold/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                            {{ $loop->iteration }}
-                                        </span>
-                                        <span class="truncate max-w-[150px]">{{ $property->title }}</span>
-                                        <button type="button" onclick="removeFeaturedProperty({{ $property->id }})"
-                                                class="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1">
-                                            <i class="ph ph-x"></i>
-                                        </button>
+
+                    <div id="selected-properties-container" class="mb-3 p-3 bg-mso-gold/10 border border-mso-gold/30 rounded-lg min-h-[60px]">
+                        <p class="text-sm font-semibold text-slate-700 mb-2"> Propiedades destacadas actualmente:</p>
+                        <div id="selected-properties-list" class="flex flex-wrap gap-2">
+                            @foreach($featuredProperties as $property)
+                                <span class="selected-property inline-flex items-center gap-2 bg-white border border-mso-gold text-mso-gold px-3 py-1.5 rounded-full text-sm" data-id="{{ $property->id }}">
+                                    <span class="w-6 h-6 rounded-full bg-mso-gold/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                        {{ $loop->iteration }}
                                     </span>
-                                @endforeach
-                            </div>
+                                    <span class="truncate max-w-[150px]">{{ $property->title }}</span>
+                                    <button type="button" onclick="removeFeaturedProperty({{ $property->id }})"
+                                            class="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1">
+                                        <i class="ph ph-x"></i>
+                                    </button>
+                                </span>
+                            @endforeach
                         </div>
-                    @endif
+                    </div>
 
                     {{-- Lista de todas las propiedades --}}
                     <div class="max-h-80 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100" id="properties-list">
@@ -187,7 +184,8 @@
                                 <input type="checkbox" name="featured_properties[]" value="{{ $property->id }}"
                                        {{ in_array($property->id, $featuredIds) ? 'checked' : '' }}
                                        class="property-checkbox rounded border-slate-300 text-mso-gold focus:ring-mso-gold w-4 h-4"
-                                       data-search="{{ $property->title }} {{ $property->location }} {{ $property->id }}">
+                                       data-search="{{ $property->title }} {{ $property->location }} {{ $property->id }}"
+                                       onchange="updateFeaturedProperties(this)">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between">
                                         <span class="text-sm font-medium text-slate-700 truncate">{{ $property->title }}</span>
@@ -334,7 +332,6 @@
                     imageElement.remove();
                 }
                 updateDeletedImages(index);
-                // NOTIFICACIÓN ELIMINADA - Usa el layout
             } else {
                 alert(data.message || 'Error al eliminar la imagen');
             }
@@ -362,36 +359,112 @@
     }
 
     // ============================================================
-    // PROPIEDADES DESTACADAS
+    //  ACTUALIZAR PROPIEDADES DESTACADAS
     // ============================================================
-    function removeFeaturedProperty(propertyId) {
-        const checkbox = document.querySelector(`input[name="featured_properties[]"][value="${propertyId}"]`);
-        if (checkbox) {
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change'));
+    function updateFeaturedProperties(checkbox) {
+        const propertyId = checkbox.value;
+        const isChecked = checkbox.checked;
+        const selectedContainer = document.getElementById('selected-properties-list');
+
+        if (isChecked) {
+            //  Agregar propiedad al contenedor de seleccionadas
+            const label = checkbox.closest('label');
+            const title = label.querySelector('.text-sm.font-medium.text-slate-700')?.textContent || 'Propiedad';
+
+            // Verificar si ya existe
+            if (!document.querySelector(`.selected-property[data-id="${propertyId}"]`)) {
+                const span = document.createElement('span');
+                span.className = 'selected-property inline-flex items-center gap-2 bg-white border border-mso-gold text-mso-gold px-3 py-1.5 rounded-full text-sm';
+                span.dataset.id = propertyId;
+                span.innerHTML = `
+                    <span class="w-6 h-6 rounded-full bg-mso-gold/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        ${selectedContainer.children.length + 1}
+                    </span>
+                    <span class="truncate max-w-[150px]">${title}</span>
+                    <button type="button" onclick="removeFeaturedProperty(${propertyId})"
+                            class="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1">
+                        <i class="ph ph-x"></i>
+                    </button>
+                `;
+                selectedContainer.appendChild(span);
+                // Reordenar números
+                reorderSelectedProperties();
+            }
+        } else {
+            //  Eliminar propiedad del contenedor de seleccionadas
+            const selectedElement = document.querySelector(`.selected-property[data-id="${propertyId}"]`);
+            if (selectedElement) {
+                selectedElement.remove();
+                reorderSelectedProperties();
+            }
+        }
+
+        //  Actualizar contador
+        const count = document.querySelectorAll('input[name="featured_properties[]"]:checked').length;
+        document.getElementById('selectedCount').textContent = count;
+
+        //  Actualizar estilo del label
+        const label = checkbox.closest('label');
+        if (isChecked) {
+            label?.classList.add('bg-mso-gold/5');
+        } else {
+            label?.classList.remove('bg-mso-gold/5');
         }
     }
 
+    // ============================================================
+    // REORDENAR PROPIEDADES SELECCIONADAS
+    // ============================================================
+    function reorderSelectedProperties() {
+        const items = document.querySelectorAll('.selected-property');
+        items.forEach((item, index) => {
+            const numberSpan = item.querySelector('.w-6.h-6');
+            if (numberSpan) {
+                numberSpan.textContent = index + 1;
+            }
+        });
+    }
+
+    // ============================================================
+    // REMOVER PROPIEDAD DESTACADA
+    // ============================================================
+    function removeFeaturedProperty(propertyId) {
+        // Desmarcar el checkbox
+        const checkbox = document.querySelector(`input[name="featured_properties[]"][value="${propertyId}"]`);
+        if (checkbox) {
+            checkbox.checked = false;
+            updateFeaturedProperties(checkbox);
+        }
+
+        // Eliminar del contenedor (lo hace updateFeaturedProperties)
+        // Forzar actualización
+        updateSelectedCount();
+    }
+
+    // ============================================================
+    // SELECCIONAR / DESELECCIONAR TODAS
+    // ============================================================
     function selectAllProperties() {
         document.querySelectorAll('input[name="featured_properties[]"]').forEach(cb => {
-            if (!cb.disabled) cb.checked = true;
+            if (!cb.disabled && !cb.checked) {
+                cb.checked = true;
+                updateFeaturedProperties(cb);
+            }
         });
-        updateSelectedCount();
     }
 
     function deselectAllProperties() {
         document.querySelectorAll('input[name="featured_properties[]"]').forEach(cb => {
-            cb.checked = false;
+            if (cb.checked) {
+                cb.checked = false;
+                updateFeaturedProperties(cb);
+            }
         });
-        updateSelectedCount();
     }
 
     function updateSelectedCount() {
         const count = document.querySelectorAll('input[name="featured_properties[]"]:checked').length;
-        const label = document.querySelector('label[for="featured_properties"]');
-        if (label) {
-            label.textContent = `Seleccionar Propiedades Destacadas (${count} seleccionadas)`;
-        }
+        document.getElementById('selectedCount').textContent = count;
     }
 
     // ============================================================
@@ -407,42 +480,6 @@
             item.style.display = shouldShow ? 'flex' : 'none';
         });
     });
-
-    // ============================================================
-    // ACTUALIZAR CONTADOR DE SELECCIONADAS
-    // ============================================================
-    document.querySelectorAll('input[name="featured_properties[]"]').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            updateSelectedCount();
-
-            // Actualizar estilo visual
-            const label = this.closest('label');
-            if (this.checked) {
-                label?.classList.add('bg-mso-gold/5');
-            } else {
-                label?.classList.remove('bg-mso-gold/5');
-            }
-
-            // Actualizar contenedor de seleccionadas
-            updateSelectedPropertiesContainer();
-        });
-    });
-
-    function updateSelectedPropertiesContainer() {
-        const container = document.getElementById('selected-properties-container');
-        if (!container) return;
-
-        const selectedIds = [];
-        document.querySelectorAll('input[name="featured_properties[]"]:checked').forEach(cb => {
-            selectedIds.push(cb.value);
-        });
-
-        // Actualizar el texto del contenedor padre
-        const label = document.querySelector('label[for="featured_properties"]');
-        if (label) {
-            label.textContent = `Seleccionar Propiedades Destacadas (${selectedIds.length} seleccionadas)`;
-        }
-    }
 
     // ============================================================
     // PREVIEW DE NUEVAS IMÁGENES
@@ -467,10 +504,6 @@
             reader.readAsDataURL(file);
         });
     });
-
-    // ============================================================
-    // NOTIFICACIONES ELIMINADAS - Usan el layout
-    // ============================================================
 
     // ============================================================
     // INICIALIZAR

@@ -14,7 +14,7 @@
 
     <!-- Recent Properties -->
     <x-recent-properties
-        :limit="8"
+        :limit="3"
         title="Propiedades Recientes"
         subtitle="Descubre las propiedades que nuestros asesores acaban de publicar"
         badge="Recientes"

@@ -1,15 +1,32 @@
-{{-- resources/views/components/hero-slider.blade.php --}}
 @php
     $config = App\Models\SiteConfiguration::getConfig();
-    $slides = $config->hero_images ?? [
-        'https://images.unsplash.com/photo-1600596542815-2495db0c5903?q=80&w=2000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2000&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop'
-    ];
+    $slides = $config->hero_images ?? [];
+
+    //  Usar imágenes optimizadas
+    if (empty($slides)) {
+        $slides = [
+            'https://images.unsplash.com/photo-1600596542815-2495db0c5903?w=800&h=500&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=500&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=500&fit=crop&auto=format'
+        ];
+    }
+
+    // Limpiar URLs
+    $slides = array_map(function($slide) {
+        if (str_contains($slide, '127.0.0.1:8000/storage')) {
+            $path = parse_url($slide, PHP_URL_PATH);
+            return $path;
+        }
+        if (str_contains($slide, 'unsplash.com')) {
+            if (!str_contains($slide, 'w=')) {
+                $slide = $slide . '?w=800&h=500&fit=crop&auto=format';
+            }
+        }
+        return $slide;
+    }, $slides);
 @endphp
 
 <section class="relative h-[500px] md:h-[650px] flex items-center justify-center overflow-hidden">
-    <!-- IMÁGENES DE FONDO (SLIDER) -->
     <div class="absolute inset-0 bg-slate-900">
         @if(!empty($slides))
             @foreach($slides as $index => $slide)
@@ -20,10 +37,8 @@
         @endif
     </div>
 
-    <!-- OVERLAY -->
     <div class="absolute inset-0 hero-overlay z-10"></div>
 
-    <!-- CONTENIDO CENTRAL -->
     <div class="relative z-20 max-w-5xl mx-auto px-4 sm:px-6 text-center text-white mt-10 md:mt-20">
         <div class="animate-fade-in-up">
             <span class="inline-block py-1 px-3 border border-mso-gold/50 rounded-full text-mso-gold text-[10px] sm:text-xs tracking-[0.2em] uppercase mb-4 sm:mb-6 backdrop-blur-sm">
@@ -41,7 +56,6 @@
         </div>
     </div>
 
-    <!-- INDICADORES DEL SLIDER -->
     @if(count($slides) > 1)
         <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
             @foreach($slides as $index => $slide)

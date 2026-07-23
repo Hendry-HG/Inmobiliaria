@@ -1,11 +1,11 @@
-<nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-500" id="mainNavbar">
+<nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-500" id="mainNavbar" x-data="{ mobileMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20 items-center">
 
-            <!-- Logo - VERSIÓN CORREGIDA -->
+            <!-- Logo -->
             <a href="{{ route('home') }}" class="flex items-center gap-3 group flex-shrink-0">
                 <div class="w-16 h-16 border-2 border-mso-gold flex items-center justify-center overflow-hidden rounded-xl transition-all duration-300 group-hover:scale-105 bg-white">
-                    <img src="{{ url('/favicon-96x96.png') }}"
+                    <img src="{{ asset('favicon-96x96.png') }}"
                          alt="MSO Inmobiliaria"
                          class="w-14 h-14 object-contain transition-all duration-300"
                          id="logoImage"
@@ -31,14 +31,10 @@
                 <a href="{{ route('servicios.public') }}" class="text-sm font-medium {{ request()->routeIs('servicios.public') ? 'text-mso-gold' : 'text-slate-600' }} hover:text-mso-gold transition-colors relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-mso-gold after:left-0 after:-bottom-1 after:transition-all hover:after:w-full">
                     Servicios
                 </a>
-                <a href="#vender" class="text-sm font-medium text-white bg-mso-blue px-5 py-2.5 rounded-full hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/20">
-                    Vender/Alquilar
-                </a>
 
                 @auth
                     @php
                         $user = Auth::user();
-                        // Usar PermissionService directamente en lugar del helper
                         $permission = new \App\Services\PermissionService($user);
                         $dashboardRoute = $permission->getDashboardRoute();
                         $mainRole = $permission->getMainRole();
@@ -150,18 +146,17 @@
                         </a>
                     </div>
                 @else
-                    <button onclick="openModal('auth-modal')" class="text-sm font-medium text-slate-600 border border-slate-300 px-5 py-2.5 rounded-full hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all">
+                    <a href="{{ route('login') }}" class="text-sm font-medium text-slate-600 border border-slate-300 px-5 py-2.5 rounded-full hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all">
                         Ingresar
-                    </button>
+                    </a>
                 @endauth
             </div>
 
             <!-- Mobile Buttons -->
-            <div class="md:hidden flex items-center gap-2">
+            <div class="md:hidden flex items-center gap-2" x-data="{ mobileProfileOpen: false }">
                 @auth
                     @php
                         $user = Auth::user();
-                        // Usar PermissionService directamente en lugar del helper
                         $permission = new \App\Services\PermissionService($user);
                         $dashboardRoute = $permission->getDashboardRoute();
                         $roleDisplayName = $permission->getRoleDisplayName();
@@ -246,154 +241,52 @@
                 @endauth
 
                 {{-- Botón hamburguesa --}}
-                <button id="mobileMenuToggle"
+                <button @click="mobileMenuOpen = !mobileMenuOpen"
                         class="md:hidden text-slate-600 hover:text-mso-blue p-2 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none"
-                        aria-label="Toggle menu"
-                        onclick="toggleMobileMenu()">
-                    <i id="menuIcon" class="ph ph-list text-2xl"></i>
+                        aria-label="Toggle menu">
+                    <i class="ph" :class="mobileMenuOpen ? 'ph-x text-2xl' : 'ph-list text-2xl'"></i>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Mobile Menu -->
-    <div id="mobileMenu"
-         class="md:hidden bg-white border-t border-slate-100 shadow-xl max-h-[80vh] overflow-y-auto hidden">
+    <div x-show="mobileMenuOpen"
+         x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-4"
+         @click.away="mobileMenuOpen = false"
+         class="md:hidden bg-white border-t border-slate-100 shadow-xl max-h-[80vh] overflow-y-auto">
         <div class="px-4 py-4 space-y-2">
             <a href="{{ route('home') }}"
                class="block text-sm font-medium {{ request()->routeIs('home') ? 'text-mso-gold bg-slate-50' : 'text-slate-600' }} hover:text-mso-gold hover:bg-slate-50 transition-colors py-2.5 px-3 rounded-lg"
-               onclick="closeMobileMenu()">
+               @click="mobileMenuOpen = false">
                 Inicio
             </a>
             <a href="{{ route('catalogo.index') }}"
                class="block text-sm font-medium {{ request()->routeIs('catalogo*') ? 'text-mso-gold bg-slate-50' : 'text-slate-600' }} hover:text-mso-gold hover:bg-slate-50 transition-colors py-2.5 px-3 rounded-lg"
-               onclick="closeMobileMenu()">
+               @click="mobileMenuOpen = false">
                 Propiedades
             </a>
             <a href="{{ route('servicios.public') }}"
                class="block text-sm font-medium {{ request()->routeIs('servicios.public') ? 'text-mso-gold bg-slate-50' : 'text-slate-600' }} hover:text-mso-gold hover:bg-slate-50 transition-colors py-2.5 px-3 rounded-lg"
-               onclick="closeMobileMenu()">
+               @click="mobileMenuOpen = false">
                 Servicios
-            </a>
-            <a href="#vender"
-               class="block text-sm font-medium text-white bg-mso-blue px-5 py-2.5 rounded-full hover:bg-slate-800 transition-colors text-center mt-4"
-               onclick="closeMobileMenu()">
-                Vender/Alquilar
             </a>
 
             @guest
                 <div class="border-t border-slate-100 pt-4 mt-2">
-                    <button onclick="openModal('auth-modal')"
-                            class="w-full text-sm font-medium text-slate-600 border border-slate-300 px-5 py-2.5 rounded-full hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all">
+                    <a href="{{ route('login') }}"
+                       class="w-full text-sm font-medium text-slate-600 border border-slate-300 px-5 py-2.5 rounded-full hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all block text-center"
+                       @click="mobileMenuOpen = false">
                         Ingresar
-                    </button>
+                    </a>
                 </div>
             @endguest
         </div>
     </div>
 </nav>
-
-<style>
-    #mobileMenu.hidden {
-        display: none !important;
-    }
-    #mobileMenu:not(.hidden) {
-        display: block !important;
-    }
-
-    .custom-scroll::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 10px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-
-    .md\:hidden button {
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .group-hover\:scale-105 {
-        transition: transform 0.3s ease;
-    }
-
-    #mobileMenu {
-        transition: all 0.3s ease-in-out;
-    }
-    #mobileMenu.hidden {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    #mobileMenu:not(.hidden) {
-        opacity: 1;
-        transform: translateY(0);
-    }
-</style>
-
-<script>
-    function toggleMobileMenu() {
-        const menu = document.getElementById('mobileMenu');
-        const icon = document.getElementById('menuIcon');
-
-        if (menu.classList.contains('hidden')) {
-            menu.classList.remove('hidden');
-            icon.className = 'ph ph-x text-2xl';
-            document.body.style.overflow = 'hidden';
-        } else {
-            closeMobileMenu();
-        }
-    }
-
-    function closeMobileMenu() {
-        const menu = document.getElementById('mobileMenu');
-        const icon = document.getElementById('menuIcon');
-
-        menu.classList.add('hidden');
-        icon.className = 'ph ph-list text-2xl';
-        document.body.style.overflow = '';
-    }
-
-    document.addEventListener('click', function(e) {
-        const menu = document.getElementById('mobileMenu');
-        const toggleBtn = document.getElementById('mobileMenuToggle');
-
-        if (!menu.classList.contains('hidden')) {
-            const isClickInside = menu.contains(e.target) || toggleBtn.contains(e.target);
-            if (!isClickInside) {
-                closeMobileMenu();
-            }
-        }
-    });
-
-    window.addEventListener('resize', function() {
-        if (window.innerWidth >= 768) {
-            closeMobileMenu();
-        }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeMobileMenu();
-        }
-    });
-
-    // Recargar imagen del logo si falla
-    document.addEventListener('DOMContentLoaded', function() {
-        const logo = document.getElementById('logoImage');
-        if (logo) {
-            logo.onerror = function() {
-                this.onerror = null;
-                this.src = 'https://ui-avatars.com/api/?name=MSO&background=c5a059&color=fff&size=96&bold=true';
-            };
-        }
-        console.log(' Navbar cargado correctamente');
-    });
-</script>

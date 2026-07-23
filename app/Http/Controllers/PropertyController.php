@@ -407,10 +407,12 @@ class PropertyController extends Controller
         ]);
 
         try {
-            $data = $request->except(['images', 'deleted_images']);
+
+            $data = $request->except(['images', 'deleted_images', 'is_featured', 'featured_until']);
             $data['user_id'] = $user->id;
             $data['features'] = $request->input('features', []);
             $data['location'] = $this->buildLocationString($data);
+            $data['is_featured'] = false; // Por defecto, nunca destacada al crear
 
             $data['description'] = strip_tags($data['description'], '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4>');
 
@@ -570,9 +572,11 @@ class PropertyController extends Controller
         try {
             $oldValues = $property->toArray();
 
-            $data = $request->except(['images', 'deleted_images']);
+
+            $data = $request->except(['images', 'deleted_images', 'is_featured', 'featured_until']);
             $data['features'] = $request->input('features', []);
             $data['location'] = $this->buildLocationString($data);
+            // is_featured NO se actualiza aquí, solo lo hace SiteConfiguration
 
             $data['description'] = strip_tags($data['description'], '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4>');
 
@@ -629,7 +633,8 @@ class PropertyController extends Controller
                 'bedrooms' => 'habitaciones', 'bathrooms' => 'baños',
                 'parking_spaces' => 'estacionamientos', 'area' => 'área',
                 'land_area' => 'área de terreno', 'floors' => 'pisos',
-                'year_built' => 'año de construcción', 'is_featured' => 'destacada',
+                'year_built' => 'año de construcción',
+
             ];
 
             foreach ($data as $key => $value) {

@@ -39,17 +39,13 @@ class Service extends Model
         return $this->hasMany(ServiceGallery::class)->orderBy('order');
     }
 
-    /**
-     * Obtener la primera imagen de la galería
-     */
+    
     public function getPrimaryImageAttribute()
     {
         return $this->gallery()->first() ?? null;
     }
 
-    /**
-     * Boot del modelo para generar slug
-     */
+    
     protected static function boot()
     {
         parent::boot();

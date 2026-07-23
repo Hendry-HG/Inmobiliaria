@@ -2,64 +2,85 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\PropertyController;
-use App\Http\Controllers\LeadController;
-use App\Http\Controllers\Admin\ServiceController;
-use App\Http\Controllers\AppointmentController;
+
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes - PÚBLICAS
+| Web Routes
 |--------------------------------------------------------------------------
 */
 
+//  RUTA PRINCIPAL
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Catálogo público
+// =============================================
+//  RUTAS PÚBLICAS ADICIONALES (ANTES DE AUTH)
+// =============================================
 Route::prefix('catalogo')->name('catalogo.')->group(function () {
-    Route::get('/', [PropertyController::class, 'catalog'])->name('index');
-    Route::get('/{property}', [PropertyController::class, 'showPublic'])->name('show');
+    Route::get('/', [App\Http\Controllers\PropertyController::class, 'catalog'])->name('index');
+    Route::get('/{property}', [App\Http\Controllers\PropertyController::class, 'showPublic'])->name('show');
 });
 
-// Propiedades públicas
 Route::prefix('propiedad')->name('propiedad.')->group(function () {
-    Route::get('/ver/{id}', [PropertyController::class, 'showById'])->name('ver');
+    Route::get('/ver/{id}', [App\Http\Controllers\PropertyController::class, 'showById'])->name('ver');
 });
 
-// API pública - Contador de propiedades
-Route::prefix('api')->name('api.')->group(function () {
-    Route::get('/properties/count', [PropertyController::class, 'countProperties'])->name('properties.count');
-});
+Route::get('/servicios', [App\Http\Controllers\Admin\ServiceController::class, 'publicIndex'])->name('servicios.public');
+Route::get('/citas/create', [App\Http\Controllers\AppointmentController::class, 'createPublic'])->name('citas.create');
 
-// Servicios públicos
-Route::get('/servicios', [ServiceController::class, 'publicIndex'])->name('servicios.public');
-
-// Citas públicas
-Route::get('/citas/create', [AppointmentController::class, 'createPublic'])->name('citas.create');
-
-// Leads públicos - Formulario de valoración
-Route::post('/solicitar-valoracion', [LeadController::class, 'storePublic'])
+Route::post('/solicitar-valoracion', [App\Http\Controllers\LeadController::class, 'storePublic'])
     ->name('lead.store.public')
     ->middleware('throttle:5,1');
 
 // =============================================
-//  RUTA PARA REFRESCAR TOKEN CSRF
+//  API PÚBLICA (EXCLUIDA DE CSRF PARA REGISTRO)
 // =============================================
+Route::prefix('api')->name('api.')->middleware('throttle:60,1')->group(function () {
+    // Ubicaciones - VERSIÓN CORREGIDA
+    Route::prefix('locations')->name('locations.')->group(function () {
+        Route::get('/countries', [App\Http\Controllers\Api\ApiLocationController::class, 'getCountries'])->name('countries');
+        Route::get('/states/{countryId}', [App\Http\Controllers\Api\ApiLocationController::class, 'getStates'])->name('states');
+        Route::get('/municipalities/{stateId}', [App\Http\Controllers\Api\ApiLocationController::class, 'getMunicipalities'])->name('municipalities');
+        Route::get('/parishes/{municipalityId}', [App\Http\Controllers\Api\ApiLocationController::class, 'getParishes'])->name('parishes');
+        Route::get('/cities/{parishId}', [App\Http\Controllers\Api\ApiLocationController::class, 'getCities'])->name('cities');
+    });
+
+    // Registro - VERSIÓN CORREGIDA
+    Route::prefix('register')->name('register.')->group(function () {
+        Route::get('/countries', [App\Http\Controllers\Admin\LocationController::class, 'getCountriesForRegister'])->name('countries');
+        Route::get('/states/{countryId}', [App\Http\Controllers\Admin\LocationController::class, 'getStatesForRegister'])->name('states');
+        Route::get('/municipalities/{stateId}', [App\Http\Controllers\Admin\LocationController::class, 'getMunicipalitiesForRegister'])->name('municipalities');
+        Route::get('/parishes/{municipalityId}', [App\Http\Controllers\Admin\LocationController::class, 'getParishesForRegister'])->name('parishes');
+        Route::get('/cities/{parishId}', [App\Http\Controllers\Admin\LocationController::class, 'getCitiesForRegister'])->name('cities');
+    });
+
+    // Teléfonos
+    Route::prefix('phone')->name('phone.')->group(function () {
+        Route::get('/presets', [App\Http\Controllers\Admin\PhoneController::class, 'getPresets'])->name('presets');
+        Route::get('/codes', [App\Http\Controllers\Admin\PhoneController::class, 'getPhoneCodes'])->name('codes');
+        Route::get('/config/{countryId}', [App\Http\Controllers\Admin\PhoneController::class, 'getPhoneConfig'])->name('config');
+    });
+});
+
 Route::get('/refresh-csrf', function () {
     if (request()->ajax()) {
         session()->regenerateToken();
-        return response()->json([
-            'csrf_token' => csrf_token()
-        ]);
+        return response()->json(['csrf_token' => csrf_token()]);
     }
     return response()->json(['error' => 'Invalid request'], 400);
 })->name('refresh.csrf');
 
 // =============================================
-//   IMPORTANTE: ESTO CARGA LOS DEMÁS ARCHIVOS
-//  Los archivos deben estar en la carpeta /routes
+//  RUTAS DE AUTENTICACIÓN
 // =============================================
 require __DIR__.'/auth.php';
+
+// =============================================
+//  RUTAS DE SEGURIDAD
+// =============================================
 require __DIR__.'/security.php';
-require __DIR__.'/api-public.php';
+
+// =============================================
+//  RUTAS ADMIN (PROTEGIDAS)
+// =============================================
 require __DIR__.'/admin.php';

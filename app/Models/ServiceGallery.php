@@ -22,17 +22,13 @@ class ServiceGallery extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relación inversa con Service
-     */
+    
     public function service()
     {
         return $this->belongsTo(Service::class);
     }
 
-    /**
-     * Accessor para la URL de la imagen
-     */
+    
     public function getImageUrlAttribute()
     {
         return $this->image_path ? asset('storage/' . $this->image_path) : null;
