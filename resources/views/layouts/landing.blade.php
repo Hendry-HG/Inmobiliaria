@@ -133,9 +133,6 @@
     <!-- Floating Support -->
     <x-floating-support />
 
-    <!-- Auth Modal -->
-    <x-auth-modal />
-
 
     @stack('js')
 </body>

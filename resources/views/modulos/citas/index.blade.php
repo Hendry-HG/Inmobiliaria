@@ -658,7 +658,7 @@ window.showPropertyPreview = function(appointmentId) {
     };
     const statusColor = statusColors[appointment.status] || 'bg-slate-100 text-slate-800';
 
-    const propertyUrl = `/propiedad/ver/${appointment.property_id}`;
+    const propertyUrl = `/catalogo/${appointment.property_id}`;
 
     const modalContent = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

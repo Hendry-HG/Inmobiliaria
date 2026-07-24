@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// FUNCIONES PARA EL MODAL DE AUTENTICACIÓN
+// FUNCIONES PARA AUTENTICACIÓN
 // ============================================
 function openAuthModal(tab = 'login') {
     // Cerrar menú móvil si está abierto
@@ -141,99 +141,11 @@ function openAuthModal(tab = 'login') {
         document.body.style.overflow = '';
     }
 
-    // Abrir modal
-    const modal = document.getElementById('auth-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        switchAuthTab(tab);
-    } else {
-        console.error('Modal de autenticación no encontrado');
-        // Fallback: redirigir a las páginas de login/register
-        if (tab === 'login') {
-            window.location.href = '{{ route("login") }}';
-        } else if (tab === 'register') {
-            window.location.href = '{{ route("register") }}';
-        }
-    }
-}
-
-function closeModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
-    }
-}
-
-function switchAuthTab(tab) {
-    const loginForm = document.getElementById('form-login');
-    const registerForm = document.getElementById('form-register');
-    const forgotForm = document.getElementById('form-forgot-password');
-    const loginTab = document.getElementById('tab-login');
-    const registerTab = document.getElementById('tab-register');
-    const forgotTab = document.getElementById('tab-forgot');
-    const modalTitle = document.getElementById('modal-title');
-    const modalSubtitle = document.getElementById('modal-subtitle');
-
-    // Ocultar todos
-    if (loginForm) loginForm.classList.add('hidden');
-    if (registerForm) registerForm.classList.add('hidden');
-    if (forgotForm) forgotForm.classList.add('hidden');
-
-    // Ocultar forgot tab por defecto
-    if (forgotTab) forgotTab.classList.add('hidden');
-
-    // Mostrar el seleccionado
+    //  REDIRECCIÓN DIRECTA A LAS PÁGINAS DE AUTENTICACIÓN
     if (tab === 'login') {
-        if (loginForm) loginForm.classList.remove('hidden');
-        if (loginTab) loginTab.className = 'text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors';
-        if (registerTab) registerTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-        if (forgotTab) forgotTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-        if (modalTitle) modalTitle.textContent = 'Bienvenido';
-        if (modalSubtitle) modalSubtitle.textContent = 'Ingresa a tu cuenta para continuar';
+        window.location.href = '{{ route("login") }}';
     } else if (tab === 'register') {
-        if (registerForm) registerForm.classList.remove('hidden');
-        if (registerTab) registerTab.className = 'text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors';
-        if (loginTab) loginTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-        if (forgotTab) forgotTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-        if (modalTitle) modalTitle.textContent = 'Crear Cuenta';
-        if (modalSubtitle) modalSubtitle.textContent = 'Únete a MSO Grupo Inmobiliario';
-    } else if (tab === 'forgot') {
-        if (forgotForm) forgotForm.classList.remove('hidden');
-        if (forgotTab) {
-            forgotTab.classList.remove('hidden');
-            forgotTab.className = 'text-sm font-bold text-slate-900 border-b-2 border-mso-gold pb-1 transition-colors';
-        }
-        if (loginTab) loginTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-        if (registerTab) registerTab.className = 'text-sm font-medium text-slate-500 hover:text-slate-900 pb-1 transition-colors';
-        if (modalTitle) modalTitle.textContent = 'Recuperar Contraseña';
-        if (modalSubtitle) modalSubtitle.textContent = 'Verifica tu identidad con preguntas de seguridad';
+        window.location.href = '{{ route("register") }}';
     }
 }
-
-// ============================================
-// CERRAR MODAL CON ESC
-// ============================================
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('auth-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-            closeModal('auth-modal');
-        }
-    }
-});
-
-// ============================================
-// CERRAR MODAL AL HACER CLICK FUERA
-// ============================================
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('auth-modal');
-    if (modal && !modal.classList.contains('hidden')) {
-        const modalContent = modal.querySelector('.bg-white');
-        if (modalContent && !modalContent.contains(e.target)) {
-            closeModal('auth-modal');
-        }
-    }
-});
 </script>
