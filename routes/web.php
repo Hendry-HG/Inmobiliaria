@@ -20,7 +20,7 @@ Route::prefix('catalogo')->name('catalogo.')->group(function () {
     Route::get('/{property}', [App\Http\Controllers\PropertyController::class, 'showPublic'])->name('show');
 });
 
-// ✅ RUTA CORREGIDA - Ahora usa {property} en lugar de {id}
+
 Route::prefix('propiedad')->name('propiedad.')->group(function () {
     Route::get('/ver/{property}', [App\Http\Controllers\PropertyController::class, 'showPublic'])->name('ver');
 });

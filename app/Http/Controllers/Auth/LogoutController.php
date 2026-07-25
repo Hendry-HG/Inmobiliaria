@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/Auth/LogoutController.php
+
 
 namespace App\Http\Controllers\Auth;
 

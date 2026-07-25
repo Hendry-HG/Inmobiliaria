@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\Log;
 class PermissionService
 {
     protected $user;
-    protected $permissions = [];
-    protected $roles = [];
-    protected $isLoaded = false;
 
     protected array $dashboardMap = [
         'Super Admin' => 'super-admin.dashboard',
@@ -44,68 +41,117 @@ class PermissionService
     public function __construct($user = null)
     {
         $this->user = $user ?? Auth::user();
-        if ($this->user) {
-            $this->loadUserData();
-        }
     }
 
-    protected function loadUserData(): void
+    /**
+     * Actualizar el usuario del servicio
+     */
+    public function setUser($user): self
     {
-        if (!$this->user) {
-            Log::warning('PermissionService - No hay usuario para cargar datos');
-            return;
-        }
-
-        try {
-            $roles = $this->user->roles()->pluck('name')->toArray();
-
-
-            $permissions = $this->user->getAllPermissions()->pluck('name')->toArray();
-
-            $this->roles = $roles;
-            $this->permissions = $permissions;
-            $this->isLoaded = true;
-
-            Log::info('PermissionService - Datos cargados', [
-                'user_id' => $this->user->id,
-                'user_email' => $this->user->email,
-                'roles' => $this->roles,
-                'permissions_count' => count($this->permissions),
-                'is_super_admin' => in_array('Super Admin', $roles)
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('PermissionService - Error cargando datos', [
-                'user_id' => $this->user->id,
-                'error' => $e->getMessage()
-            ]);
-
-            $this->roles = [];
-            $this->permissions = [];
-            $this->isLoaded = true;
-        }
+        $this->user = $user;
+        return $this;
     }
 
-    public function refresh(): void
+    /**
+     * Obtener el usuario actual
+     * Siempre intenta obtener el usuario más actualizado
+     */
+    protected function getUser()
     {
-        $this->isLoaded = false;
-        $this->roles = [];
-        $this->permissions = [];
-        $this->loadUserData();
-
+        // Si ya tenemos un usuario en la propiedad, usarlo
         if ($this->user) {
-            Cache::forget('user_permissions_' . $this->user->id);
+            return $this->user;
         }
+
+        // Si no hay usuario, intentar obtener de Auth
+        return Auth::user();
+    }
+
+
+
+    public function hasPermission(string $permission): bool
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Super Admin tiene todos los permisos
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return $user->hasPermissionTo($permission);
+    }
+
+    public function hasAnyPermission(array $permissions): bool
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return $user->hasAnyPermission($permissions);
+    }
+
+    public function hasAllPermissions(array $permissions): bool
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return $user->hasAllPermissions($permissions);
+    }
+
+    public function hasRole(string $role): bool
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->hasRole($role);
+    }
+
+    public function hasAnyRole(array $roles): bool
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->hasAnyRole($roles);
     }
 
     public function getRoles(): array
     {
-        return $this->roles;
+        $user = $this->getUser();
+
+        if (!$user) {
+            return [];
+        }
+
+        return $user->roles()->pluck('name')->toArray();
     }
 
     public function getMainRole(): ?string
     {
-        return $this->roles[0] ?? null;
+        $roles = $this->getRoles();
+        return $roles[0] ?? null;
     }
 
     public function getRoleDisplayName(): string
@@ -133,40 +179,9 @@ class PermissionService
         return route('dashboard.generic');
     }
 
-    public function hasRole(string $role): bool
-    {
-        return in_array($role, $this->roles);
-    }
-
-    public function hasAnyRole(array $roles): bool
-    {
-        return !empty(array_intersect($roles, $this->roles));
-    }
-
-    public function hasAllRoles(array $roles): bool
-    {
-        return empty(array_diff($roles, $this->roles));
-    }
-
-    public function hasPermission(string $permission): bool
-    {
-        return in_array($permission, $this->permissions);
-    }
-
-    public function hasAnyPermission(array $permissions): bool
-    {
-        return !empty(array_intersect($permissions, $this->permissions));
-    }
-
-    public function hasAllPermissions(array $permissions): bool
-    {
-        return empty(array_diff($permissions, $this->permissions));
-    }
-
-    public function getPermissions(): array
-    {
-        return $this->permissions;
-    }
+    // ==========================================
+    // MÉTODOS DEL SIDEBAR
+    // ==========================================
 
     public function canSeeSidebarItem(string $permission): bool
     {
@@ -244,18 +259,6 @@ class PermissionService
             return true;
         }
 
-        if ($this->hasRole('Super Admin')) {
-            return false;
-        }
-
-        if ($this->hasRole('Administrador')) {
-            return false;
-        }
-
-        if ($this->hasRole('Auditor')) {
-            return false;
-        }
-
         return false;
     }
 
@@ -325,5 +328,52 @@ class PermissionService
         if ($this->user) {
             Cache::forget('user_permissions_' . $this->user->id);
         }
+    }
+
+    // ==========================================
+    // 🔍 MÉTODO DE DEPURACIÓN
+    // ==========================================
+
+    public function debug(string $permission): array
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return [
+                'success' => false,
+                'error' => 'No user found',
+                'user_id' => null,
+            ];
+        }
+
+        $permissionExists = \Spatie\Permission\Models\Permission::where('name', $permission)
+            ->where('guard_name', 'web')
+            ->exists();
+
+        $hasDirect = $user->hasDirectPermission($permission);
+        $hasViaRole = false;
+        $roles = $user->roles;
+
+        foreach ($roles as $role) {
+            if ($role->hasPermissionTo($permission)) {
+                $hasViaRole = true;
+                break;
+            }
+        }
+
+        return [
+            'success' => true,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_is_active' => $user->is_active ?? false,
+            'roles' => $roles->pluck('name')->toArray(),
+            'all_permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+            'permission_exists' => $permissionExists,
+            'has_direct_permission' => $hasDirect,
+            'has_via_role' => $hasViaRole,
+            'has_permission_spatie' => $user->hasPermissionTo($permission),
+            'is_super_admin' => $user->hasRole('Super Admin'),
+            'guard_name' => $permissionExists ? \Spatie\Permission\Models\Permission::where('name', $permission)->first()->guard_name : null,
+        ];
     }
 }

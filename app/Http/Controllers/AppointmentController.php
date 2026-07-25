@@ -150,11 +150,26 @@ class AppointmentController extends Controller
         try {
             $user = Auth::user();
 
+            // Verificar que el usuario está autenticado
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes iniciar sesión para agendar una cita.'
+                ], 401);
+            }
+
+            //  ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+            $this->permissionService->setUser($user);
+
             // 1. VERIFICAR PERMISO USANDO PERMISSIONSERVICE
             if (!$this->permissionService->hasPermission('crear cita')) {
+                // Obtener roles sin usar métodos que puedan fallar
+                $userRoles = $this->getUserRoles($user->id);
+
                 Log::warning('Intento de crear cita sin permiso', [
                     'user_id' => $user->id,
-                    'email' => $user->email
+                    'email' => $user->email,
+                    'roles' => $userRoles
                 ]);
 
                 return response()->json([
@@ -185,7 +200,7 @@ class AppointmentController extends Controller
             // 4. VERIFICAR DISPONIBILIDAD DEL ASESOR
             $settings = AppointmentSetting::getForUser($property->user_id);
 
-            if (!$settings->is_active) {
+            if (!$settings || !$settings->is_active) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El asesor no está recibiendo citas en este momento.'
@@ -260,6 +275,14 @@ class AppointmentController extends Controller
     {
         try {
             $user = Auth::user();
+
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+
+            // 🔥 ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+            $this->permissionService->setUser($user);
+
             $userRoles = $this->getUserRoles($user->id);
 
             $canUpdate = in_array('Super Admin', $userRoles) || in_array('Administrador', $userRoles) ||
@@ -321,6 +344,14 @@ class AppointmentController extends Controller
     {
         try {
             $user = Auth::user();
+
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+
+            // 🔥 ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+            $this->permissionService->setUser($user);
+
             $userRoles = $this->getUserRoles($user->id);
 
             $canReschedule = in_array('Super Admin', $userRoles) || in_array('Administrador', $userRoles) ||

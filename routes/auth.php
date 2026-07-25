@@ -16,7 +16,7 @@ Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])
-        ->middleware('throttle:10,1');
+       ->middleware('throttle:10,1');
 
     // Register
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');

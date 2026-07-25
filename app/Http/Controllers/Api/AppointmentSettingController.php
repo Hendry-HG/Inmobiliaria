@@ -24,7 +24,16 @@ class AppointmentSettingController extends Controller
 
     public function index()
     {
-        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        $user = Auth::user();
+
+        if (!$user) {
+            abort(401, 'No autenticado');
+        }
+
+
+        $this->permissionService->setUser($user);
+
+        // VERIFICAR PERMISO CON PERMISSIONSERVICE
         if (!$this->permissionService->hasPermission('ver configuración')) {
             abort(403, 'No tienes permiso para ver la configuración de citas.');
         }
@@ -37,7 +46,19 @@ class AppointmentSettingController extends Controller
 
     public function update(Request $request)
     {
-        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado'
+            ], 401);
+        }
+
+
+        $this->permissionService->setUser($user);
+
+        // VERIFICAR PERMISO CON PERMISSIONSERVICE
         if (!$this->permissionService->hasPermission('editar configuración')) {
             return response()->json([
                 'success' => false,
@@ -312,7 +333,19 @@ class AppointmentSettingController extends Controller
 
     public function addException(Request $request)
     {
-        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado'
+            ], 401);
+        }
+
+
+        $this->permissionService->setUser($user);
+
+        // VERIFICAR PERMISO CON PERMISSIONSERVICE
         if (!$this->permissionService->hasPermission('editar configuración')) {
             return response()->json([
                 'success' => false,
@@ -374,7 +407,19 @@ class AppointmentSettingController extends Controller
 
     public function removeException(Request $request)
     {
-        //  VERIFICAR PERMISO CON PERMISSIONSERVICE
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado'
+            ], 401);
+        }
+
+        // 🔥 ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+        $this->permissionService->setUser($user);
+
+        // VERIFICAR PERMISO CON PERMISSIONSERVICE
         if (!$this->permissionService->hasPermission('editar configuración')) {
             return response()->json([
                 'success' => false,
