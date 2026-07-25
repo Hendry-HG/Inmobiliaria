@@ -397,7 +397,7 @@ class LeadController extends Controller
     public function destroy(Lead $lead)
     {
         try {
-            // 🔥 AUDITORÍA - ELIMINACIÓN DE LEAD
+            //  AUDITORÍA - ELIMINACIÓN DE LEAD
             $this->logDeleted($lead, (Auth::user()?->full_name ?? 'Sistema') . ' ELIMINÓ el lead "' . $lead->name . '"');
 
             $lead->delete();
