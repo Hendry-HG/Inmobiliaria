@@ -16,15 +16,31 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\RateLimiter;
+use App\Traits\SendsNotifications;
 
 class ChatController extends Controller
 {
+    use SendsNotifications;
+
     private const MAX_MESSAGE_LENGTH = 1000;
     private const TYPING_THROTTLE = 3;
     private const TYPING_CACHE_KEY_PREFIX = 'typing_';
     private const MAX_MESSAGES_PER_MINUTE = 30;
 
+    /**
+     * Constructor del controlador de chat en tiempo real.
+     *
+     * Configura los middleware para todas las rutas del controlador:
+     * - Todas las rutas requieren autenticacion.
+     * - Throttling estricto (60/min) para sendMessage, startConversation y
+     *   startConversationWithCliente para prevenir spam de mensajes.
+     * - Throttling mas amplio (100/min) para consultas de lectura
+     *   (getMessages, getConversations).
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->middleware('auth');
@@ -36,6 +52,18 @@ class ChatController extends Controller
     // HELPERS PRIVADOS
     // ==========================================
 
+    /**
+     * Obtiene los roles de un usuario con cache de 5 minutos.
+     *
+     * Consulta la tabla model_has_roles uniendo con roles para obtener
+     * los nombres de los roles asignados a un usuario. Los resultados se
+     * cachean durante 300 segundos para reducir consultas repetitivas en
+     * el contexto de sesiones de chat donde se verifican roles con
+     * frecuencia.
+     *
+     * @param int $userId Identificador del usuario cuyos roles se desean obtener.
+     * @return array Arreglo de strings con los nombres de los roles asignados.
+     */
     private function getUserRoles(int $userId): array
     {
         return Cache::remember("user_roles_{$userId}", 300, function () use ($userId) {
@@ -48,12 +76,35 @@ class ChatController extends Controller
         });
     }
 
+    /**
+     * Limpia los caches de roles y permisos de un usuario.
+     *
+     * Invalida las entradas de cache de roles y permisos del usuario
+     * identificado. Se invoca cuando cambia el estado de presencia del
+     * usuario para garantizar que los datos en cache se reflejen con
+     * exactitud en operaciones posteriores.
+     *
+     * @param int $userId Identificador del usuario cuyo cache se va a limpiar.
+     * @return void
+     */
     private function clearUserCache(int $userId): void
     {
         Cache::forget("user_roles_{$userId}");
         Cache::forget("user_permissions_{$userId}");
     }
 
+    /**
+     * Determina el ID del usuario receptor en una conversacion.
+     *
+     * Dado un usuario emisor, retorna el ID del otro participante de la
+     * conversacion. Si el usuario autenticado es el cliente, retorna el ID
+     * del asesor, y viceversa. Util para dirigir broadcasts y notificaciones
+     * al destinatario correcto.
+     *
+     * @param Conversation $conversation Modelo de la conversacion activa.
+     * @param int $userId Identificador del usuario emisor.
+     * @return int Identificador del usuario receptor.
+     */
     private function getReceiverId(Conversation $conversation, int $userId): int
     {
         return $userId === $conversation->client_id
@@ -61,11 +112,37 @@ class ChatController extends Controller
             : $conversation->client_id;
     }
 
+    /**
+     * Verifica si un usuario tiene acceso a una conversacion.
+     *
+     * Control de acceso que valida que el usuario sea participante de la
+     * conversacion (ya sea cliente o asesor). Retorna true solo si el ID
+     * del usuario coincide con client_id o asores_id de la conversacion.
+     * Se aplica en todas las operaciones de lectura, escritura y eliminacion
+     * de mensajes para garantizar que solo los participantes accedan al
+     * contenido.
+     *
+     * @param int $userId Identificador del usuario que solicita acceso.
+     * @param Conversation $conversation Modelo de la conversacion a verificar.
+     * @return bool true si el usuario es participante, false de lo contrario.
+     */
     private function canUserAccessConversation(int $userId, Conversation $conversation): bool
     {
         return in_array($userId, [$conversation->client_id, $conversation->asesor_id]);
     }
 
+    /**
+     * Formatea un modelo Message a un arreglo asociativo para la API/JSON.
+     *
+     * Transforma el modelo Eloquent de Message en una estructura plana
+     * adecuada para enviar como respuesta JSON al frontend. Incluye el
+     * contenido, datos del usuario remitente (nombre, avatar), hora
+     * formateada (HH:MM), estado de lectura y timestamp ISO 8601.
+     *
+     * @param Message $message Modelo de mensaje a formatear.
+     * @return array Arreglo asociativo con los campos: id, content, user_id,
+     *         user_name, user_avatar, formatted_time, is_read, created_at.
+     */
     private function formatMessage(Message $message): array
     {
         return [
@@ -80,6 +157,23 @@ class ChatController extends Controller
         ];
     }
 
+    /**
+     * Formatea un modelo Conversation con datos del otro participante.
+     *
+     * Transforma el modelo de conversacion en una estructura para el panel
+     * lateral de chat. Determina automaticamente cual es el "otro usuario"
+     * segun el rol del usuario autenticado (si es cliente, muestra el asesor;
+     * si es asesor, muestra el cliente). Incluye informacion de presencia,
+     * cantidad de mensajes no leidos, ultimo mensaje y tiempo relativo.
+     *
+     * El conteo de mensajes no leidos se realiza con una consulta adicional
+     * para garantizar precision en tiempo real.
+     *
+     * @param Conversation $conversation Modelo de la conversacion.
+     * @param User $user Usuario autenticado que consulta la conversacion.
+     * @param bool $isCliente true si el usuario autenticado tiene rol de Cliente.
+     * @return array Arreglo con los datos formateados de la conversacion.
+     */
     private function formatConversation(Conversation $conversation, User $user, bool $isCliente): array
     {
         $otherUser = $isCliente ? $conversation->asesor : $conversation->client;
@@ -108,6 +202,31 @@ class ChatController extends Controller
     // VISTA PRINCIPAL
     // ==========================================
 
+    /**
+     * Muestra la vista principal del modulo de chat.
+     *
+     * Punto de entrada al sistema de mensajeria. Carga todas las conversaciones
+     * activas del usuario autenticado y las contactos disponibles para iniciar
+     * nuevas conversaciones. El comportamiento varia segun el rol:
+     *
+     * - Cliente: ve sus conversaciones existentes y una lista de asesores
+     *   inmobiliarios activos disponibles para iniciar chat.
+     * - Asesor Inmobiliario: ve sus conversaciones y una lista de clientes
+     *   que tienen citas agendadas con el, habilitando el chat.
+     *
+     * Las conversaciones se ordenan por el timestamp del ultimo mensaje
+     * (de mas reciente a mas antiguo) y se formatean incluyendo el
+     * conteo de mensajes no leidos.
+     *
+     * Flujo:
+     * 1. Obtiene el usuario autenticado y sus roles.
+     * 2. Carga conversaciones con relaciones (client, asesor, lastMessage).
+     * 3. Formatea cada conversacion con datos del otro participante.
+     * 4. Carga contactos disponibles segun el rol del usuario.
+     * 5. Retorna la vista del chat con todos los datos necesarios.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
         $user = Auth::user();
@@ -138,6 +257,20 @@ class ChatController extends Controller
         ));
     }
 
+    /**
+     * Obtiene la lista de contactos disponibles segun el rol del usuario.
+     *
+     * Metodo de despacho que delega a la funcion correspondiente segun el
+     * rol: para clientes retorna asesores disponibles, para asesores retorna
+     * clientes con citas. Si el usuario no tiene ninguno de estos roles,
+     * retorna una coleccion vacia.
+     *
+     * @param User $user Usuario autenticado.
+     * @param bool $isCliente true si el usuario tiene rol de Cliente.
+     * @param bool $isAsesor true si el usuario tiene rol de Asesor Inmobiliario.
+     * @return \Illuminate\Support\Collection Coleccion de contactos disponibles
+     *         formateados como objetos planos.
+     */
     private function getAvailableContactos(User $user, bool $isCliente, bool $isAsesor): \Illuminate\Support\Collection
     {
         if ($isCliente) {
@@ -151,6 +284,21 @@ class ChatController extends Controller
         return collect();
     }
 
+    /**
+     * Obtiene los asesores inmobiliarios disponibles para un cliente.
+     *
+     * Consulta directamente la tabla model_has_roles para encontrar todos
+     * los usuarios con el rol "Asesor Inmobiliario", filtra solo los activos
+     * y formatea cada uno con datos basicos (id, nombre, email, avatar,
+     * especializacion). Incluye un indicador has_conversation que indica
+     * si ya existe una conversacion activa entre el cliente y cada asesor,
+     * permitiendo al frontend diferenciar entre crear una nueva conversacion
+     * o reabrir una existente.
+     *
+     * @param User $user Cliente autenticado.
+     * @return \Illuminate\Support\Collection Coleccion de objetos con los datos
+     *         de cada asesor disponible.
+     */
     private function getAvailableAsesoresForClient(User $user): \Illuminate\Support\Collection
     {
         $asesorIds = DB::table('model_has_roles')
@@ -179,6 +327,22 @@ class ChatController extends Controller
             ]);
     }
 
+    /**
+     * Obtiene los clientes disponibles para un asesor inmobiliario.
+     *
+     * La lista de clientes se deriva de las citas (Appointment) agendadas
+     * con el asesor. Solo los usuarios que tienen una cita con el asesor
+     * aparecen como contactos disponibles para iniciar una conversacion.
+     * Filtra clientes activos y los formatea con datos basicos.
+     *
+     * Este enfoque garantiza que el asesor solo pueda iniciar chats con
+     * clientes que han tenido interaccion real a traves del sistema de
+     * citas, manteniendo la integridad del flujo de negocio.
+     *
+     * @param User $user Asesor inmobiliario autenticado.
+     * @return \Illuminate\Support\Collection Coleccion de objetos con los datos
+     *         de cada cliente disponible.
+     */
     private function getAvailableClientesForAsesor(User $user): \Illuminate\Support\Collection
     {
         $clienteIds = Appointment::where('asesor_id', $user->id)
@@ -207,6 +371,23 @@ class ChatController extends Controller
     // API: CONVERSACIONES
     // ==========================================
 
+    /**
+     * API JSON: retorna todas las conversaciones del usuario autenticado.
+     *
+     * Endpoint AJAX utilizado para recargar la lista de conversaciones del
+     * panel lateral sin recargar la pagina completa. Determina el rol del
+     * usuario para filtrar conversaciones por el campo correcto (client_id
+     * o asores_id). Carga las relaciones de client, asesor y lastMessage,
+     * y formatea cada conversacion con el conteo de no leidos y datos del
+     * otro participante.
+     *
+     * Las conversaciones se ordenan por last_message_at descendente para
+     * que las mas recientes aparezcan primero.
+     *
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y el
+     *         arreglo de conversaciones formateadas, o error 500 en caso
+     *         de excepcion.
+     */
     public function getConversations()
     {
         try {
@@ -235,6 +416,28 @@ class ChatController extends Controller
     // API: MENSAJES
     // ==========================================
 
+    /**
+     * API JSON: retorna todos los mensajes de una conversacion especifica.
+     *
+     * Endpoint AJAX que carga el historial completo de mensajes de una
+     * conversacion, ordenados cronologicamente (ascendente). Incluye
+     * logica de marcado automatico de mensajes como leidos: todos los
+     * mensajes no leidos del otro participante se marcan como leidos
+     * con timestamp de lectura al momento de abrir la conversacion.
+     *
+     * Flujo:
+     * 1. Valida que la conversacion exista.
+     * 2. Verifica que el usuario autenticado sea participante.
+     * 3. Marca como leidos los mensajes no leidos del otro usuario.
+     * 4. Obtiene todos los mensajes ordenados por fecha de creacion.
+     * 5. Formatea cada mensaje con datos del remitente.
+     * 6. Retorna los mensajes junto con datos del otro participante
+     *    (nombre, avatar, especializacion, estado de presencia, email).
+     *
+     * @param int $conversationId Identificador de la conversacion.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true, messages
+     *         y conversation, o error 403/500.
+     */
     public function getMessages($conversationId)
     {
         try {
@@ -285,11 +488,37 @@ class ChatController extends Controller
     // API: INICIAR CONVERSACIÓN
     // ==========================================
 
+    /**
+     * API JSON: inicia o reabre una conversacion cliente-asesor.
+     *
+     * Endpoint utilizado por los clientes para iniciar una conversacion con
+     * un asesor inmobiliario. Delega a startConversationBase con el campo
+     * asores_id y validacion de rol "Asesor Inmobiliario" en el usuario
+     * objetivo. Si ya existe una conversacion entre ambos, retorna el ID
+     * de la existente (firstOrCreate).
+     *
+     * @param Request $request Solicitud HTTP con el campo asores_id (required).
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y
+     *         conversation_id, o error de validacion/autorizacion.
+     */
     public function startConversation(Request $request)
     {
         return $this->startConversationBase($request, 'asesor_id', 'Asesor Inmobiliario');
     }
 
+    /**
+     * API JSON: inicia una conversacion desde el asor hacia un cliente.
+     *
+     * Endpoint utilizado por los asesores inmobiliarios para iniciar una
+     * conversacion con un cliente. Verifica que el usuario autenticado tenga
+     * el rol "Asesor Inmobiliario" antes de delegar a startConversationBase.
+     * Utiliza el campo cliente_id en lugar de asores_id ya que el asesor
+     * es quien inicia el contacto.
+     *
+     * @param Request $request Solicitud HTTP con el campo cliente_id (required).
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y
+     *         conversation_id, o error de validacion/autorizacion.
+     */
     public function startConversationWithCliente(Request $request)
     {
         $user = Auth::user();
@@ -302,6 +531,33 @@ class ChatController extends Controller
         return $this->startConversationBase($request, 'cliente_id', null);
     }
 
+    /**
+     * Logica base para crear o recuperar una conversacion existente.
+     *
+     * Metodo privado que encapsula la creacion de conversaciones entre dos
+     * usuarios. Utiliza firstOrCreate para evitar duplicados: si ya existe
+     * una conversacion entre el usuario autenticado y el usuario objetivo,
+     * retorna la existente. La determinacion de quien es cliente y quien
+     * es asesor se realiza segun el contexto (si se pasa rol de validacion
+     * "Asesor Inmobiliario", el otro usuario es el asesor; de lo contrario
+     * es el cliente).
+     *
+     * Flujo:
+     * 1. Valida que el ID del otro usuario exista en la tabla users.
+     * 2. Valida que el usuario no intente crearse una conversacion consigo mismo.
+     * 3. Si se especifica roleCheck, verifica que el otro usuario tenga ese rol.
+     * 4. Determina el orden correcto de client_id/asesores_id segun contexto.
+     * 5. Busca o crea la conversacion con subject generado y timestamps.
+     * 6. Retorna el ID de la conversacion (nueva o existente).
+     *
+     * @param Request $request Solicitud HTTP con el ID del otro usuario.
+     * @param string $idField Nombre del campo que contiene el ID del otro
+     *        usuario (asesor_id o cliente_id).
+     * @param ?string $roleCheck Nombre del rol que debe tener el otro usuario,
+     *        o null para omitir la validacion de rol.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y
+     *         conversation_id, o error de validacion.
+     */
     private function startConversationBase(Request $request, string $idField, ?string $roleCheck)
     {
         try {
@@ -344,6 +600,35 @@ class ChatController extends Controller
     // API: ENVIAR MENSAJE
     // ==========================================
 
+    /**
+     * API JSON: envia un mensaje de texto en una conversacion.
+     *
+     * Endpoint principal del sistema de mensajeria en tiempo real. Recibe
+     * el contenido del mensaje, lo sanitiza, lo almacena en base de datos
+     * y emite un evento de broadcast para que el destinatario lo reciba
+     * instantaneamente via WebSocket. Tambien envia una notificacion push
+     * al receptor.
+     *
+     * Flujo:
+     * 1. Valida que la conversacion exista y el usuario sea participante.
+     * 2. Aplica rate limiting por usuario (max 30 mensajes/minuto).
+     * 3. Valida y sanitiza el contenido (strip_tags, htmlspecialchars) para
+     *    prevenir inyeccion de scripts (XSS).
+     * 4. Valida que el contenido no este vacio despues de la sanitizacion.
+     * 5. Crea el registro del mensaje en base de datos.
+     * 6. Actualiza last_message_at de la conversacion para el ordenamiento.
+     * 7. Carga la relacion del usuario para el formato.
+     * 8. Emite evento NewMessage via broadcast a traves del canal privado
+     *    del receptor (toOthers para no duplicar al emisor).
+     * 9. Envia notificacion in-app al receptor con preview del mensaje.
+     * 10. Retorna el mensaje formateado como JSON.
+     *
+     * @param Request $request Solicitud HTTP con el campo content (required,
+     *        max 1000 caracteres).
+     * @param int $conversationId Identificador de la conversacion destino.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y el
+     *         mensaje formateado, o error de validacion/autorizacion.
+     */
     public function sendMessage(Request $request, $conversationId)
     {
         try {
@@ -385,6 +670,21 @@ class ChatController extends Controller
             $receiverId = $this->getReceiverId($conversation, $user->id);
             broadcast(new NewMessage($message, $conversationId, $receiverId))->toOthers();
 
+            // NOTIFICACIÓN AL RECEPTOR
+            $receiver = User::find($receiverId);
+            if ($receiver) {
+                $preview = Str::limit(strip_tags($content), 80);
+                $senderName = $user->full_name ?? $user->name;
+                $this->notifyUser(
+                    $receiver,
+                    'Nuevo Mensaje',
+                    "{$senderName}: \"{$preview}\"",
+                    'info',
+                    route('chat.index'),
+                    ['conversation_id' => $conversationId]
+                );
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => $this->formatMessage($message)
@@ -399,6 +699,28 @@ class ChatController extends Controller
     // API: EDITAR MENSAJE
     // ==========================================
 
+    /**
+     * API JSON: edita el contenido de un mensaje existente.
+     *
+     * Permite al autor de un mensaje modificar su contenido. Solo el usuario
+     * que envio el mensaje puede editarlo. El contenido se sanitiza de la
+     * misma manera que en sendMessage. Despues de actualizar, emite un
+     * evento MessageEdited via broadcast para que el otro participante
+     * vea el cambio en tiempo real.
+     *
+     * Flujo:
+     * 1. Busca el mensaje y carga su conversacion.
+     * 2. Verifica que el usuario autenticado sea el autor del mensaje.
+     * 3. Valida y sanitiza el nuevo contenido.
+     * 4. Actualiza directamente en la tabla messages via Query Builder.
+     * 5. Emite evento MessageEdited via broadcast al otro participante.
+     *
+     * @param Request $request Solicitud HTTP con el campo content (required,
+     *        max 1000 caracteres).
+     * @param int $messageId Identificador del mensaje a editar.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true, o error
+     *         de autorizacion/validacion.
+     */
     public function editMessage(Request $request, $messageId)
     {
         try {
@@ -437,6 +759,29 @@ class ChatController extends Controller
     // API: ELIMINAR MENSAJE
     // ==========================================
 
+    /**
+     * API JSON: elimina un mensaje y emite evento de eliminacion.
+     *
+     * Permite al autor de un mensaje eliminarlo permanentemente. Solo el
+     * usuario que envio el mensaje puede eliminarlo. Antes de eliminar,
+     * emite el evento MessageDeleted via broadcast para que el otro
+     * participante actualice su interfaz en tiempo real.
+     *
+     * Incluye limpieza automatica de conversaciones: si despues de eliminar
+     * el mensaje la conversacion queda sin mensajes, se elimina tambien
+     * la conversacion para evitar registros vacios en la base de datos.
+     *
+     * Flujo:
+     * 1. Busca el mensaje y carga su conversacion.
+     * 2. Verifica que el usuario autenticado sea el autor.
+     * 3. Emite evento MessageDeleted via broadcast al otro participante.
+     * 4. Elimina el mensaje de la base de datos.
+     * 5. Si la conversacion queda sin mensajes, la elimina tambien.
+     *
+     * @param int $messageId Identificador del mensaje a eliminar.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true, o error
+     *         de autorizacion.
+     */
     public function deleteMessage($messageId)
     {
         try {
@@ -468,6 +813,24 @@ class ChatController extends Controller
     // API: ELIMINAR CONVERSACIÓN
     // ==========================================
 
+    /**
+     * API JSON: elimina los mensajes propios de una conversacion.
+     *
+     * Metodo de eliminacion parcial: solo elimina los mensajes que el usuario
+     * autenticado envio en la conversacion, no los del otro participante.
+     * Esto preserva la integridad del historial para el otro usuario. Si
+     * despues de eliminar los mensajes propios la conversacion queda sin
+     * mensajes, se elimina la conversacion completa.
+     *
+     * Flujo:
+     * 1. Verifica que la conversacion exista y el usuario sea participante.
+     * 2. Elimina unicamente los mensajes del usuario autenticado.
+     * 3. Si no quedan mensajes en la conversacion, la elimina.
+     *
+     * @param int $conversationId Identificador de la conversacion.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true, o error
+     *         de autorizacion.
+     */
     public function deleteConversation($conversationId)
     {
         try {
@@ -497,6 +860,27 @@ class ChatController extends Controller
     // API: MARCAR COMO LEÍDO
     // ==========================================
 
+    /**
+     * API JSON: marca todos los mensajes no leidos de una conversacion como leidos.
+     *
+     * Endpoint utilizado para sincronizar el estado de lectura cuando el
+     * usuario abre una conversacion o cuando el frontend detecta que los
+     * mensajes estan visibles. Actualiza el campo is_read y read_at en
+     * todos los mensajes que no fueron enviados por el usuario autenticado
+     * y que aun no han sido marcados como leidos.
+     *
+     * Retorna la cantidad de mensajes que fueron actualizados, lo cual el
+     * frontend puede utilzar para actualizar el badge de no leidos.
+     *
+     * Flujo:
+     * 1. Verifica que la conversacion exista y el usuario sea participante.
+     * 2. Actualiza mensajes no leidos del otro usuario (is_read=true, read_at=now).
+     * 3. Retorna el conteo de mensajes actualizados.
+     *
+     * @param int $conversationId Identificador de la conversacion.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y updated
+     *         (cantidad de mensajes marcados), o error.
+     */
     public function markAsRead($conversationId)
     {
         try {
@@ -522,6 +906,21 @@ class ChatController extends Controller
     // API: CONTADOR DE NO LEÍDOS
     // ==========================================
 
+    /**
+     * API JSON: retorna el total de mensajes no leidos del usuario.
+     *
+     * Endpoint utilizado por el frontend para mostrar un badge global con
+     * el numero total de mensajes no leidos en todas las conversaciones.
+     * Realiza una unica consulta que cuenta los mensajes no leidos por
+     * conversacion y luego suma todos los conteos. Determina el campo
+     * correcto del usuario (client_id o asores_id) segun su rol.
+     *
+     * En caso de error, retorna 0 como valor por defecto para evitar
+     * que la interfaz muestre errores.
+     *
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y
+     *         unread_count (entero).
+     */
     public function getUnreadCount()
     {
         try {
@@ -547,6 +946,28 @@ class ChatController extends Controller
     // API: ESTADO DE PRESENCIA
     // ==========================================
 
+    /**
+     * API JSON: actualiza el estado de presencia del usuario (online/offline).
+     *
+     * Endpoint invocado periodicamente por el frontend via JavaScript para
+     * indicar que el usuario esta activo, o al detectar cierre de ventana/
+     * pestaña para marcar como offline. Actualiza los campos is_online y
+     * last_seen_at en la tabla users. Cuando el usuario se desconecta,
+     * registra la fecha/hora actual como ultima conexion vista.
+     *
+     * Tambien invalida el cache de roles y permisos del usuario para
+     * mantener consistencia con el nuevo estado.
+     *
+     * Flujo:
+     * 1. Obtiene el ID del usuario autenticado.
+     * 2. Convierte el parametro is_online a booleano.
+     * 3. Actualiza is_online y last_seen_at en la tabla users.
+     * 4. Limpia el cache de roles y permisos del usuario.
+     *
+     * @param Request $request Solicitud HTTP con el campo is_online (boolean).
+     * @return \Illuminate\Http\JsonResponse JSON con success=true, o error
+     *         de autenticacion.
+     */
     public function updatePresence(Request $request)
     {
         try {
@@ -578,6 +999,32 @@ class ChatController extends Controller
     // API: ESCRIBIENDO (OPTIMIZADO SIN BUCLES)
     // ==========================================
 
+    /**
+     * API JSON: gestiona el indicador de "escribiendo..." en tiempo real.
+     *
+     * Endpoint utilizado por el frontend cuando el usuario esta escribiendo
+     * un mensaje o deja de escribir. Emite un evento UserTyping via broadcast
+     * al otro participante de la conversacion para mostrar/ocultar el
+     * indicador de escritura.
+     *
+     * Incluye un mecanismo anti-bucles mediante cache: si el usuario ya
+     * envio un evento de "escribiendo" hace menos de TYPING_THROTTLE (3)
+     * segundos, no se emite otro broadcast. Esto previene saturacion de
+     * eventos cuando el frontend envia eventos de escritura continuamente.
+     *
+     * Flujo:
+     * 1. Verifica que la conversacion exista y el usuario sea participante.
+     * 2. Determina si el usuario esta escribiendo (true) o dejo de escribir.
+     * 3. Si esta escribiendo y ya existe en cache (throttle activo), retorna
+     *    sin emitir broadcast para evitar bucles.
+     * 4. Si esta escribiendo sin throttle activo, guarda en cache por 3 segundos.
+     * 5. Si dejo de escribir, limpia la entrada de cache.
+     * 6. Emite evento UserTyping via broadcast al otro participante.
+     *
+     * @param Request $request Solicitud HTTP con el campo is_typing (boolean).
+     * @param int $conversationId Identificador de la conversacion.
+     * @return \Illuminate\Http\JsonResponse JSON con success=true, o error.
+     */
     public function setTypingStatus(Request $request, $conversationId)
     {
         try {

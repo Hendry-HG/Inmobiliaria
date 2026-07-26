@@ -34,10 +34,10 @@
             </div>
         </div>
     </td>
-    <td class="p-4 font-bold text-slate-700">
+    <td class="p-4 font-bold text-slate-700 hidden md:table-cell">
         {{ $property->formatted_price }}
     </td>
-    <td class="p-4 text-slate-500">
+    <td class="p-4 text-slate-500 hidden lg:table-cell">
         <div class="text-xs">
             {{ $property->full_location ?? 'Ubicación no especificada' }}
         </div>
@@ -61,7 +61,7 @@
 
     @can('ver usuarios')
         @if(isset($isAdmin) && $isAdmin)
-            <td class="p-4 text-slate-600">
+            <td class="p-4 text-slate-600 hidden lg:table-cell">
                 {{ $property->user->name ?? 'N/A' }}
             </td>
         @endif
@@ -104,7 +104,7 @@
                         ? route('admin.properties.destroy', $property)
                         : route('asesor.properties.destroy', $property);
                 @endphp
-                <button onclick="openDeleteModal({{ $property->id }}, '{{ addslashes($property->title) }}', '{{ $deleteRoute }}')"
+                <button onclick="openDeleteModal({{ $property->id }}, @js($property->title), @js($deleteRoute))"
                         class="text-red-500 hover:text-red-700 font-medium p-1"
                         title="Eliminar">
                     <i class="ph ph-trash text-lg"></i>
@@ -119,7 +119,7 @@
 </tr>
 @empty
 <tr>
-    <td colspan="{{ (isset($isAdmin) && $isAdmin && auth()->user()->can('ver usuarios')) ? '6' : '5' }}"
+    <td colspan="{{ (isset($isAdmin) && $isAdmin && auth()->user()->can('ver usuarios')) ? '4' : '3' }}"
         class="p-8 text-center text-slate-500">
         <i class="ph ph-house-line text-4xl mb-2 block"></i>
         No se encontraron propiedades.

@@ -14,13 +14,41 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controlador de Perfil de Usuario
+ *
+ * Gestiona la visualizacion y actualizacion del perfil del usuario autenticado.
+ * Permite modificar datos personales, informacion de contacto, redes sociales,
+ * foto de perfil y contrasena. Adapta las estadisticas mostradas segun el
+ * rol del usuario (Admin, Asesor, Cliente, Auditor).
+ *
+ * @package App\Http\Controllers
+ */
 class ProfileController extends Controller
 {
+    /**
+     * Constructor del controlador.
+     * Aplica middleware de autenticacion para todas las rutas.
+     */
     public function __construct()
     {
         $this->middleware('auth');
     }
 
+    /**
+     * Muestra la vista del perfil del usuario autenticado.
+     *
+     * Flujo de datos:
+     * 1. Obtiene el usuario autenticado desde Auth
+     * 2. Carga relaciones geograficas (pais, estado, municipio, parroquia, ciudad)
+     * 3. Consulta los roles asignados al usuario desde model_has_roles
+     * 4. Determina el rol principal segun jerarquia: Super Admin > Admin > Asesor > Auditor > Cliente
+     * 5. Carga catalogos geograficos filtrados por la ubicacion actual del usuario
+     * 6. Obtiene estadisticas personalizadas segun el rol
+     * 7. Retorna la vista del perfil con todos los datos compactados
+     *
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
     public function index()
     {
         /** @var User $user */
@@ -73,6 +101,20 @@ class ProfileController extends Controller
         ));
     }
 
+    /**
+     * Actualiza los datos del perfil del usuario autenticado.
+     *
+     * Flujo de datos:
+     * 1. Valida todos los campos del formulario (nombre, telefono, cedula, ubicacion, etc.)
+     * 2. Si se proporciono contrasena nueva, verifica la contrasena actual con Hash::check
+     * 3. Si se subio foto de perfil, elimina la anterior del disco y almacena la nueva
+     * 4. Procesa redes sociales (whatsapp, instagram, facebook, tiktok, telegram, linkedin, twitter)
+     * 5. Asigna todos los campos validados al modelo y guarda en base de datos
+     * 6. Redirige al perfil con mensaje de exito
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request)
     {
         /** @var User $user */
@@ -171,6 +213,22 @@ class ProfileController extends Controller
             ->with('success', 'Perfil actualizado exitosamente.');
     }
 
+    /**
+     * Calcula estadisticas personalizadas del usuario segun su rol.
+     *
+     * Flujo de datos:
+     * 1. Segun el rol principal, ejecuta consultas especificas:
+     *    - Super Admin / Administrador: total usuarios, propiedades, propiedades activas
+     *    - Asesor Inmobiliario: propiedades propias, publicadas, citas asignadas, pendientes
+     *    - Cliente: favoritos, citas solicitadas, citas pendientes
+     *    - Auditor: total de registros de auditoria, auditorias recientes
+     * 2. Agrega fecha de membresia y antiguedad de la cuenta en dias
+     * 3. Retorna array con todas las estadisticas calculadas
+     *
+     * @param \App\Models\User $user Usuario del cual se calcularan las estadisticas
+     * @param string $mainRole Rol principal del usuario
+     * @return array Estadisticas del usuario
+     */
     private function getUserStats($user, $mainRole)
     {
         $stats = [];

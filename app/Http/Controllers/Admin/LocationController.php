@@ -9,17 +9,49 @@ use App\Models\State;
 use App\Models\Municipality;
 use App\Models\Parish;
 use App\Models\City;
+use App\Traits\AuditTrait;
+use App\Traits\LocationCheckTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Auth;
 
+/**
+ * Controlador de administracion de ubicaciones geograficas.
+ *
+ * Gestiona la jerarquia geografica completa del sistema:
+ * Pais -> Estado -> Municipio -> Parroquia -> Ciudad
+ *
+ * Cada nivel se representa con un modelo independiente (Country, State,
+ * Municipality, Parish, City) y se relaciona con su nivel superior a
+ * traves de claves foraneas.
+ *
+ * Utiliza LocationCheckTrait para validar permisos de acceso segun el
+ * nivel geografico solicitado y AuditTrait para registrar cada accion
+ * (creacion, eliminacion) en el historial de auditoria del sistema.
+ *
+ * La vista 'modulos.locations.nested' se reutiliza para todos los niveles
+ * intermedios (Estado, Municipio, Parroquia, Ciudad), recibiendo los datos
+ * del padre y los items a mostrar como parametros dinamicos.
+ *
+ * Las eliminaciones en cada nivel verifican que no existan registros hijos
+ * antes de permitir la eliminacion (cascada inversa de validacion).
+ * Se invalida la cache de la API despues de cada operacion de escritura.
+ */
 class LocationController extends Controller
 {
-    const CACHE_DURATION = 86400; // 24 horas para datos de ubicación
+    use LocationCheckTrait, AuditTrait;
 
+    const CACHE_DURATION = 86400;
+
+    /**
+     * Constructor del controlador.
+     *
+     * Aplica middleware de autenticacion a todos los metodos excepto
+     * los endpoints publicos de la API para selects dinamicos del
+     * formulario de registro (paises, estados, municipios, parroquias y ciudades).
+     */
     public function __construct()
     {
         $this->middleware(['auth'])->except([
@@ -35,6 +67,15 @@ class LocationController extends Controller
     // MÉTODOS PARA API (SELECTS DINÁMICOS) - PÚBLICOS
     // ================================================================
 
+    /**
+     * Obtiene la lista de paises disponibles para el formulario de registro.
+     *
+     * Endpoint publico (sin autenticacion). Retorna todos los paises
+     * ordenados alfabeticamente, con campos 'id' y 'name'.
+     * Resultado almacenado en cache con la clave 'api_countries_list'.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection Coleccion de paises con id y nombre.
+     */
     public function getCountriesForRegister()
     {
         return Cache::remember('api_countries_list', self::CACHE_DURATION, function () {
@@ -42,6 +83,16 @@ class LocationController extends Controller
         });
     }
 
+    /**
+     * Obtiene los estados de un pais especifico para selects dinamicos.
+     *
+     * Endpoint publico. Filtra los estados por el ID del pais proporcionado,
+     * retornandolos ordenados alfabeticamente. Utiliza cache con clave
+     * unica por pais para optimizar las consultas repetidas.
+     *
+     * @param int $countryId Identificador del pais padre.
+     * @return \Illuminate\Database\Eloquent\Collection Coleccion de estados con id y nombre.
+     */
     public function getStatesForRegister($countryId)
     {
         $cacheKey = "api_states_country_{$countryId}";
@@ -52,6 +103,16 @@ class LocationController extends Controller
         });
     }
 
+    /**
+     * Obtiene los municipios de un estado especifico para selects dinamicos.
+     *
+     * Endpoint publico. Filtra los municipios por el ID del estado proporcionado,
+     * retornandolos ordenados alfabeticamente. Utiliza cache con clave
+     * unica por estado.
+     *
+     * @param int $stateId Identificador del estado padre.
+     * @return \Illuminate\Database\Eloquent\Collection Coleccion de municipios con id y nombre.
+     */
     public function getMunicipalitiesForRegister($stateId)
     {
         $cacheKey = "api_municipalities_state_{$stateId}";
@@ -62,6 +123,16 @@ class LocationController extends Controller
         });
     }
 
+    /**
+     * Obtiene las parroquias de un municipio especifico para selects dinamicos.
+     *
+     * Endpoint publico. Filtra las parroquias por el ID del municipio proporcionado,
+     * retornandolas ordenadas alfabeticamente. Utiliza cache con clave
+     * unica por municipio.
+     *
+     * @param int $municipalityId Identificador del municipio padre.
+     * @return \Illuminate\Database\Eloquent\Collection Coleccion de parroquias con id y nombre.
+     */
     public function getParishesForRegister($municipalityId)
     {
         $cacheKey = "api_parishes_municipality_{$municipalityId}";
@@ -72,6 +143,16 @@ class LocationController extends Controller
         });
     }
 
+    /**
+     * Obtiene las ciudades de una parroquia especifica para selects dinamicos.
+     *
+     * Endpoint publico. Filtra las ciudades por el ID de la parroquia proporcionada,
+     * retornandolas ordenadas alfabeticamente. Utiliza cache con clave
+     * unica por parroquia.
+     *
+     * @param int $parishId Identificador de la parroquia padre.
+     * @return \Illuminate\Database\Eloquent\Collection Coleccion de ciudades con id y nombre.
+     */
     public function getCitiesForRegister($parishId)
     {
         $cacheKey = "api_cities_parish_{$parishId}";
@@ -82,157 +163,21 @@ class LocationController extends Controller
         });
     }
 
-    // ================================================================
-    // MÉTODO DE VERIFICACIÓN DE PERMISOS - VERSIÓN PRODUCCIÓN
-    // ================================================================
-
-    /**
-     * Verifica si el usuario autenticado tiene el permiso requerido
-     *
-     * @param string $permission Nombre del permiso a verificar
-     * @return bool
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     */
-    private function checkPermission($permission)
-    {
-        $user = Auth::user();
-
-        if (!$user) {
-            Log::warning('LocationController - Intento de acceso sin autenticación', [
-                'ip' => request()->ip(),
-                'permission' => $permission
-            ]);
-            abort(401, 'No estás autenticado.');
-        }
-
-        try {
-            // =============================================================
-            // MÉTODO 1: USAR SPATIE DIRECTAMENTE (MÁS RÁPIDO)
-            // =============================================================
-            // Primero intentamos usar los métodos nativos de Spatie
-            if (method_exists($user, 'hasRole') && method_exists($user, 'hasPermissionTo')) {
-                // Super Admin siempre tiene acceso
-                if ($user->hasRole('Super Admin')) {
-                    Log::info('LocationController - Super Admin acceso concedido', [
-                        'user_id' => $user->id,
-                        'email' => $user->email,
-                        'permission' => $permission
-                    ]);
-                    return true;
-                }
-
-                // Administrador siempre tiene acceso
-                if ($user->hasRole('Administrador')) {
-                    Log::info('LocationController - Administrador acceso concedido', [
-                        'user_id' => $user->id,
-                        'email' => $user->email,
-                        'permission' => $permission
-                    ]);
-                    return true;
-                }
-
-                // Verificar permiso específico
-                if ($user->hasPermissionTo($permission)) {
-                    Log::info('LocationController - Permiso específico concedido', [
-                        'user_id' => $user->id,
-                        'email' => $user->email,
-                        'permission' => $permission
-                    ]);
-                    return true;
-                }
-            }
-
-            // =============================================================
-            // MÉTODO 2: FALLBACK CON CONSULTA DIRECTA A BD
-            // =============================================================
-            // Si los métodos de Spatie no están disponibles, usamos consulta directa
-            Log::info('LocationController - Usando fallback de consulta directa a BD', [
-                'user_id' => $user->id,
-                'email' => $user->email
-            ]);
-
-            // Verificar si es Super Admin o Administrador por consulta directa
-            $userRoles = DB::table('model_has_roles')
-                ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-                ->where('model_has_roles.model_id', $user->id)
-                ->where('model_has_roles.model_type', 'App\\Models\\User')
-                ->pluck('roles.name')
-                ->toArray();
-
-            Log::info('LocationController - Roles encontrados en BD', [
-                'user_id' => $user->id,
-                'roles' => $userRoles
-            ]);
-
-            // Super Admin siempre tiene acceso
-            if (in_array('Super Admin', $userRoles)) {
-                Log::info('LocationController - Super Admin acceso concedido (fallback)', [
-                    'user_id' => $user->id,
-                    'email' => $user->email
-                ]);
-                return true;
-            }
-
-            // Administrador siempre tiene acceso
-            if (in_array('Administrador', $userRoles)) {
-                Log::info('LocationController - Administrador acceso concedido (fallback)', [
-                    'user_id' => $user->id,
-                    'email' => $user->email
-                ]);
-                return true;
-            }
-
-            // Verificar permiso específico por consulta directa
-            $hasPermission = DB::table('model_has_permissions')
-                ->join('permissions', 'model_has_permissions.permission_id', '=', 'permissions.id')
-                ->where('model_has_permissions.model_id', $user->id)
-                ->where('model_has_permissions.model_type', 'App\\Models\\User')
-                ->where('permissions.name', $permission)
-                ->exists();
-
-            if ($hasPermission) {
-                Log::info('LocationController - Permiso concedido (fallback BD)', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'permission' => $permission
-                ]);
-                return true;
-            }
-
-            // =============================================================
-            // ACCESO DENEGADO
-            // =============================================================
-            Log::warning('LocationController - Acceso denegado', [
-                'user_id' => $user->id,
-                'user_email' => $user->email,
-                'user_roles' => $userRoles,
-                'required_permission' => $permission,
-                'ip' => request()->ip(),
-                'url' => request()->fullUrl()
-            ]);
-
-            abort(403, 'No tienes permiso para realizar esta acción.');
-
-        } catch (\Exception $e) {
-            // =============================================================
-            // ERROR EN LA VERIFICACIÓN
-            // =============================================================
-            Log::error('LocationController - Error verificando permisos', [
-                'user_id' => $user->id ?? 'unknown',
-                'permission' => $permission,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // En producción, si hay error, denegamos acceso por seguridad
-            abort(403, 'Error al verificar permisos. Contacta al administrador.');
-        }
-    }
+    // checkPermission() se hereda del trait LocationCheckTrait
 
     // ================================================================
     // PAÍS - CRUD
     // ================================================================
 
+    /**
+     * Lista todos los paises registrados en el sistema.
+     *
+     * Requiere el permiso 'ver paises'. Retorna los paises ordenados
+     * alfabeticamente con paginacion de 10 registros por pagina.
+     * Muestra la vista principal de ubicaciones.
+     *
+     * @return \Illuminate\View\View Vista 'modulos.locations.index' con la coleccion paginada de paises.
+     */
     public function indexCountries()
     {
         $this->checkPermission('ver paises');
@@ -240,6 +185,17 @@ class LocationController extends Controller
         return view('modulos.locations.index', compact('countries'));
     }
 
+    /**
+     * Crea un nuevo pais en el sistema.
+     *
+     * Requiere el permiso 'crear paises'. Valida que el nombre del pais
+     * sea unico, contenga solo letras, espacios, guiones y puntos.
+     * Registra la creacion en el log de auditoria y limpia la cache
+     * de ubicaciones para mantener la coherencia de los datos.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con el campo 'name' requerido.
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function storeCountry(Request $request)
     {
         $this->checkPermission('crear paises');
@@ -256,7 +212,9 @@ class LocationController extends Controller
 
         try {
             $name = trim(strip_tags($request->name));
-            Country::create(['name' => $name]);
+            $country = Country::create(['name' => $name]);
+
+            $this->logCreated($country, Auth::user()->full_name . ' creó el país \'' . $country->name . '\'');
 
             $this->clearLocationCache();
 
@@ -270,6 +228,17 @@ class LocationController extends Controller
         }
     }
 
+    /**
+     * Elimina un pais del sistema.
+     *
+     * Requiere el permiso 'eliminar paises'. Verifica que el pais no
+     * tenga estados asignados antes de permitir la eliminacion para
+     * mantener la integridad referencial de la jerarquia geografica.
+     * Registra la eliminacion en auditoria y limpia la cache.
+     *
+     * @param \App\Models\Country $country Pais a eliminar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function destroyCountry(Country $country)
     {
         $this->checkPermission('eliminar paises');
@@ -279,6 +248,7 @@ class LocationController extends Controller
         }
 
         try {
+            $this->logDeleted($country, Auth::user()->full_name . ' eliminó el país \'' . $country->name . '\'');
             $countryName = $country->name;
             $country->delete();
 
@@ -298,6 +268,17 @@ class LocationController extends Controller
     // ESTADO - CRUD
     // ================================================================
 
+    /**
+     * Lista los estados de un pais especifico.
+     *
+     * Requiere el permiso 'ver estados'. Utiliza la vista generica
+     * 'modulos.locations.nested' pasando los datos del padre (Pais)
+     * y la configuracion de navegacion correspondiente al nivel de Estado.
+     * Los items se ordenan alfabeticamente con paginacion de 10 registros.
+     *
+     * @param int $countryId Identificador del pais al que pertenecen los estados.
+     * @return \Illuminate\View\View Vista anidada de ubicaciones con los estados del pais.
+     */
     public function indexStates($countryId)
     {
         $this->checkPermission('ver estados');
@@ -318,6 +299,17 @@ class LocationController extends Controller
         ]);
     }
 
+    /**
+     * Crea un nuevo estado dentro de un pais.
+     *
+     * Requiere el permiso 'crear estados'. Valida que el nombre sea
+     * unico dentro del pais especifico (no a nivel global), evitando
+     * duplicados por pais. Registra la creacion en auditoria y limpia
+     * la cache de estados para el pais afectado.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con campos 'name' y 'country_id'.
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function storeState(Request $request)
     {
         $this->checkPermission('crear estados');
@@ -335,10 +327,12 @@ class LocationController extends Controller
 
         try {
             $name = trim(strip_tags($request->name));
-            State::create([
+            $state = State::create([
                 'name' => $name,
                 'country_id' => $request->country_id
             ]);
+
+            $this->logCreated($state, Auth::user()->full_name . ' creó el estado \'' . $state->name . '\'');
 
             $this->clearLocationCache($request->country_id);
 
@@ -353,6 +347,16 @@ class LocationController extends Controller
         }
     }
 
+    /**
+     * Elimina un estado del sistema.
+     *
+     * Requiere el permiso 'eliminar estados'. Verifica que el estado
+     * no tenga municipios asignados antes de permitir la eliminacion.
+     * Registra la accion en auditoria y limpia la cache del pais padre.
+     *
+     * @param \App\Models\State $state Estado a eliminar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function destroyState(State $state)
     {
         $this->checkPermission('eliminar estados');
@@ -363,6 +367,7 @@ class LocationController extends Controller
 
         try {
             $countryId = $state->country_id;
+            $this->logDeleted($state, Auth::user()->full_name . ' eliminó el estado \'' . $state->name . '\'');
             $stateName = $state->name;
             $state->delete();
 
@@ -382,6 +387,16 @@ class LocationController extends Controller
     // MUNICIPIO - CRUD
     // ================================================================
 
+    /**
+     * Lista los municipios de un estado especifico.
+     *
+     * Requiere el permiso 'ver municipios'. Utiliza la vista generica
+     * 'modulos.locations.nested' pasando los datos del padre (Estado)
+     * y la configuracion de navegacion correspondiente al nivel de Municipio.
+     *
+     * @param int $stateId Identificador del estado al que pertenecen los municipios.
+     * @return \Illuminate\View\View Vista anidada de ubicaciones con los municipios del estado.
+     */
     public function indexMunicipalities($stateId)
     {
         $this->checkPermission('ver municipios');
@@ -402,6 +417,16 @@ class LocationController extends Controller
         ]);
     }
 
+    /**
+     * Crea un nuevo municipio dentro de un estado.
+     *
+     * Requiere el permiso 'crear municipios'. Valida que el nombre sea
+     * unico dentro del estado especifico. Registra la creacion en auditoria
+     * y limpia la cache de municipios para el estado afectado.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con campos 'name' y 'state_id'.
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function storeMunicipality(Request $request)
     {
         $this->checkPermission('crear municipios');
@@ -419,10 +444,12 @@ class LocationController extends Controller
 
         try {
             $name = trim(strip_tags($request->name));
-            Municipality::create([
+            $municipality = Municipality::create([
                 'name' => $name,
                 'state_id' => $request->state_id
             ]);
+
+            $this->logCreated($municipality, Auth::user()->full_name . ' creó el municipio \'' . $municipality->name . '\'');
 
             $this->clearLocationCache(null, $request->state_id);
 
@@ -437,6 +464,16 @@ class LocationController extends Controller
         }
     }
 
+    /**
+     * Elimina un municipio del sistema.
+     *
+     * Requiere el permiso 'eliminar municipios'. Verifica que el municipio
+     * no tenga parroquias asignadas antes de permitir la eliminacion.
+     * Registra la accion en auditoria y limpia la cache del estado padre.
+     *
+     * @param \App\Models\Municipality $municipality Municipio a eliminar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function destroyMunicipality(Municipality $municipality)
     {
         $this->checkPermission('eliminar municipios');
@@ -447,6 +484,7 @@ class LocationController extends Controller
 
         try {
             $stateId = $municipality->state_id;
+            $this->logDeleted($municipality, Auth::user()->full_name . ' eliminó el municipio \'' . $municipality->name . '\'');
             $municipalityName = $municipality->name;
             $municipality->delete();
 
@@ -466,6 +504,16 @@ class LocationController extends Controller
     // PARROQUIA - CRUD
     // ================================================================
 
+    /**
+     * Lista las parroquias de un municipio especifico.
+     *
+     * Requiere el permiso 'ver parroquias'. Utiliza la vista generica
+     * 'modulos.locations.nested' pasando los datos del padre (Municipio)
+     * y la configuracion de navegacion correspondiente al nivel de Parroquia.
+     *
+     * @param int $municipalityId Identificador del municipio al que pertenecen las parroquias.
+     * @return \Illuminate\View\View Vista anidada de ubicaciones con las parroquias del municipio.
+     */
     public function indexParishes($municipalityId)
     {
         $this->checkPermission('ver parroquias');
@@ -486,6 +534,16 @@ class LocationController extends Controller
         ]);
     }
 
+    /**
+     * Crea una nueva parroquia dentro de un municipio.
+     *
+     * Requiere el permiso 'crear parroquias'. Valida que el nombre sea
+     * unico dentro del municipio especifico. Registra la creacion en auditoria
+     * y limpia la cache de parroquias para el municipio afectado.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con campos 'name' y 'municipality_id'.
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function storeParish(Request $request)
     {
         $this->checkPermission('crear parroquias');
@@ -503,10 +561,12 @@ class LocationController extends Controller
 
         try {
             $name = trim(strip_tags($request->name));
-            Parish::create([
+            $parish = Parish::create([
                 'name' => $name,
                 'municipality_id' => $request->municipality_id
             ]);
+
+            $this->logCreated($parish, Auth::user()->full_name . ' creó la parroquia \'' . $parish->name . '\'');
 
             $this->clearLocationCache(null, null, $request->municipality_id);
 
@@ -521,6 +581,16 @@ class LocationController extends Controller
         }
     }
 
+    /**
+     * Elimina una parroquia del sistema.
+     *
+     * Requiere el permiso 'eliminar parroquias'. Verifica que la parroquia
+     * no tenga ciudades asignadas antes de permitir la eliminacion.
+     * Registra la accion en auditoria y limpia la cache del municipio padre.
+     *
+     * @param \App\Models\Parish $parish Parroquia a eliminar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function destroyParish(Parish $parish)
     {
         $this->checkPermission('eliminar parroquias');
@@ -531,6 +601,7 @@ class LocationController extends Controller
 
         try {
             $municipalityId = $parish->municipality_id;
+            $this->logDeleted($parish, Auth::user()->full_name . ' eliminó la parroquia \'' . $parish->name . '\'');
             $parishName = $parish->name;
             $parish->delete();
 
@@ -550,6 +621,17 @@ class LocationController extends Controller
     // CIUDAD - CRUD
     // ================================================================
 
+    /**
+     * Lista las ciudades de una parroquia especifica.
+     *
+     * Requiere el permiso 'ver ciudades'. Utiliza la vista generica
+     * 'modulos.locations.nested' pasando los datos del padre (Parroquia)
+     * y la configuracion de navegacion correspondiente al nivel de Ciudad.
+     * Este es el ultimo nivel de la jerarquia geografica.
+     *
+     * @param int $parishId Identificador de la parroquia a la que pertenecen las ciudades.
+     * @return \Illuminate\View\View Vista anidada de ubicaciones con las ciudades de la parroquia.
+     */
     public function indexCities($parishId)
     {
         $this->checkPermission('ver ciudades');
@@ -570,6 +652,16 @@ class LocationController extends Controller
         ]);
     }
 
+    /**
+     * Crea una nueva ciudad dentro de una parroquia.
+     *
+     * Requiere el permiso 'crear ciudades'. Valida que el nombre sea
+     * unico dentro de la parroquia especifica. Registra la creacion
+     * en auditoria y limpia la cache de ciudades para la parroquia afectada.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con campos 'name' y 'parish_id'.
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function storeCity(Request $request)
     {
         $this->checkPermission('crear ciudades');
@@ -587,10 +679,12 @@ class LocationController extends Controller
 
         try {
             $name = trim(strip_tags($request->name));
-            City::create([
+            $city = City::create([
                 'name' => $name,
                 'parish_id' => $request->parish_id
             ]);
+
+            $this->logCreated($city, Auth::user()->full_name . ' creó la ciudad \'' . $city->name . '\'');
 
             $this->clearLocationCache(null, null, null, $request->parish_id);
 
@@ -605,12 +699,23 @@ class LocationController extends Controller
         }
     }
 
+    /**
+     * Elimina una ciudad del sistema.
+     *
+     * Requiere el permiso 'eliminar ciudades'. Al ser la ciudad el ultimo
+     * nivel de la jerarquia geografica, no verifica dependencias hijos.
+     * Registra la accion en auditoria y limpia la cache de la parroquia padre.
+     *
+     * @param \App\Models\City $city Ciudad a eliminar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige con mensaje de exito o error.
+     */
     public function destroyCity(City $city)
     {
         $this->checkPermission('eliminar ciudades');
 
         try {
             $parishId = $city->parish_id;
+            $this->logDeleted($city, Auth::user()->full_name . ' eliminó la ciudad \'' . $city->name . '\'');
             $cityName = $city->name;
             $city->delete();
 
@@ -630,6 +735,20 @@ class LocationController extends Controller
     // LIMPIEZA DE CACHÉ
     // ================================================================
 
+    /**
+     * Limpia la cache de ubicaciones geograficas afectadas por una operacion.
+     *
+     * Invalida las claves de cache especificas de cada nivel de la jerarquia
+     * segun los IDs proporcionados. Siempre limpia las claves globales de
+     * paises y codigos de telefono. Los parametros son opcionales y se
+     * utilizan solo para el nivel que fue modificado.
+     *
+     * @param int|null $countryId        ID del pais para limpiar cache de estados.
+     * @param int|null $stateId          ID del estado para limpiar cache de municipios.
+     * @param int|null $municipalityId   ID del municipio para limpiar cache de parroquias.
+     * @param int|null $parishId         ID de la parroquia para limpiar cache de ciudades.
+     * @return void
+     */
     private function clearLocationCache($countryId = null, $stateId = null, $municipalityId = null, $parishId = null)
     {
         try {

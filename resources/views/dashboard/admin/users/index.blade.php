@@ -82,10 +82,10 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">#</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Teléfono</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Rol</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ubicación</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -114,17 +114,17 @@
                                 </td>
 
                                 {{-- Email --}}
-                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $userItem->is_active ? 'text-gray-500' : 'text-gray-400' }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $userItem->is_active ? 'text-gray-500' : 'text-gray-400' }} hidden md:table-cell">
                                     {{ $userItem->email }}
                                 </td>
 
                                 {{-- Teléfono --}}
-                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $userItem->is_active ? 'text-gray-500' : 'text-gray-400' }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $userItem->is_active ? 'text-gray-500' : 'text-gray-400' }} hidden lg:table-cell">
                                     {{ $userItem->phone ?? '-' }}
                                 </td>
 
                                 {{-- Rol con colores --}}
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4 whitespace-nowrap hidden md:table-cell">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                         @if($userItem->main_role == 'Super Admin') bg-red-100 text-red-800
                                         @elseif($userItem->main_role == 'Administrador') bg-purple-100 text-purple-800
@@ -136,7 +136,7 @@
                                 </td>
 
                                 {{-- Ubicación --}}
-                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $userItem->is_active ? 'text-gray-500' : 'text-gray-400' }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $userItem->is_active ? 'text-gray-500' : 'text-gray-400' }} hidden lg:table-cell">
                                     {{ $userItem->country_name }}{{ $userItem->state_name ? ', ' . $userItem->state_name : '' }}
                                 </td>
 
@@ -214,7 +214,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                                <td colspan="4" class="px-6 py-10 text-center text-gray-500">
                                     <div class="flex flex-col items-center">
                                         <i class="ph ph-users text-4xl mb-2 text-gray-300"></i>
                                         <p>No se encontraron usuarios.</p>

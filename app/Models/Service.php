@@ -42,6 +42,9 @@ class Service extends Model
     
     public function getPrimaryImageAttribute()
     {
+        if ($this->relationLoaded('gallery')) {
+            return $this->gallery->first() ?? null;
+        }
         return $this->gallery()->first() ?? null;
     }
 

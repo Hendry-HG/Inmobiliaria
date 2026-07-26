@@ -18,8 +18,31 @@ use App\Services\PermissionService;
 
 class DashboardController extends Controller
 {
+/**
+ * Controlador de Dashboard
+ *
+ * Gestiona la redireccion y renderizacion de dashboards segun el rol del usuario.
+ * Implementa dashboards especificos para: Super Admin, Administrador, Asesor
+ * Inmobiliario, Auditor y Cliente. Incluye un dashboard generico para roles
+ * personalizados. Valida permisos antes de cada renderizado.
+ *
+ * @package App\Http\Controllers
+ */
+class DashboardController extends Controller
+{
     /**
-     * Redirige al dashboard correspondiente según el rol del usuario
+     * Redirige al dashboard correspondiente segun el rol del usuario.
+     *
+     * Flujo de datos:
+     * 1. Verifica que el usuario este autenticado
+     * 2. Valida que la cuenta del usuario este activa (desactiva sesion si no)
+     * 3. Instancia PermissionService para determinar la ruta del dashboard
+     * 4. Verifica si hay una URL de redireccion segura en el query string
+     * 5. Verifica si hay una URL intendida en la sesion
+     * 6. Redirige al dashboard correspondiente al rol del usuario
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function index(Request $request)
     {
@@ -68,6 +91,18 @@ class DashboardController extends Controller
         return redirect($dashboardRoute);
     }
 
+    /**
+     * Valida si una URL es segura para redireccionar.
+     *
+     * Flujo de datos:
+     * 1. Rechaza URLs vacias
+     * 2. Acepta rutas relativas que inician con '/'
+     * 3. Para URLs absolutas, valida que el host coincida con el servidor actual
+     * 4. Previene ataques de redireccion abierta (open redirect)
+     *
+     * @param string $url URL a validar
+     * @return bool True si la URL es segura, false en caso contrario
+     */
     private function isSafeUrl($url)
     {
         if (empty($url)) return false;
@@ -87,7 +122,17 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Super Admin
+     * Dashboard exclusivo para el rol Super Admin.
+     *
+     * Flujo de datos:
+     * 1. Verifica permisos de Super Admin via PermissionService
+     * 2. Recopila metricas globales: propiedades, usuarios, citas del dia, leads activos
+     * 3. Obtiene propiedades y usuarios recientes (ultimos 5)
+     * 4. Aplica filtros de busqueda, rol, estado y pais sobre usuarios
+     * 5. Retorna vista con metricas, usuarios paginados, roles y paises
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\View\View
      */
     public function superAdminDashboard(Request $request)
     {
@@ -144,7 +189,17 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Administrador
+     * Dashboard exclusivo para los roles Administrador y Super Admin.
+     *
+     * Flujo de datos:
+     * 1. Verifica permisos de Administrador o Super Admin via PermissionService
+     * 2. Recopila metricas: propiedades totales, citas pendientes, leads nuevos,
+     *    propiedades pendientes de revision
+     * 3. Aplica filtros de busqueda, rol, estado y pais sobre usuarios
+     * 4. Retorna vista con metricas, usuarios paginados, roles y paises
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\View\View
      */
     public function adminDashboard(Request $request)
     {
@@ -199,7 +254,17 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Asesor Inmobiliario
+     * Dashboard exclusivo para el rol Asesor Inmobiliario.
+     *
+     * Flujo de datos:
+     * 1. Verifica permisos de Asesor Inmobiliario via PermissionService
+     * 2. Carga todas las citas del asesor con relaciones (propiedad, asesor, cliente)
+     * 3. Calcula metricas personales: propiedades propias, citas de hoy, pendientes,
+     *    leads nuevos, leads totales y tasa de conversion
+     * 4. Obtiene proximas 10 citas programadas y 10 leads recientes
+     * 5. Retorna vista con todas las metricas y datos del asesor
+     *
+     * @return \Illuminate\View\View
      */
     public function asesorDashboard()
     {
@@ -266,7 +331,16 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Auditor
+     * Dashboard exclusivo para el rol Auditor.
+     *
+     * Flujo de datos:
+     * 1. Verifica permisos de Auditor via PermissionService
+     * 2. Obtiene metricas generales: propiedades, usuarios y citas totales
+     * 3. Consulta registros de auditoria: total, hoy y 15 mas recientes
+     * 4. Maneja excepciones si la tabla de auditoria no existe
+     * 5. Retorna vista con metricas y registros de auditoria
+     *
+     * @return \Illuminate\View\View
      */
     public function auditorDashboard()
     {
@@ -308,7 +382,16 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard para Cliente
+     * Dashboard exclusivo para el rol Cliente.
+     *
+     * Flujo de datos:
+     * 1. Verifica permisos de Cliente via PermissionService
+     * 2. Obtiene propiedades favoritas del cliente (ultimas 3 publicadas)
+     * 3. Cuenta citas proximas y obtiene la siguiente cita programada
+     * 4. Recupera las 5 ultimas citas y las 3 propiedades mas recientes
+     * 5. Retorna vista con favoritos, citas, propiedades y conteo de mensajes sin leer
+     *
+     * @return \Illuminate\View\View
      */
     public function clienteDashboard()
     {
@@ -378,7 +461,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard genérico para roles personalizados
+     * Dashboard generico para roles personalizados sin dashboard dedicado.
+     *
+     * Flujo de datos:
+     * 1. Instancia PermissionService para verificar permisos individuales
+     * 2. Muestra metricas condicionales segun los permisos del usuario:
+     *    - ver propiedades: muestra total de propiedades
+     *    - ver leads: muestra total de leads
+     *    - ver citas: muestra total de citas
+     *    - ver usuarios: muestra total de usuarios
+     * 3. Carga propiedades recientes y citas proximas solo si tiene permiso
+     * 4. Retorna vista generica con metricas y datos disponibles
+     *
+     * @return \Illuminate\View\View
      */
     public function genericDashboard()
     {

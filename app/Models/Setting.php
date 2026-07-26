@@ -40,7 +40,7 @@ class Setting extends Model
         return static::updateOrCreate(
             ['key' => $key],
             [
-                'value' => is_array($value) ? json_encode($value) : $value,
+                'value' => $value,
                 'type' => $type,
                 'group' => $group
             ]

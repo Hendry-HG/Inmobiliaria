@@ -21,10 +21,35 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
+/**
+ * Controlador de administracion de usuarios.
+ *
+ * Gestiona el ciclo de vida completo de los usuarios del sistema:
+ * creacion, lectura, actualizacion y eliminacion (CRUD).
+ *
+ * Incluye funcionalidades adicionales como:
+ * - Manejo de fotos de perfil con almacenamiento en disco publico.
+ * - Asignacion y sincronizacion de roles usando Spatie Permission.
+ * - Preguntas de seguridad obligatorias con respuestas hasheadas.
+ * - Activacion/desactivacion de cuentas con notificacion por correo.
+ * - Exportacion de usuarios a formato CSV.
+ * - Modales de vista, edicion y eliminacion para interaccion AJAX.
+ *
+ * Todas las operaciones requieren autenticacion y verificacion de
+ * permisos a traves del PermissionService (roles Super Admin,
+ * Administrador, o permisos 'ver usuarios' / 'gestionar usuarios').
+ * Utiliza AuditTrait para el registro de auditoria de cada accion.
+ */
 class UserController extends Controller
 {
     use AuditTrait;
 
+    /**
+     * Constructor del controlador.
+     *
+     * Aplica middleware de autenticacion a todos los metodos del controlador.
+     * No hay metodos publicos sin autenticacion en este controlador.
+     */
     public function __construct()
     {
         $this->middleware(['auth']);
@@ -67,6 +92,17 @@ class UserController extends Controller
         abort(403, 'No tienes permiso para acceder a esta página.');
     }
 
+    /**
+     * Lista todos los usuarios con filtros de busqueda, rol y estado.
+     *
+     * Requiere permisos de acceso. Permite buscar usuarios por nombre,
+     * apellido, email, cedula o telefono. Filtra por rol y estado
+     * (activo/inactivo). Retorna los usuarios con sus relaciones
+     * geograficas (pais, estado, ciudad) paginados de 8 en 8.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con parametros opcionales 'search', 'role', 'status'.
+     * @return \Illuminate\View\View Vista 'dashboard.admin.users.index' con los usuarios y roles.
+     */
     public function index(Request $request)
     {
         $this->checkAccess();
@@ -111,6 +147,15 @@ class UserController extends Controller
         return view('dashboard.admin.users.index', compact('users', 'roles'));
     }
 
+    /**
+     * Muestra el formulario de creacion de un nuevo usuario.
+     *
+     * Requiere permisos de acceso. Carga los roles disponibles
+     * (excluyendo el rol 'Cliente') y la lista de paises para
+     * el formulario de registro.
+     *
+     * @return \Illuminate\View\View Vista 'dashboard.admin.users.create' con roles y paises.
+     */
     public function create()
     {
         $this->checkAccess();
@@ -119,6 +164,20 @@ class UserController extends Controller
         return view('dashboard.admin.users.create', compact('roles', 'countries'));
     }
 
+    /**
+     * Almacena un nuevo usuario en el sistema.
+     *
+     * Requiere permisos de acceso. Valida todos los campos obligatorios
+     * incluyendo nombre, email, contrasena (minimo 10 caracteres con
+     * confirmacion), tres preguntas de seguridad con respuestas, y un rol.
+     * Maneja la subida de foto de perfil al disco 'public'. Almacena las
+     * respuestas de seguridad hasheadas con Hash::make(). Asigna el rol
+     * proporcionado usando Spatie Permission. Registra la creacion
+     * en el log de auditoria con el nombre del usuario que creo la cuenta.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con todos los campos del usuario y archivos.
+     * @return \Illuminate\Http\RedirectResponse Redirige al indice de usuarios con mensaje de exito o error.
+     */
     public function store(Request $request)
     {
         $this->checkAccess();
@@ -139,7 +198,13 @@ class UserController extends Controller
             'city_id' => 'nullable|exists:cities,id',
             'role' => 'required|exists:roles,name',
             'is_active' => 'boolean',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'security_question_1' => 'required|string|max:255',
+            'security_answer_1' => 'required|string|max:255',
+            'security_question_2' => 'required|string|max:255',
+            'security_answer_2' => 'required|string|max:255',
+            'security_question_3' => 'required|string|max:255',
+            'security_answer_3' => 'required|string|max:255',
         ]);
 
         try {
@@ -164,6 +229,15 @@ class UserController extends Controller
                 'city_id' => $validated['city_id'] ?? null,
                 'is_active' => $request->boolean('is_active', true),
                 'profile_photo' => $profilePhotoPath,
+                'security_questions' => [
+                    $validated['security_question_1'],
+                    $validated['security_question_2'],
+                    $validated['security_question_3'],
+                ],
+                'security_answer_1' => Hash::make($validated['security_answer_1']),
+                'security_answer_2' => Hash::make($validated['security_answer_2']),
+                'security_answer_3' => Hash::make($validated['security_answer_3']),
+                'security_questions_set_at' => now(),
             ]);
 
             $user->assignRole($validated['role']);
@@ -187,6 +261,16 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Muestra los detalles completos de un usuario.
+     *
+     * Requiere permisos de acceso. Carga todas las relaciones del usuario
+     * (roles, ubicacion geografica) y calcula estadisticas: propiedades,
+     * citas como cliente, favoritos y leads asociados.
+     *
+     * @param \App\Models\User $user Usuario a mostrar (resuelto por route model binding).
+     * @return \Illuminate\View\View Vista 'dashboard.admin.users.show' con el usuario y sus estadisticas.
+     */
     public function show(User $user)
     {
         $this->checkAccess();
@@ -202,6 +286,17 @@ class UserController extends Controller
         return view('dashboard.admin.users.show', compact('user', 'stats'));
     }
 
+    /**
+     * Muestra el formulario de edicion de un usuario existente.
+     *
+     * Requiere permisos de acceso. Carga todos los roles, la lista de
+     * paises y los registros geograficos (estados, municipios, parroquias,
+     * ciudades) filtrados segun la ubicacion actual del usuario para
+     * mantener la coherencia de los selects encadenados.
+     *
+     * @param \App\Models\User $user Usuario a editar (resuelto por route model binding).
+     * @return \Illuminate\View\View Vista 'dashboard.admin.users.edit' con todos los datos para el formulario.
+     */
     public function edit(User $user)
     {
         $this->checkAccess();
@@ -218,6 +313,21 @@ class UserController extends Controller
         return view('dashboard.admin.users.edit', compact('user', 'roles', 'userRole', 'countries', 'states', 'municipalities', 'parishes', 'cities', 'isClient'));
     }
 
+    /**
+     * Actualiza los datos de un usuario existente.
+     *
+     * Requiere permisos de acceso. Valida los campos actualizados,
+     * permite cambiar la contrasena opcionalmente (minimo 10 caracteres
+     * con confirmacion). Maneja la reemplazo de la foto de perfil,
+     * eliminando la anterior del disco si existe una nueva. Sincroniza
+     * el rol asignado. Registra los cambios en el log de auditoria
+     * comparando valores anteriores con los nuevos, mostrando solo
+     * los campos que efectivamente cambiaron.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con los campos actualizados del usuario.
+     * @param \App\Models\User $user Usuario a actualizar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige al indice de usuarios con mensaje de exito o error.
+     */
     public function update(Request $request, User $user)
     {
         $this->checkAccess();
@@ -316,6 +426,17 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Elimina un usuario del sistema.
+     *
+     * Requiere permisos de acceso. Impide que un usuario se elimine
+     * a si mismo para prevenir bloqueos de sesion. Antes de eliminar,
+     * registra la accion en auditoria y elimina la foto de perfil
+     * del disco de almacenamiento publico si existe.
+     *
+     * @param \App\Models\User $user Usuario a eliminar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redirige al indice de usuarios con mensaje de exito o error.
+     */
     public function destroy(User $user)
     {
         $this->checkAccess();
@@ -350,6 +471,19 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Cambia el estado de activacion de un usuario (activo/inactivo).
+     *
+     * Requiere permisos de acceso. Impide que un usuario se desactive
+     * a si mismo. Invierte el valor actual del campo 'is_active'. Si
+     * el usuario pasa de activo a desactivado, envia un correo electronico
+     * de notificacion a la direccion del usuario. Registra la accion
+     * en auditoria. Soporta respuestas tanto AJAX (JSON) como tradicionales
+     * (redirect) para funcionar con switches en la interfaz.
+     *
+     * @param \App\Models\User $user Usuario cuyo estado sera cambiado (resuelto por route model binding).
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse Respuesta JSON o redirect segun el tipo de peticion.
+     */
     public function toggleStatus(User $user)
     {
         $this->checkAccess();
@@ -411,6 +545,18 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Exporta los usuarios a un archivo CSV.
+     *
+     * Requiere permisos de acceso. Aplica los mismos filtros de busqueda
+     * y rol que el metodo index. Limita la exportacion a 1000 registros
+     * para evitar problemas de memoria. Genera un archivo CSV con columnas:
+     * ID, Nombre, Apellido, Email, Telefono, Direccion, Cedula, Rol,
+     * Pais, Estado, Ciudad, Estado de Cuenta y Fecha de registro.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con parametros opcionales de filtro ('search', 'role').
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse Archivo CSV como descarga.
+     */
     public function export(Request $request)
     {
         $this->checkAccess();
@@ -467,6 +613,15 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Muestra los detalles de un usuario en un modal (vista AJAX).
+     *
+     * Requiere permisos de acceso. Carga las relaciones geograficas
+     * y los roles del usuario para renderizar la vista parcial del modal.
+     *
+     * @param \App\Models\User $user Usuario a mostrar en el modal (resuelto por route model binding).
+     * @return \Illuminate\View\View Vista parcial 'dashboard.admin.users.modal-show' con el usuario.
+     */
     public function modalShow(User $user)
     {
         $this->checkAccess();
@@ -474,6 +629,16 @@ class UserController extends Controller
         return view('dashboard.admin.users.modal-show', compact('user'));
     }
 
+    /**
+     * Muestra el formulario de edicion de un usuario en un modal (vista AJAX).
+     *
+     * Requiere permisos de acceso. Carga todos los roles, la lista de
+     * paises y los registros geograficos filtrados segun la ubicacion
+     * actual del usuario, igual que el metodo edit pero para modal.
+     *
+     * @param \App\Models\User $user Usuario a editar en el modal (resuelto por route model binding).
+     * @return \Illuminate\View\View Vista parcial 'dashboard.admin.users.modal-edit' con los datos del formulario.
+     */
     public function modalEdit(User $user)
     {
         $this->checkAccess();
@@ -489,6 +654,15 @@ class UserController extends Controller
         return view('dashboard.admin.users.modal-edit', compact('user', 'roles', 'countries', 'states', 'municipalities', 'parishes', 'cities', 'isClient'));
     }
 
+    /**
+     * Muestra el formulario de confirmacion de eliminacion en un modal (vista AJAX).
+     *
+     * Requiere permisos de acceso. Renderiza la vista parcial de
+     * confirmacion de eliminacion del usuario para interaccion AJAX.
+     *
+     * @param \App\Models\User $user Usuario a confirmar eliminacion (resuelto por route model binding).
+     * @return \Illuminate\View\View Vista parcial 'dashboard.admin.users.modal-delete' con el usuario.
+     */
     public function modalDelete(User $user)
     {
         $this->checkAccess();

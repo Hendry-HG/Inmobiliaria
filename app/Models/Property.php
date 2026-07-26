@@ -19,6 +19,30 @@ use App\Models\Municipality;
 use App\Models\Parish;
 use App\Models\City;
 
+/**
+ * Modelo Property - Representa una propiedad inmobiliaria en el sistema.
+ *
+ * Entidad central del sistema inmobiliario. Almacena toda la información
+ * de una propiedad publicada por un usuario (asesor o administrador),
+ * incluyendo ubicación geográfica jerárquica (pais, estado, municipio,
+ * parroquia, ciudad), características físicas, precio, estado de
+ * publicación y datos de visibilidad (destacada, vistas, consultas).
+ *
+ * Relaciones principales:
+ * - User (propietario/creador de la publicación)
+ * - Category (categoría de la propiedad: apartamento, casa, terreno, etc.)
+ * - PropertyImage (galería de imágenes de la propiedad)
+ * - Appointment (visitas programadas a esta propiedad)
+ * - Favorite (propiedades guardadas por usuarios)
+ * - Lead (prospectos interesados en esta propiedad)
+ * - Conversation (conversaciones derivadas de esta propiedad)
+ * - Country, State, Municipality, Parish, City (ubicación geográfica)
+ *
+ * Flujo de datos:
+ * Un usuario crea una propiedad, la publica, los visitantes la exploran,
+ * generan consultas (leads), programan visitas (appointments) y mantienen
+ * conversaciones con el asesor asignado.
+ */
 class Property extends Model
 {
     use HasFactory, SoftDeletes;
@@ -44,97 +68,194 @@ class Property extends Model
     // RELACIONES
     // ==========================================
 
+    /**
+     * Relación con el usuario propietario/creador de la propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Relación con la categoría de la propiedad (apartamento, casa, etc.).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
+    /**
+     * Relación con el país de ubicación de la propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function countryRelation()
     {
         return $this->belongsTo(Country::class, 'country_id');
     }
 
+    /**
+     * Relación con el estado/estado de ubicación de la propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function stateRelation()
     {
         return $this->belongsTo(State::class, 'state_id');
     }
 
+    /**
+     * Relación con el municipio de ubicación de la propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function municipalityRelation()
     {
         return $this->belongsTo(Municipality::class, 'municipality_id');
     }
 
+    /**
+     * Relación con la parroquia de ubicación de la propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function parishRelation()
     {
         return $this->belongsTo(Parish::class, 'parish_id');
     }
 
+    /**
+     * Relación con la ciudad de ubicación de la propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function cityRelation()
     {
         return $this->belongsTo(City::class, 'city_id');
     }
 
+    /**
+     * Alias de countryRelation() para compatibilidad con código existente.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function country()
     {
         return $this->countryRelation();
     }
 
+    /**
+     * Alias de stateRelation() para compatibilidad con código existente.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function state()
     {
         return $this->stateRelation();
     }
 
+    /**
+     * Alias de municipalityRelation() para compatibilidad con código existente.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function municipality()
     {
         return $this->municipalityRelation();
     }
 
+    /**
+     * Alias de parishRelation() para compatibilidad con código existente.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function parish()
     {
         return $this->parishRelation();
     }
 
+    /**
+     * Alias de cityRelation() para compatibilidad con código existente.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function city()
     {
         return $this->cityRelation();
     }
 
+    /**
+     * Relación con las imágenes de la propiedad, ordenadas por el campo 'order'.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function images()
     {
         return $this->hasMany(PropertyImage::class)->orderBy('order');
     }
 
+    /**
+     * Relación con la imagen principal de la propiedad.
+     * Retorna la imagen marcada como is_primary = true.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
     public function primaryImage()
     {
         return $this->hasOne(PropertyImage::class)->where('is_primary', true);
     }
 
+    /**
+     * Relación con las citas/visitas programadas para esta propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
     }
 
+    /**
+     * Relación con los registros de favoritos de esta propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function favorites()
     {
         return $this->hasMany(Favorite::class);
     }
 
+    /**
+     * Verifica si una propiedad está en favoritos de un usuario específico.
+     *
+     * @param \App\Models\User|null $user Usuario a consultar
+     * @return bool true si el usuario tiene esta propiedad en favoritos
+     */
     public function isFavoritedBy($user)
     {
         if (!$user) return false;
         return $this->favorites()->where('user_id', $user->id)->exists();
     }
 
+    /**
+     * Relación con los leads/prospectos interesados en esta propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function leads()
     {
         return $this->hasMany(Lead::class);
     }
 
+    /**
+     * Relación con las conversaciones generadas a partir de esta propiedad.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function conversations()
     {
         return $this->hasMany(Conversation::class);
@@ -144,8 +265,19 @@ class Property extends Model
     // ACCESSORS - IMÁGENES (VERSIÓN PRODUCCIÓN)
     // ==========================================
 
+    /**
+     * Obtiene el modelo de imagen principal de la propiedad.
+     * Si las imágenes ya están cargadas en memoria, filtra de la colección;
+     * de lo contrario, realiza una consulta a la base de datos.
+     *
+     * @return \App\Models\PropertyImage|null imagen principal o primera imagen disponible
+     */
     public function getPrimaryImageAttribute()
     {
+        if ($this->relationLoaded('images')) {
+            return $this->images->where('is_primary', true)->first()
+                   ?? $this->images->first();
+        }
         return $this->images()->where('is_primary', true)->first()
                ?? $this->images()->first();
     }
@@ -204,6 +336,12 @@ class Property extends Model
     // ACCESSORS - PRECIO Y UBICACIÓN
     // ==========================================
 
+    /**
+     * Obtiene el precio formateado con su símbolo de moneda.
+     * Soporta USD ($), EUR (€) y VES (Bs.).
+     *
+     * @return string precio formateado, ej: "$ 150.000,00"
+     */
     public function getFormattedPriceAttribute()
     {
         $currency = $this->price_currency ?? 'USD';
@@ -216,6 +354,13 @@ class Property extends Model
         return $symbol . ' ' . number_format($this->price, 2);
     }
 
+    /**
+     * Construye la ubicación completa de la propiedad combinando los niveles
+     * geográficos disponibles: país, estado, municipio, parroquia, ciudad y dirección.
+     * Utiliza relaciones Eloquent cuando están disponibles y fallback a campos de texto.
+     *
+     * @return string ubicación completa separada por flechas, ej: "Venezuela → Caracas → ..."
+     */
     public function getFullLocationAttribute()
     {
         $parts = [];
@@ -257,6 +402,12 @@ class Property extends Model
         return implode(' → ', $parts);
     }
 
+    /**
+     * Obtiene el nombre de la ciudad asociada a la propiedad.
+     * Prioriza la relación Eloquent; si no existe, retorna el campo de texto.
+     *
+     * @return string|null nombre de la ciudad o null si no está configurada
+     */
     public function getCityNameAttribute()
     {
         if ($this->city_id && $this->cityRelation) {
@@ -265,6 +416,12 @@ class Property extends Model
         return $this->city ?: null;
     }
 
+    /**
+     * Obtiene el nombre del estado asociado a la propiedad.
+     * Prioriza la relación Eloquent; si no existe, retorna el campo de texto.
+     *
+     * @return string|null nombre del estado o null si no está configurado
+     */
     public function getStateNameAttribute()
     {
         if ($this->state_id && $this->stateRelation) {
@@ -273,6 +430,11 @@ class Property extends Model
         return $this->state ?: null;
     }
 
+    /**
+     * Obtiene el nombre del municipio asociado a la propiedad.
+     *
+     * @return string|null nombre del municipio o null si no está configurado
+     */
     public function getMunicipalityNameAttribute()
     {
         if ($this->municipality_id && $this->municipalityRelation) {
@@ -281,6 +443,12 @@ class Property extends Model
         return null;
     }
 
+    /**
+     * Obtiene el nombre del país asociado a la propiedad.
+     * Prioriza la relación Eloquent; si no existe, retorna el campo de texto.
+     *
+     * @return string|null nombre del país o null si no está configurado
+     */
     public function getCountryNameAttribute()
     {
         if ($this->country_id && $this->countryRelation) {
@@ -293,21 +461,46 @@ class Property extends Model
     // SCOPES
     // ==========================================
 
+    /**
+     * Filtra propiedades con estado 'publicada' (visibles en el sitio público).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopePublished($query)
     {
         return $query->where('status', 'publicada');
     }
 
+    /**
+     * Filtra propiedades disponibles para venta (tipo 'venta' o 'venta/alquiler').
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeForSale($query)
     {
         return $query->whereIn('type', ['venta', 'venta/alquiler']);
     }
 
+    /**
+     * Filtra propiedades disponibles para alquiler (tipo 'alquiler' o 'venta/alquiler').
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeForRent($query)
     {
         return $query->whereIn('type', ['alquiler', 'venta/alquiler']);
     }
 
+    /**
+     * Filtra propiedades destacadas cuya fecha de destacación no ha expirado.
+     * Incluye propiedades sin fecha de expiración (featured_until null).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true)
@@ -317,36 +510,88 @@ class Property extends Model
                      });
     }
 
+    /**
+     * Filtra propiedades por país.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $countryId identificador del país
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeInCountry($query, $countryId)
     {
         return $query->where('country_id', $countryId);
     }
 
+    /**
+     * Filtra propiedades por estado.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $stateId identificador del estado
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeInState($query, $stateId)
     {
         return $query->where('state_id', $stateId);
     }
 
+    /**
+     * Filtra propiedades por municipio.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $municipalityId identificador del municipio
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeInMunicipality($query, $municipalityId)
     {
         return $query->where('municipality_id', $municipalityId);
     }
 
+    /**
+     * Filtra propiedades por parroquia.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $parishId identificador de la parroquia
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeInParish($query, $parishId)
     {
         return $query->where('parish_id', $parishId);
     }
 
+    /**
+     * Filtra propiedades por ciudad.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $cityId identificador de la ciudad
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeInCity($query, $cityId)
     {
         return $query->where('city_id', $cityId);
     }
 
+    /**
+     * Filtra propiedades por usuario propietario/creador.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $userId identificador del usuario
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeByUser($query, $userId)
     {
         return $query->where('user_id', $userId);
     }
 
+    /**
+     * Filtra propiedades dentro de un rango de precios.
+     * Si solo se especifica $min, filtra desde ese precio.
+     * Si solo se especifica $max, filtra hasta ese precio.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param float|null $min precio mínimo
+     * @param float|null $max precio máximo
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopePriceRange($query, $min, $max)
     {
         if ($min) $query->where('price', '>=', $min);
@@ -358,11 +603,19 @@ class Property extends Model
     // MÉTODOS
     // ==========================================
 
+    /**
+     * Incrementa en 1 el contador de vistas de la propiedad.
+     * Se invoca cada vez que un usuario visita el detalle de la propiedad.
+     */
     public function incrementViews()
     {
         $this->increment('views');
     }
 
+    /**
+     * Incrementa en 1 el contador de consultas de la propiedad.
+     * Se invoca cuando un usuario realiza una consulta sobre la propiedad.
+     */
     public function incrementInquiries()
     {
         $this->increment('inquiries');

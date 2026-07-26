@@ -38,9 +38,9 @@
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
                             <th class="p-4">Servicio</th>
-                            <th class="p-4">Icono</th>
+                            <th class="p-4 hidden md:table-cell">Icono</th>
                             <th class="p-4">Estado</th>
-                            <th class="p-4">Destacado</th>
+                            <th class="p-4 hidden md:table-cell">Destacado</th>
                             <th class="p-4 text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -69,7 +69,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="p-4">
+                                <td class="p-4 hidden md:table-cell">
                                     @if($service->icon)
                                         <i class="{{ $service->icon }} text-2xl" style="color: {{ $service->color ?? '#000' }}"></i>
                                     @else
@@ -81,7 +81,7 @@
                                         {{ $service->is_active ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </td>
-                                <td class="p-4">
+                                <td class="p-4 hidden md:table-cell">
                                     @if($service->is_featured)
                                         <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
                                             <i class="ph ph-star"></i> Destacado

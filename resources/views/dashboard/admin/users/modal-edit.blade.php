@@ -137,7 +137,14 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
                 <input type="password" name="password" placeholder="Dejar vacío para mantener la actual"
                        class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
-                <p class="text-xs text-gray-500 mt-1">Mínimo 8 caracteres.</p>
+                <p class="text-xs text-gray-500 mt-1">Mínimo 10 caracteres.</p>
+            </div>
+
+            {{-- CONFIRMAR CONTRASEÑA --}}
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                <input type="password" name="password_confirmation" placeholder="Repite la contraseña"
+                       class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
             </div>
 
             {{-- FOTO DE PERFIL --}}

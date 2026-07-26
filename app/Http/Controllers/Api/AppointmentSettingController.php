@@ -12,16 +12,48 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Controlador API de Configuracion de Citas
+ *
+ * Gestiona la configuracion de disponibilidad horaria para asesores
+ * inmobiliarios. Permite definir dias laborables, horarios por dia,
+ * duracion de slots, break entre citas, recordatorios y excepciones.
+ * Expone endpoints para consultar slots y dias disponibles.
+ *
+ * @package App\Http\Controllers\Api
+ */
 class AppointmentSettingController extends Controller
 {
+    /**
+     * Servicio de permisos inyectado para validacion de accesos.
+     * @var \App\Services\PermissionService
+     */
     protected $permissionService;
 
+    /**
+     * Constructor del controlador.
+     * Aplica middleware de autenticacion e inyecta PermissionService.
+     *
+     * @param \App\Services\PermissionService $permissionService Servicio de verificacion de permisos
+     */
     public function __construct(PermissionService $permissionService)
     {
         $this->middleware('auth');
         $this->permissionService = $permissionService;
     }
 
+    /**
+     * Muestra la vista de configuracion de citas del asesor.
+     *
+     * Flujo de datos:
+     * 1. Obtiene el usuario autenticado y verifica que exista
+     * 2. Configura PermissionService con el usuario actual
+     * 3. Verifica el permiso 'ver configuracion'
+     * 4. Obtiene la configuracion de citas del usuario y sus dias configurados
+     * 5. Retorna la vista de configuracion con los datos
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
         $user = Auth::user();
@@ -44,6 +76,23 @@ class AppointmentSettingController extends Controller
         return view('modulos.citas.configuracion', compact('settings', 'configuredDays'));
     }
 
+    /**
+     * Actualiza la configuracion de disponibilidad horaria del asesor.
+     *
+     * Flujo de datos:
+     * 1. Valida autenticacion y permiso 'editar configuracion'
+     * 2. Registra en log los datos recibidos del formulario
+     * 3. Valida todos los campos: estado activo, fecha de validez, config diaria,
+     *    duracion de slots, break, notificaciones y excepciones
+     * 4. Crea o actualiza el registro AppointmentSetting del usuario
+     * 5. Procesa la configuracion diaria (lunes a domingo) con horas y maximo
+     * 6. Procesa las excepciones de fechas no disponibles
+     * 7. Invalida el cache de configuracion del usuario
+     * 8. Redirige con mensaje de exito o error
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request)
     {
         $user = Auth::user();
@@ -170,6 +219,21 @@ class AppointmentSettingController extends Controller
         }
     }
 
+    /**
+     * Obtiene los slots de horarios disponibles para una fecha especifica.
+     *
+     * Flujo de datos:
+     * 1. Valida que la fecha sea hoy o futura y que el asesor exista
+     * 2. Obtiene la configuracion del asesor (crea defaults si no existe)
+     * 3. Verifica que la configuracion este activa
+     * 4. Valida que la fecha este dentro del rango de validez
+     * 5. Verifica que la fecha no sea una excepcion (dia no laborable)
+     * 6. Calcula los slots disponibles segun horarios y duracion configurada
+     * 7. Retorna JSON con slots, maximo por dia y estado de disponibilidad
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAvailableSlots(Request $request)
     {
         //  PÚBLICO PARA USUARIOS AUTENTICADOS
@@ -243,6 +307,24 @@ class AppointmentSettingController extends Controller
         }
     }
 
+    /**
+     * Obtiene el calendario de dias disponibles para un mes y anio especifico.
+     *
+     * Flujo de datos:
+     * 1. Valida year, month y asesor_id
+     * 2. Verifica que el asesor exista y este activo
+     * 3. Obtiene la configuracion del asesor (crea defaults si no existe)
+     * 4. Itera cada dia del mes verificando disponibilidad:
+     *    - Fecha futura o actual
+     *    - Configuracion activa
+     *    - Fecha dentro del rango de validez
+     *    - No es excepcion
+     * 5. Para cada dia disponible calcula los slots y el maximo
+     * 6. Retorna JSON con el calendario completo del mes
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAvailableDays(Request $request)
     {
         //  PÚBLICO PARA USUARIOS AUTENTICADOS
@@ -331,6 +413,21 @@ class AppointmentSettingController extends Controller
         }
     }
 
+    /**
+     * Agrega una excepcion de fecha no disponible a la configuracion.
+     *
+     * Flujo de datos:
+     * 1. Valida autenticacion y permiso 'editar configuracion'
+     * 2. Valida que la fecha sea futura y que la razon sea obligatoria
+     * 3. Obtiene la configuracion del asesor (crea defaults si no existe)
+     * 4. Verifica que no exista ya una excepcion para esa fecha
+     * 5. Agrega la excepcion con estado inactivo por defecto
+     * 6. Guarda la configuracion y invalida el cache
+     * 7. Retorna JSON con resultado de la operacion
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function addException(Request $request)
     {
         $user = Auth::user();
@@ -405,6 +502,20 @@ class AppointmentSettingController extends Controller
         }
     }
 
+    /**
+     * Elimina una excepcion de fecha de la configuracion del asesor.
+     *
+     * Flujo de datos:
+     * 1. Valida autenticacion y permiso 'editar configuracion'
+     * 2. Valida que el campo date sea obligatorio
+     * 3. Obtiene la configuracion del asesor
+     * 4. Filtra las excepciones eliminando la que coincida con la fecha
+     * 5. Guarda la configuracion actualizada y invalida el cache
+     * 6. Retorna JSON con resultado de la operacion
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function removeException(Request $request)
     {
         $user = Auth::user();
@@ -469,7 +580,17 @@ class AppointmentSettingController extends Controller
     }
 
     /**
-     * Crear configuración por defecto para un asesor
+     * Crea una configuracion por defecto para un asesor sin configuracion previa.
+     *
+     * Flujo de datos:
+     * 1. Utiliza firstOrCreate para evitar duplicados
+     * 2. Establece valores por defecto: activo, slot de 30min, break de 5min,
+     *    recordatorio de 60min, lunes a viernes de 9:00 a 15:00 (5 slots por dia)
+     * 3. Fines de semana sin disponibilidad (max: 0)
+     * 4. Invalida el cache de configuracion del usuario
+     *
+     * @param int $userId ID del usuario asesor
+     * @return \App\Models\AppointmentSetting Configuracion creada o existente
      */
     private function createDefaultSettings($userId)
     {

@@ -11,12 +11,33 @@ use App\Models\City;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * Controlador API de Ubicaciones Geograficas
+ *
+ * Proporciona endpoints JSON para la jerarquia geografica del sistema:
+ * Paises > Estados > Municipios > Parroquias > Ciudades. Incluye
+ * configuracion telefonica por pais con codigo, formato y longitudes.
+ * Utiliza Cache para optimizar consultas frecuentes (1 hora).
+ *
+ * @package App\Http\Controllers\Api
+ */
 class ApiLocationController extends Controller
 {
+    /**
+     * Duracion del cache en segundos (1 hora).
+     * @var int
+     */
     const CACHE_DURATION = 3600; // 1 hora
 
     /**
-     * Obtener todos los Países
+     * Obtiene todos los paises ordenados alfabeticamente.
+     *
+     * Flujo de datos:
+     * 1. Consulta el cache 'api_countries_all' (1 hora de duracion)
+     * 2. Si no existe en cache, consulta la tabla countries con id y name
+     * 3. Retorna JSON con la lista de paises
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getCountries(): JsonResponse
     {
@@ -31,7 +52,15 @@ class ApiLocationController extends Controller
     }
 
     /**
-     * Obtener Estados de un País
+     * Obtiene los estados de un pais especifico.
+     *
+     * Flujo de datos:
+     * 1. Consulta el cache 'api_states_{countryId}' (1 hora)
+     * 2. Filtra estados por country_id con orden alfabeticos
+     * 3. Retorna JSON con la lista de estados del pais
+     *
+     * @param int $countryId Identificador del pais
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getStates($countryId): JsonResponse
     {
@@ -47,7 +76,15 @@ class ApiLocationController extends Controller
     }
 
     /**
-     * Obtener Municipios de un Estado
+     * Obtiene los municipios de un estado especifico.
+     *
+     * Flujo de datos:
+     * 1. Consulta el cache 'api_municipalities_{stateId}' (1 hora)
+     * 2. Filtra municipios por state_id con orden alfabeticos
+     * 3. Retorna JSON con la lista de municipios del estado
+     *
+     * @param int $stateId Identificador del estado
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getMunicipalities($stateId): JsonResponse
     {
@@ -63,7 +100,15 @@ class ApiLocationController extends Controller
     }
 
     /**
-     * Obtener Parroquias de un Municipio
+     * Obtiene las parroquias de un municipio especifico.
+     *
+     * Flujo de datos:
+     * 1. Consulta el cache 'api_parishes_{municipalityId}' (1 hora)
+     * 2. Filtra parroquias por municipality_id con orden alfabeticos
+     * 3. Retorna JSON con la lista de parroquias del municipio
+     *
+     * @param int $municipalityId Identificador del municipio
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getParishes($municipalityId): JsonResponse
     {
@@ -79,7 +124,15 @@ class ApiLocationController extends Controller
     }
 
     /**
-     * Obtener Ciudades de una Parroquia
+     * Obtiene las ciudades de una parroquia especifica.
+     *
+     * Flujo de datos:
+     * 1. Consulta el cache 'api_cities_{parishId}' (1 hora)
+     * 2. Filtra ciudades por parish_id con orden alfabeticos
+     * 3. Retorna JSON con la lista de ciudades de la parroquia
+     *
+     * @param int $parishId Identificador de la parroquia
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getCities($parishId): JsonResponse
     {
@@ -94,6 +147,18 @@ class ApiLocationController extends Controller
         return response()->json($cities);
     }
 
+    /**
+     * Obtiene la configuracion telefonica de un pais.
+     *
+     * Flujo de datos:
+     * 1. Busca el pais por su identificador
+     * 2. Si no existe, retorna valores por defecto de Venezuela (+58)
+     * 3. Retorna JSON con codigo telefonico, mascara, longitudes minima y maxima,
+     *    y un placeholder generado a partir de la mascara
+     *
+     * @param int $countryId Identificador del pais
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getPhoneConfig($countryId)
     {
         $country = Country::find($countryId);
@@ -117,6 +182,16 @@ class ApiLocationController extends Controller
         ]);
     }
 
+    /**
+     * Genera un ejemplo de numero de telefono a partir de una mascara.
+     *
+     * Flujo de datos:
+     * 1. Reemplaza los digitos '0' de la mascara por '1'
+     * 2. Luego reemplaza los '1' resultantes por 'X' para mostrar formato
+     *
+     * @param string $mask Mascara del telefono (ej: '000-0000000')
+     * @return string Placeholder generado (ej: 'XXX-XXXXXXX')
+     */
     private function generatePlaceholder($mask)
     {
         $placeholder = str_replace('0', '1', $mask);

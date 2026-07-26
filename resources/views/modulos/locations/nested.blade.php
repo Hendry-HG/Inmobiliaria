@@ -67,9 +67,9 @@
             <table class="w-full text-left">
                 <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold">
                     <tr>
-                        <th class="px-6 py-4">ID</th>
+                        <th class="px-6 py-4 hidden sm:table-cell">ID</th>
                         <th class="px-6 py-4">Nombre</th>
-                        <th class="px-6 py-4">Hijos</th>
+                        <th class="px-6 py-4 hidden md:table-cell">Hijos</th>
                         <th class="px-6 py-4 text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -77,9 +77,9 @@
                     @php $counter = ($items->currentPage() - 1) * $items->perPage() + 1; @endphp
                     @foreach($items as $item)
                     <tr class="hover:bg-slate-50 transition-colors group">
-                        <td class="px-6 py-4 text-slate-500">{{ $counter++ }}</td>
+                        <td class="px-6 py-4 text-slate-500 hidden sm:table-cell">{{ $counter++ }}</td>
                         <td class="px-6 py-4 font-bold text-slate-800">{{ $item->name }}</td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 hidden md:table-cell">
                             @if($level == 'Estado')
                                 <a href="{{ route('admin.locations.municipalities.index', $item->id) }}" class="text-mso-blue hover:underline">
                                     Ver Municipios ({{ $item->municipalities()->count() }})
@@ -179,7 +179,7 @@
 
         document.getElementById('modal-title').textContent = `¿Eliminar "${currentModalName}"?`;
         document.getElementById('modal-message').innerHTML = `
-            ¿Estás seguro de eliminar <strong>"${currentModalName}"</strong>?
+            ¿Estás seguro de eliminar <strong>"${escapeHtml(currentModalName)}"</strong>?
             Esta acción no se puede deshacer y podría afectar a elementos relacionados.
         `;
 

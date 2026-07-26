@@ -151,12 +151,12 @@
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
                                 <th class="p-4">Propiedad</th>
-                                <th class="p-4">Precio</th>
-                                <th class="p-4">Ubicación</th>
+                                <th class="p-4 hidden md:table-cell">Precio</th>
+                                <th class="p-4 hidden lg:table-cell">Ubicación</th>
                                 <th class="p-4">Estado</th>
                                 @can('ver usuarios')
                                     @if(isset($isAdmin) && $isAdmin)
-                                        <th class="p-4">Asesor</th>
+                                        <th class="p-4 hidden lg:table-cell">Asesor</th>
                                     @endif
                                 @endcan
                                 <th class="p-4 text-right">Acciones</th>

@@ -321,6 +321,13 @@
         // ============================================================
         // FUNCIONES PARA MODAL VER
         // ============================================================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         window.openShowModal = function(id) {
             const modal = document.getElementById('showModal');
             if (!modal) return;
@@ -361,23 +368,23 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div>
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo</label>
-                            <p class="text-slate-800 font-medium text-sm sm:text-base">${data.name || 'No especificado'}</p>
+                            <p class="text-slate-800 font-medium text-sm sm:text-base">${escapeHtml(data.name || 'No especificado')}</p>
                         </div>
                         <div>
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Correo electrónico</label>
-                            <p class="text-slate-800 text-sm sm:text-base">${data.email || 'No especificado'}</p>
+                            <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(data.email || 'No especificado')}</p>
                         </div>
                         <div>
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
-                            <p class="text-slate-800 text-sm sm:text-base">${data.phone || 'No especificado'}</p>
+                            <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(data.phone || 'No especificado')}</p>
                         </div>
                         <div>
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</label>
-                            <p class="text-slate-800 text-sm sm:text-base">${data.status_label || data.status || 'No especificado'}</p>
+                            <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(data.status_label || data.status || 'No especificado')}</p>
                         </div>
                         <div>
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Asesor asignado</label>
-                            <p class="text-slate-800 text-sm sm:text-base">${asesorFullName}</p>
+                            <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(asesorFullName)}</p>
                         </div>
                         <div>
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha de solicitud</label>
@@ -389,7 +396,7 @@
                     html += `
                         <div class="col-span-2">
                             <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Notas adicionales</label>
-                            <p class="text-slate-800 bg-slate-50 p-3 rounded-lg text-sm">${data.notes}</p>
+                            <p class="text-slate-800 bg-slate-50 p-3 rounded-lg text-sm">${escapeHtml(data.notes)}</p>
                         </div>
                     `;
                 }
@@ -426,7 +433,7 @@
 
                         for (const [key, value] of Object.entries(propertyFields)) {
                             const label = fieldLabels[key] || key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            prefHtml += `<p><span class="font-medium">${label}:</span> ${value}</p>`;
+                            prefHtml += `<p><span class="font-medium">${escapeHtml(label)}:</span> ${escapeHtml(value)}</p>`;
                         }
 
                         prefHtml += `</div></div>`;

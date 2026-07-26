@@ -49,10 +49,15 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {{--  PERMITIR EDITAR TODOS LOS ROLES, INCLUYENDO SUPER ADMIN --}}
-                        <a href="{{ route('super-admin.sidebar-permissions.edit', $role) }}" class="text-mso-blue hover:text-mso-gold">
-                            <i class="ph ph-pencil"></i> Editar
-                        </a>
+                        @if($role->name === 'Super Admin')
+                            <a href="{{ route('super-admin.sidebar-permissions.edit', $role) }}" class="text-mso-blue hover:text-mso-gold">
+                                <i class="ph ph-pencil"></i> Editar
+                            </a>
+                        @else
+                            <span class="text-gray-400 text-xs italic">
+                                <i class="ph ph-lock-simple"></i> Solo Super Admin
+                            </span>
+                        @endif
                     </td>
                 </tr>
                 @endforeach

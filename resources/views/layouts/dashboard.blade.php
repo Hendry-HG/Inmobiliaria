@@ -586,6 +586,22 @@
             // Exponer función globalmente
             window.refreshCsrfToken = refreshCsrfToken;
         });
+
+        // Echo listener para notificaciones en tiempo real
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Echo) {
+                setTimeout(function() {
+                    try {
+                        window.Echo.private('user.{{ Auth::id() }}')
+                            .listen('.new-notification', function(e) {
+                                window.dispatchEvent(new CustomEvent('new-notification', { detail: e }));
+                            });
+                    } catch (err) {
+                        console.warn('Error al suscribirse a notificaciones:', err);
+                    }
+                }, 2000);
+            }
+        });
     </script>
 
     @stack('js')

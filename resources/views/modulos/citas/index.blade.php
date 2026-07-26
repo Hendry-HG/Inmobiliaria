@@ -362,9 +362,9 @@
                     <thead class="bg-slate-50 border-b">
                         <tr>
                             <th class="text-left px-4 py-3">Propiedad</th>
-                            <th class="text-left px-4 py-3">Cliente</th>
+                            <th class="text-left px-4 py-3 hidden md:table-cell">Cliente</th>
                             <th class="text-left px-4 py-3">Fecha/Hora</th>
-                            <th class="text-left px-4 py-3">Asesor</th>
+                            <th class="text-left px-4 py-3 hidden lg:table-cell">Asesor</th>
                             <th class="text-left px-4 py-3">Estado</th>
                             <th class="text-center px-4 py-3">Acciones</th>
                         </tr>
@@ -392,7 +392,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 hidden md:table-cell">
                                 <div class="font-medium">{{ $appointment->contact_name ?? ($appointment->user->name ?? 'N/A') }}</div>
                                 <div class="text-xs text-slate-400">{{ $appointment->contact_email ?? ($appointment->user->email ?? 'N/A') }}</div>
                             </td>
@@ -400,7 +400,7 @@
                                 <div>{{ $appointment->scheduled_date ? $appointment->scheduled_date->format('d/m/Y') : 'N/A' }}</div>
                                 <div class="text-xs text-slate-400">{{ $appointment->scheduled_date ? $appointment->scheduled_date->format('h:i A') : '' }}</div>
                             </td>
-                            <td class="px-4 py-3">{{ $appointment->asesor->name ?? 'N/A' }}</td>
+                            <td class="px-4 py-3 hidden lg:table-cell">{{ $appointment->asesor->name ?? 'N/A' }}</td>
                             <td class="px-4 py-3">
                                 @php
                                     $adminBadgeClass = match($appointment->status) {
@@ -432,7 +432,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center py-8 text-slate-400">No hay citas registradas</td>
+                            <td colspan="4" class="text-center py-8 text-slate-400">No hay citas registradas</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -827,8 +827,8 @@ if (isAsesor) {
         const appointment = allAppointments.find(a => a.id === appointmentId);
         if (!appointment) return;
 
-        document.getElementById('modalPropertyTitle').innerHTML = `<a href="javascript:void(0)" onclick="window.showPropertyPreview(${appointmentId})" class="hover:text-mso-gold">${appointment.title}</a>`;
-        document.getElementById('modalClientInfo').innerHTML = `Cliente: ${appointment.client}<br>Email: ${appointment.client_email}<br>Tel: ${appointment.client_phone}`;
+        document.getElementById('modalPropertyTitle').innerHTML = `<a href="javascript:void(0)" onclick="window.showPropertyPreview(${appointmentId})" class="hover:text-mso-gold">${escapeHtml(appointment.title)}</a>`;
+        document.getElementById('modalClientInfo').innerHTML = `Cliente: ${escapeHtml(appointment.client)}<br>Email: ${escapeHtml(appointment.client_email)}<br>Tel: ${escapeHtml(appointment.client_phone)}`;
         document.getElementById('modalDateTime').innerHTML = `Fecha: ${appointment.date_display} - ${appointment.time} hrs`;
         document.getElementById('actionAppointmentId').value = appointmentId;
         document.getElementById('statusSelect').value = appointment.status;
@@ -875,7 +875,7 @@ if (isAdmin) {
         const appointment = allAppointments.find(a => a.id === appointmentId);
         if (!appointment) return;
 
-        document.getElementById('adminModalPropertyTitle').innerHTML = `<a href="javascript:void(0)" onclick="window.showPropertyPreview(${appointmentId})" class="hover:text-mso-gold">${appointment.title}</a>`;
+        document.getElementById('adminModalPropertyTitle').innerHTML = `<a href="javascript:void(0)" onclick="window.showPropertyPreview(${appointmentId})" class="hover:text-mso-gold">${escapeHtml(appointment.title)}</a>`;
         document.getElementById('adminAppointmentId').value = appointmentId;
         document.getElementById('adminStatusSelect').value = appointment.status;
         document.getElementById('adminRescheduleDate').value = '';

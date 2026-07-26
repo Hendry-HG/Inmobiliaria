@@ -366,6 +366,12 @@
 
 @push('js')
 <script>
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
     // ============================================
     // BUSCADOR DE USUARIOS EN TIEMPO REAL
     // ============================================
@@ -428,15 +434,15 @@
                         html += `
                             <div class="user-search-result px-4 py-2.5 cursor-pointer flex items-center gap-3 ${isSelected ? 'active' : ''} hover:bg-slate-50 transition-colors"
                                  data-user-id="${user.id}"
-                                 data-user-name="${user.name}"
-                                 data-user-email="${user.email}"
+                                 data-user-name="${escapeHtml(user.name)}"
+                                 data-user-email="${escapeHtml(user.email)}"
                                  onclick="selectUser(this)">
                                 <div class="w-8 h-8 rounded-full bg-mso-blue text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                    ${user.initials || user.name.charAt(0).toUpperCase()}
+                                    ${escapeHtml(user.initials || user.name.charAt(0).toUpperCase())}
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-800 truncate">${user.name}</p>
-                                    <p class="text-xs text-slate-500 truncate">${user.email}</p>
+                                    <p class="text-sm font-medium text-slate-800 truncate">${escapeHtml(user.name)}</p>
+                                    <p class="text-xs text-slate-500 truncate">${escapeHtml(user.email)}</p>
                                 </div>
                                 <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">${user.audits_count || 0} acciones</span>
                                 ${isSelected ? '<i class="ph ph-check-circle text-mso-gold ml-2 text-lg"></i>' : ''}

@@ -10,13 +10,43 @@ use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controlador de Reportes
+ *
+ * Responsable de generar y exportar reportes metricos del sistema inmobiliario.
+ * Proporciona estadisticas globales de propiedades, leads, citas y asesores.
+ * Soporta exportacion en formato CSV y PDF.
+ *
+ * @package App\Http\Controllers
+ */
 class ReportController extends Controller
 {
+    /**
+     * Constructor del controlador.
+     * Aplica middleware de verificacion de permiso 'ver reportes'.
+     */
     public function __construct()
     {
         $this->middleware('permission:ver reportes');
     }
 
+    /**
+     * Muestra la vista principal de reportes con metricas consolidadas.
+     *
+     * Recopila contadores totales de propiedades, citas, leads y usuarios.
+     * Calcula la tasa de conversion (leads cerrados vs total).
+     * Genera datos para graficos: propiedades por categoria, citas por estado,
+     * leads por estado y ranking de asesores.
+     *
+     * Flujo de datos:
+     * 1. Consulta contadores globales de cada modelo
+     * 2. Agrega datos para graficos usando agrupaciones SQL
+     * 3. Obtiene los 5 asesores con mas leads captados
+     * 4. Recupera los 6 ultimos registros de auditoria
+     * 5. Retorna la vista con todas las variables compactadas
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
         $totalProperties = Property::count();
@@ -116,6 +146,23 @@ class ReportController extends Controller
         ));
     }
 
+    /**
+     * Exporta el reporte de metricas en el formato solicitado (CSV o PDF).
+     *
+     * Recopila todas las metricas del sistema y las prepara en una estructura
+     * unificada para exportacion. Delega la generacion del archivo al metodo
+     * correspondiente segun el formato seleccionado.
+     *
+     * Flujo de datos:
+     * 1. Obtiene el formato solicitado del request (default: csv)
+     * 2. Compila metricas, propiedades por categoria, citas por estado,
+     *    leads por estado y top asesores en un array estructurado
+     * 3. Delega a exportCsv() o exportPdf() segun el formato
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param string $request->format Formato de exportacion: 'csv' o 'pdf'
+     * @return \Symfony\Component\HttpFoundation\Response|\Illuminate\Http\JsonResponse
+     */
     public function export(Request $request)
     {
         $format = $request->get('format', 'csv');
@@ -147,6 +194,19 @@ class ReportController extends Controller
         return $this->exportPdf($data);
     }
 
+    /**
+     * Genera y descarga el reporte en formato CSV con codificacion UTF-8.
+     *
+     * Flujo de datos:
+     * 1. Prepara headers HTTP para descarga de archivo CSV
+     * 2. Abre stream php://output y escribe BOM UTF-8
+     * 3. Escribe secciones: metricas principales, propiedades por categoria,
+     *    citas por estado, leads por estado y top asesores
+     * 4. Retorna respuesta streaming con el archivo generado
+     *
+     * @param array $data Estructura de datos del reporte con metricas y graficos
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
     private function exportCsv($data)
     {
         $headers = [
@@ -201,6 +261,22 @@ class ReportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    /**
+     * Genera y descarga el reporte en formato PDF usando DomPDF.
+     *
+     * Verifica que la libreria barryvdh/laravel-dompdf este instalada.
+     * Si no esta disponible, retorna un error JSON. Utiliza la vista
+     * 'modulos.reportes.export-pdf' como plantilla para el documento.
+     *
+     * Flujo de datos:
+     * 1. Valida la existencia de la clase Pdf de DomPDF
+     * 2. Carga la vista Blade con los datos del reporte
+     * 3. Configura formato A4 vertical
+     * 4. Genera la descarga del PDF con nombre basado en la fecha actual
+     *
+     * @param array $data Estructura de datos del reporte
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
+     */
     private function exportPdf($data)
     {
         // Verificar si dompdf está instalado
@@ -228,6 +304,17 @@ class ReportController extends Controller
     // MÉTODOS AUXILIARES
     // ==========================================
 
+    /**
+     * Calcula la tasa de conversion de leads cerrados ganados.
+     *
+     * Flujo de datos:
+     * 1. Cuenta el total de leads registrados en el sistema
+     * 2. Cuenta los leads con estado 'cerrado_ganado'
+     * 3. Calcula el porcentaje con un decimal de precision
+     * 4. Retorna 0 si no existen leads para evitar division por cero
+     *
+     * @return float Tasa de conversion en porcentaje (ej: 25.3)
+     */
     private function getConversionRate()
     {
         $totalLeads = Lead::count();
@@ -235,6 +322,17 @@ class ReportController extends Controller
         return $totalLeads > 0 ? round(($closedDeals / $totalLeads) * 100, 1) : 0;
     }
 
+    /**
+     * Obtiene el conteo de propiedades agrupadas por categoria.
+     *
+     * Flujo de datos:
+     * 1. Consulta propiedades agrupadas por category_id con conteo
+     * 2. Carga la relacion 'category' para obtener el nombre
+     * 3. Mapea cada resultado a un array con label (nombre) y value (cantidad)
+     * 4. Maneja propiedades sin categoria asignada como 'Sin categoria'
+     *
+     * @return array Lista de categorias con sus respectivos conteos
+     */
     private function getPropertiesByCategory()
     {
         return Property::select('category_id', DB::raw('count(*) as total'))
@@ -249,6 +347,16 @@ class ReportController extends Controller
             })->toArray();
     }
 
+    /**
+     * Obtiene el conteo de citas agrupadas por estado.
+     *
+     * Flujo de datos:
+     * 1. Consulta citas agrupadas por campo 'status' con conteo
+     * 2. Mapea los codigos de estado interno a etiquetas legibles en espanol
+     * 3. Retorna array de objetos con label y value para graficos
+     *
+     * @return array Lista de estados de cita con sus respectivos conteos
+     */
     private function getAppointmentsByStatus()
     {
         $statusMap = [
@@ -270,6 +378,17 @@ class ReportController extends Controller
             })->toArray();
     }
 
+    /**
+     * Obtiene el conteo de leads agrupados por estado.
+     *
+     * Flujo de datos:
+     * 1. Consulta leads agrupados por campo 'status' con conteo
+     * 2. Mapea los codigos de estado interno a etiquetas en espanol
+     * 3. Incluye estados: nuevo, contactado, en_negociacion, cerrado_ganado,
+     *    cerrado_perdido e inactivo
+     *
+     * @return array Lista de estados de lead con sus respectivos conteos
+     */
     private function getLeadsByStatus()
     {
         $statusMap = [
@@ -292,6 +411,17 @@ class ReportController extends Controller
             })->toArray();
     }
 
+    /**
+     * Obtiene el ranking de los 5 asesores inmobiliarios con mas leads captados.
+     *
+     * Flujo de datos:
+     * 1. Filtra usuarios con rol 'Asesor Inmobiliario'
+     * 2. Cuenta los leads asociados a cada asesor mediante withCount
+     * 3. Ordena de mayor a menor cantidad de leads
+     * 4. Limita resultados a los 5 primeros
+     *
+     * @return array Lista de asesores con nombre y cantidad de leads
+     */
     private function getTopAsesores()
     {
         return User::role('Asesor Inmobiliario')
@@ -307,6 +437,21 @@ class ReportController extends Controller
             })->toArray();
     }
 
+    /**
+     * Endpoint AJAX que retorna datos dinamicos para graficos del reporte.
+     *
+     * Flujo de datos:
+     * 1. Recibe el tipo de datos solicitado via parametro 'type'
+     * 2. Segun el tipo ejecuta la consulta correspondiente:
+     *    - 'properties': Top 10 propiedades por vistas con titulo, precio e id
+     *    - 'appointments': Citas agrupadas por estado con conteo
+     *    - 'leads': Top 5 asesores por cantidad de leads captados
+     * 3. Retorna los datos en formato JSON para renderizado en frontend
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param string $request->type Tipo de datos: 'properties', 'appointments' o 'leads'
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getData(Request $request)
     {
         $type = $request->type;

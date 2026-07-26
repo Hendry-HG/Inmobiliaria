@@ -1,27 +1,27 @@
 <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-500" id="mainNavbar" x-data="{ mobileMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-20 items-center">
+        <div class="flex justify-between h-16 sm:h-20 items-center">
 
-            <!-- Logo -->
-            <a href="{{ route('home') }}" class="flex items-center gap-3 group flex-shrink-0">
-                <div class="w-16 h-16 border-2 border-mso-gold flex items-center justify-center overflow-hidden rounded-xl transition-all duration-300 group-hover:scale-105 bg-white">
+            <!-- Logo Responsivo -->
+            <a href="{{ route('home') }}" class="flex items-center gap-2 sm:gap-3 group flex-shrink-0 min-w-0">
+                <div class="w-10 h-10 sm:w-16 sm:h-16 border-2 border-mso-gold flex items-center justify-center overflow-hidden rounded-xl transition-all duration-300 group-hover:scale-105 bg-white">
                     <img src="{{ asset('favicon-96x96.png') }}"
                          alt="MSO Inmobiliaria"
-                         class="w-14 h-14 object-contain transition-all duration-300"
+                         class="w-8 h-8 sm:w-14 sm:h-14 object-contain transition-all duration-300"
                          id="logoImage"
                          loading="eager"
                          width="56"
                          height="56"
                          onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=MSO&background=c5a059&color=fff&size=96&bold=true';">
                 </div>
-                <div class="flex flex-col">
-                    <span class="font-serif font-bold text-xl text-slate-800 leading-none tracking-wide group-hover:text-mso-blue transition-colors">MSO</span>
-                    <span class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Inmobiliaria</span>
+                <div class="flex flex-col min-w-0">
+                    <span class="font-serif font-bold text-base sm:text-xl text-slate-800 leading-none tracking-wide group-hover:text-mso-blue transition-colors">MSO</span>
+                    <span class="hidden xs:block text-[8px] sm:text-[10px] text-slate-500 uppercase tracking-[0.2em]">Inmobiliaria</span>
                 </div>
             </a>
 
-            <!-- Desktop Menu -->
-            <div class="hidden md:flex items-center space-x-8">
+            <!-- Desktop Menu - visible SOLO en lg (1024px) para arriba -->
+            <div class="hidden lg:flex items-center space-x-8">
                 <a href="{{ route('home') }}" class="text-sm font-medium {{ request()->routeIs('home') ? 'text-mso-gold' : 'text-slate-600' }} hover:text-mso-gold transition-colors relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-mso-gold after:left-0 after:-bottom-1 after:transition-all hover:after:w-full">
                     Inicio
                 </a>
@@ -152,8 +152,8 @@
                 @endauth
             </div>
 
-            <!-- Mobile Buttons -->
-            <div class="md:hidden flex items-center gap-2" x-data="{ mobileProfileOpen: false }">
+            <!-- Mobile Buttons - visible en lg (1024px) para abajo -->
+            <div class="lg:hidden flex items-center gap-1 sm:gap-2" x-data="{ mobileProfileOpen: false }">
                 @auth
                     @php
                         $user = Auth::user();
@@ -167,7 +167,7 @@
                                 type="button"
                                 class="relative focus:outline-none p-1 hover:bg-slate-100 rounded-full transition-colors">
                             <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
-                                 class="w-9 h-9 rounded-full border-2 border-mso-gold object-cover hover:opacity-80 transition-opacity"
+                                 class="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-mso-gold object-cover hover:opacity-80 transition-opacity"
                                  alt="{{ $user->name }}">
                         </button>
 
@@ -242,15 +242,15 @@
 
                 {{-- Botón hamburguesa --}}
                 <button @click="mobileMenuOpen = !mobileMenuOpen"
-                        class="md:hidden text-slate-600 hover:text-mso-blue p-2 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none"
+                        class="lg:hidden text-slate-600 hover:text-mso-blue p-1.5 sm:p-2 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none"
                         aria-label="Toggle menu">
-                    <i class="ph" :class="mobileMenuOpen ? 'ph-x text-2xl' : 'ph-list text-2xl'"></i>
+                    <i class="ph text-xl sm:text-2xl" :class="mobileMenuOpen ? 'ph-x' : 'ph-list'"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Mobile Menu -->
+    <!-- Mobile Menu - visible en lg (1024px) para abajo -->
     <div x-show="mobileMenuOpen"
          x-cloak
          x-transition:enter="transition ease-out duration-200"
@@ -260,7 +260,7 @@
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 -translate-y-4"
          @click.away="mobileMenuOpen = false"
-         class="md:hidden bg-white border-t border-slate-100 shadow-xl max-h-[80vh] overflow-y-auto">
+         class="lg:hidden bg-white border-t border-slate-100 shadow-xl max-h-[80vh] overflow-y-auto">
         <div class="px-4 py-4 space-y-2">
             <a href="{{ route('home') }}"
                class="block text-sm font-medium {{ request()->routeIs('home') ? 'text-mso-gold bg-slate-50' : 'text-slate-600' }} hover:text-mso-gold hover:bg-slate-50 transition-colors py-2.5 px-3 rounded-lg"

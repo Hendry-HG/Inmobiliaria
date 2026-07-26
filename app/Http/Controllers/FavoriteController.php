@@ -12,7 +12,12 @@ use Illuminate\Support\Facades\Log;
 class FavoriteController extends Controller
 {
     /**
-     * Constructor - Asegura que el usuario esté autenticado
+     * Constructor del controlador de favoritos.
+     *
+     * Aplica el middleware 'auth' a todos los metodos del controlador
+     * para garantizar que solo usuarios autenticados puedan gestionar
+     * sus propiedades favoritas. Cualquier intento de acceso sin
+     * sesion activa sera redirigido a la pagina de login.
      */
     public function __construct()
     {
@@ -20,7 +25,25 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Muestra la lista de propiedades favoritas del usuario
+     * Muestra la lista de propiedades favoritas del usuario autenticado.
+     *
+     * Flujo de la consulta:
+     * 1. Obtiene los registros de favoritos del usuario ordenados por
+     *    fecha de creacion (mas recientes primero).
+     * 2. Carga eager de las relaciones de cada propiedad: imagenes,
+     *    estado, ciudad y municipio.
+     * 3. Filtra solo propiedades con estado 'publicada' para evitar
+     *    mostrar propiedades desactivadas o eliminadas.
+     * 4. Transforma la coleccion de favoritos en una coleccion de
+     *    propiedades, adjuntando la fecha en que fue marcada como
+     *    favorita (favorited_at).
+     * 5. Construye un paginador manual con los datos transformados.
+     *
+     * Admite peticiones AJAX con parametro 'count_only' para devolver
+     * unicamente el total de favoritos sin cargar las propiedades.
+     *
+     * @param  \Illuminate\Http\Request  $request  Peticion HTTP entrante.
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse|\Illuminate\View\View
      */
     public function index(Request $request)
     {
@@ -88,7 +111,23 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Agrega una propiedad a favoritos
+     * Agrega una propiedad a la lista de favoritos del usuario.
+     *
+     * Flujo de la operacion:
+     * 1. Valida que el ID de la propiedad exista en la base de datos.
+     * 2. Verifica que la propiedad tenga estado 'publicada'.
+     * 3. Comprueba que el usuario no ya tenga esta propiedad en favoritos
+     *    para evitar duplicados.
+     * 4. Si no existe duplicado, crea el registro en la tabla favorites
+     *    y recuenta el total de favoritos del usuario.
+     * 5. Responde con JSON para peticiones AJAX/JSON o con redirect
+     *    para peticiones normales del navegador.
+     *
+     * El conteo total se devuelve en la respuesta para que el frontend
+     * pueda actualizar el badge del contador de favoritos en tiempo real.
+     *
+     * @param  \Illuminate\Http\Request  $request  Debe contener 'property_id' requerido.
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -171,7 +210,24 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Elimina una propiedad de favoritos
+     * Elimina una propiedad especifica de la lista de favoritos del usuario.
+     *
+     * Flujo de la operacion:
+     * 1. Si el parametro $propertyId es 'clear-all', delega al metodo
+     *    clearAll() para eliminar todos los favoritos.
+     * 2. Valida que el ID sea numerico.
+     * 3. Busca el registro de favorito que coincida con el usuario y
+     *    la propiedad indicada.
+     * 4. Si existe, lo elimina y recuenta el total restante de favoritos.
+     * 5. Si no existe, informa que la propiedad no estaba en favoritos.
+     *
+     * El metodo responde tanto con JSON (peticiones AJAX/API) como con
+     * redirect (formularios tradicionales), y siempre devuelve el total
+     * actualizado para mantener sincronizado el contador del frontend.
+     *
+     * @param  string|int          $propertyId  ID de la propiedad o 'clear-all'.
+     * @param  \Illuminate\Http\Request  $request  Peticion HTTP entrante.
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function destroy($propertyId, Request $request)
     {
@@ -249,7 +305,17 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Verifica si una propiedad está en favoritos del usuario
+     * Verifica si una propiedad especifica esta en la lista de favoritos
+     * del usuario autenticado.
+     *
+     * Metodo util para que el frontend determine si mostrar el icono de
+     * corazon lleno o vacio en las tarjetas de propiedades. Devuelve
+     * unicamente un booleano 'is_favorite' y el estado de autenticacion.
+     * Si el usuario no esta autenticado, is_favorite sera false.
+     *
+     * @param  int                   $propertyId  ID de la propiedad a consultar.
+     * @param  \Illuminate\Http\Request  $request       Peticion HTTP entrante.
+     * @return \Illuminate\Http\JsonResponse
      */
     public function check($propertyId, Request $request)
     {
@@ -283,7 +349,15 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Obtiene el total de favoritos del usuario
+     * Obtiene el total de propiedades favoritas del usuario autenticado.
+     *
+     * Endpoint JSON diseñado para mantener sincronizado el badge del
+     * contador de favoritos en la interfaz. Devuelve el conteo total
+     * junto con el estado de autenticacion. Si el usuario no esta
+     * autenticado, el total es 0.
+     *
+     * @param  \Illuminate\Http\Request  $request  Peticion HTTP entrante.
+     * @return \Illuminate\Http\JsonResponse
      */
     public function count(Request $request)
     {
@@ -317,7 +391,19 @@ class FavoriteController extends Controller
     }
 
     /**
-     * Elimina todos los favoritos del usuario
+     * Elimina todos los favoritos del usuario autenticado de una sola vez.
+     *
+     * Ejecuta un DELETE masivo sobre la tabla favorites filtrando por
+     * el usuario actual. Devuelve la cantidad de registros eliminados
+     * en el mensaje de respuesta. Este metodo es invocado directamente
+     * por destroy() cuando el parametro $propertyId es 'clear-all'.
+     *
+     * Despues de la eliminacion, redirige a la pagina de favoritos
+     * con un mensaje de exito que indica cuantas propiedades se
+     * removieron.
+     *
+     * @param  \Illuminate\Http\Request  $request  Peticion HTTP entrante.
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function clearAll(Request $request)
     {

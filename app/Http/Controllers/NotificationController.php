@@ -7,15 +7,37 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Controlador de Notificaciones
+ *
+ * Gestiona las notificaciones del usuario autenticado. Permite listar,
+ * marcar como leidas, eliminar y obtener el conteo de notificaciones
+ * no leidas. Soporta respuestas JSON para integracion con frontend
+ * y respuestas de redireccion para vistas tradicionales.
+ *
+ * @package App\Http\Controllers
+ */
 class NotificationController extends Controller
 {
+    /**
+     * Constructor del controlador.
+     * Aplica middleware de autenticacion para todas las rutas.
+     */
     public function __construct()
     {
         $this->middleware('auth');
     }
 
     /**
-     * Obtener todas las notificaciones del usuario
+     * Obtiene todas las notificaciones del usuario autenticado con paginacion.
+     *
+     * Flujo de datos:
+     * 1. Filtra notificaciones por el id del usuario autenticado
+     * 2. Ordena de mas reciente a mas antigua
+     * 3. Pagina resultados en bloques de 15 registros
+     * 4. Retorna JSON si la peticion es AJAX, o vista en caso contrario
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\View\View
      */
     public function index()
     {
@@ -36,7 +58,14 @@ class NotificationController extends Controller
     }
 
     /**
-     * Obtener solo notificaciones no leídas
+     * Obtiene unicamente las notificaciones no leidas del usuario.
+     *
+     * Flujo de datos:
+     * 1. Filtra notificaciones del usuario con read_at nulo (no leidas)
+     * 2. Ordena de mas reciente a mas antigua
+     * 3. Retorna JSON con el conteo total y la coleccion de notificaciones
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function unread()
     {
@@ -57,7 +86,16 @@ class NotificationController extends Controller
     }
 
     /**
-     * Marcar una notificación específica como leída
+     * Marca una notificacion especifica como leida.
+     *
+     * Flujo de datos:
+     * 1. Busca la notificacion por id y verifica que pertenezca al usuario
+     * 2. Actualiza el campo read_at con la fecha y hora actuales
+     * 3. Retorna JSON si la peticion es AJAX, o redirige con mensaje en caso contrario
+     * 4. Retorna 404 si la notificacion no existe o no pertenece al usuario
+     *
+     * @param int $id Identificador de la notificacion a marcar
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function markAsRead($id)
     {
@@ -85,7 +123,14 @@ class NotificationController extends Controller
     }
 
     /**
-     * Marcar TODAS las notificaciones como leídas
+     * Marca todas las notificaciones no leidas del usuario como leidas.
+     *
+     * Flujo de datos:
+     * 1. Filtra todas las notificaciones del usuario con read_at nulo
+     * 2. Actualiza el campo read_at con la fecha y hora actuales en lote
+     * 3. Retorna JSON o redirige con mensaje de exito
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function markAllAsRead()
     {
@@ -107,7 +152,13 @@ class NotificationController extends Controller
     }
 
     /**
-     * Obtener el conteo de notificaciones no leídas
+     * Obtiene el conteo de notificaciones no leidas del usuario.
+     *
+     * Flujo de datos:
+     * 1. Cuenta las notificaciones del usuario con read_at nulo
+     * 2. Retorna JSON con el campo 'count' para usar en badges del frontend
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function unreadCount()
     {
@@ -124,7 +175,16 @@ class NotificationController extends Controller
     }
 
     /**
-     * Eliminar una notificación
+     * Elimina una notificacion especifica del usuario.
+     *
+     * Flujo de datos:
+     * 1. Busca la notificacion por id y verifica que pertenezca al usuario
+     * 2. Elimina el registro de la base de datos
+     * 3. Retorna JSON con resultado de la operacion
+     * 4. Retorna 404 si la notificacion no existe o no pertenece al usuario
+     *
+     * @param int $id Identificador de la notificacion a eliminar
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
@@ -147,7 +207,14 @@ class NotificationController extends Controller
     }
 
     /**
-     * Eliminar todas las notificaciones leídas
+     * Elimina todas las notificaciones leidas del usuario.
+     *
+     * Flujo de datos:
+     * 1. Filtra las notificaciones del usuario con read_at no nulo (leidas)
+     * 2. Elimina todos los registros que coincidan en lote
+     * 3. Retorna JSON con resultado de la operacion
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function clearRead()
     {

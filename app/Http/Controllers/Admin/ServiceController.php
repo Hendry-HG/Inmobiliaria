@@ -15,9 +15,31 @@ use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\AuditTrait;
 
+/**
+ * Controlador para la gestion administrativa de servicios.
+ *
+ * Este controlador maneja las operaciones CRUD sobre los servicios que ofrece
+ * la inmobiliaria, incluyendo la gestion de imagenes principales y galerias,
+ * el reordenamiento de servicios mediante drag-and-drop (AJAX), y el registro
+ * de auditoria para cada operacion realizada.
+ *
+ * Cada operacion de creacion, actualizacion y eliminacion queda registrada
+ * a traves del AuditTrait para mantener un historial de cambios realizados
+ * por los usuarios autenticados.
+ */
 class ServiceController extends Controller
 {
+    use AuditTrait;
+
+    /**
+     * Constructor del controlador.
+     *
+     * Aplica middlewares de permisos porRol a cada accion del controlador.
+     * Solo los usuarios con los permisos correspondientes podran acceder
+     * a las distintas rutas del CRUD.
+     */
     public function __construct()
     {
         $this->middleware('permission:ver servicios')->only(['index', 'show']);
@@ -27,7 +49,15 @@ class ServiceController extends Controller
     }
 
     /**
-     * Listar todos los servicios
+     * Lista todos los servicios registrados en el sistema.
+     *
+     * Obtiene todos los servicios junto con su galeria de imagenes,
+     * ordenados por el campo 'order' para mantener el orden visual
+     * definido por el administrador. Tambien carga la lista de asesores
+     * inmobiliarios activos y los datos de ubicacion (paises, estados,
+     * municipios, parroquias, ciudades) para los filtros del panel.
+     *
+     * @return \Illuminate\View\View Retorna la vista 'modulos.servicios.index' con los servicios, asesores y datos de ubicacion.
      */
     public function index()
     {
@@ -39,7 +69,7 @@ class ServiceController extends Controller
             ->where('is_active', true)
             ->get();
 
-        // Datos para los filtros de ubicación (si los necesitas)
+        // Datos para los filtros de ubicacion (si los necesitas)
         $countries = Country::orderBy('name')->get();
         $states = collect();
         $municipalities = collect();
@@ -58,7 +88,12 @@ class ServiceController extends Controller
     }
 
     /**
-     * Mostrar formulario para crear un nuevo servicio
+     * Muestra el formulario para crear un nuevo servicio.
+     *
+     * Renderiza la vista de creacion sin datos precargados,
+     * permitiendo al administrador completar los campos del servicio.
+     *
+     * @return \Illuminate\View\View Retorna la vista 'modulos.servicios.create'.
      */
     public function create()
     {
@@ -66,7 +101,21 @@ class ServiceController extends Controller
     }
 
     /**
-     * Guardar un nuevo servicio
+     * Almacena un nuevo servicio en la base de datos.
+     *
+     * Este metodo realiza las siguientes operaciones:
+     * 1. Valida los datos del formulario (titulo, descripcion, icono, color, badge, etc.).
+     * 2. Genera un slug automaticamente a partir del titulo del servicio.
+     * 3. Procesa la imagen principal: la almacena en el disco publico dentro
+     *    de la carpeta 'services' y guarda la ruta en el registro.
+     * 4. Crea el registro del servicio en la tabla 'services'.
+     * 5. Registra la accion de auditoria indicando que usuario creo el servicio.
+     * 6. Procesa la galeria de imagenes: cada imagen se almacena en
+     *    'services/gallery' y se registra en la tabla 'service_gallery'
+     *    con un orden secuencial (0, 1, 2, ...).
+     *
+     * @param  \Illuminate\Http\Request  $request Solicitud HTTP con los datos del formulario.
+     * @return \Illuminate\Http\RedirectResponse Redirige al indice de servicios con un mensaje de exito.
      */
     public function store(Request $request)
     {
@@ -99,7 +148,10 @@ class ServiceController extends Controller
         // Crear el servicio
         $service = Service::create($data);
 
-        // Procesar galería de imágenes
+        $userName = Auth::user()->full_name;
+        $this->logCreated($service, "{$userName} creó el servicio '{$service->title}'");
+
+        // Procesar galeria de imagenes
         if ($request->hasFile('gallery_images')) {
             foreach ($request->file('gallery_images') as $index => $file) {
                 $path = $file->store('services/gallery', 'public');
@@ -117,7 +169,12 @@ class ServiceController extends Controller
     }
 
     /**
-     * Mostrar un servicio específico
+     * Muestra los detalles de un servicio especifico.
+     *
+     * Carga el servicio junto con su galeria de imagenes asociadas.
+     *
+     * @param  int  $id Identificador unico del servicio a mostrar.
+     * @return \Illuminate\View\View Retorna la vista 'modulos.servicios.show' con el servicio cargado.
      */
     public function show($id)
     {
@@ -126,7 +183,13 @@ class ServiceController extends Controller
     }
 
     /**
-     * Mostrar formulario para editar un servicio
+     * Muestra el formulario para editar un servicio existente.
+     *
+     * Carga el servicio junto con su galeria para que el administrador
+     * pueda modificar sus datos.
+     *
+     * @param  int  $id Identificador unico del servicio a editar.
+     * @return \Illuminate\View\View Retorna la vista 'modulos.servicios.edit' con el servicio cargado.
      */
     public function edit($id)
     {
@@ -135,7 +198,23 @@ class ServiceController extends Controller
     }
 
     /**
-     * Actualizar un servicio
+     * Actualiza un servicio existente en la base de datos.
+     *
+     * Este metodo realiza las siguientes operaciones:
+     * 1. Valida los datos del formulario, excluyendo imagen, galeria e imagenes eliminadas.
+     * 2. Si se proporciona una nueva imagen principal, elimina la imagen anterior
+     *    del disco publico (si existe) y almacena la nueva en 'services'.
+     * 3. Actualiza el registro del servicio con los nuevos datos.
+     * 4. Registra la accion de auditoria con los valores anteriores y la descripcion
+     *    de la operacion realizada por el usuario.
+     * 5. Procesa la eliminacion de imagenes de galeria: recibe un array JSON con los
+     *    IDs de las imagenes a eliminar, las elimina del disco y de la base de datos.
+     * 6. Procesa nuevas imagenes de galeria: las almacena en 'services/gallery' con
+     *    un orden secuencial que continua despues del ultimo orden existente.
+     *
+     * @param  \Illuminate\Http\Request  $request Solicitud HTTP con los datos actualizados.
+     * @param  int  $id Identificador unico del servicio a actualizar.
+     * @return \Illuminate\Http\RedirectResponse Redirige al indice de servicios con un mensaje de exito.
      */
     public function update(Request $request, $id)
     {
@@ -169,9 +248,13 @@ class ServiceController extends Controller
         }
 
         // Actualizar el servicio
+        $oldValues = $service->toArray();
         $service->update($data);
 
-        // Procesar eliminación de imágenes de la galería
+        $userName = Auth::user()->full_name;
+        $this->logUpdated($service, $oldValues, null, "{$userName} actualizó el servicio '{$service->title}'");
+
+        // Procesar eliminacion de imagenes de la galeria
         $deletedImages = json_decode($request->input('deleted_images', '[]'), true);
         if (!empty($deletedImages)) {
             $imagesToDelete = ServiceGallery::whereIn('id', $deletedImages)->get();
@@ -183,7 +266,7 @@ class ServiceController extends Controller
             }
         }
 
-        // Procesar nuevas imágenes de la galería
+        // Procesar nuevas imagenes de la galeria
         if ($request->hasFile('gallery_images')) {
             $currentMaxOrder = $service->gallery()->max('order') ?? 0;
             foreach ($request->file('gallery_images') as $index => $file) {
@@ -202,7 +285,18 @@ class ServiceController extends Controller
     }
 
     /**
-     * Eliminar un servicio
+     * Elimina un servicio y todos sus recursos asociados.
+     *
+     * Este metodo realiza las siguientes operaciones:
+     * 1. Busca el servicio junto con su galeria de imagenes.
+     * 2. Elimina la imagen principal del disco publico si existe.
+     * 3. Elimina cada imagen de la galeria del disco publico si existe.
+     * 4. Registra la accion de auditoria antes de eliminar el registro.
+     * 5. Elimina el registro del servicio de la base de datos (las galerias
+     *    se eliminan en cascada segun la configuracion de la relacion).
+     *
+     * @param  int  $id Identificador unico del servicio a eliminar.
+     * @return \Illuminate\Http\RedirectResponse Redirige al indice de servicios con un mensaje de exito.
      */
     public function destroy($id)
     {
@@ -213,12 +307,15 @@ class ServiceController extends Controller
             Storage::disk('public')->delete($service->image);
         }
 
-        // Eliminar imágenes de la galería
+        // Eliminar imagenes de la galeria
         foreach ($service->gallery as $image) {
             if (Storage::disk('public')->exists($image->image_path)) {
                 Storage::disk('public')->delete($image->image_path);
             }
         }
+
+        $userName = Auth::user()->full_name;
+        $this->logDeleted($service, "{$userName} eliminó el servicio '{$service->title}'");
 
         $service->delete();
 
@@ -227,7 +324,19 @@ class ServiceController extends Controller
     }
 
     /**
-     * Reordenar servicios (AJAX)
+     * Reordena los servicios mediante una solicitud AJAX.
+     *
+     * Recibe un array con los IDs de los servicios en el nuevo orden deseado
+     * (por ejemplo, resultante de un drag-and-drop en la interfaz) y actualiza
+     * el campo 'order' de cada servicio segun su posicion en el array.
+     *
+     * El indice del array corresponde al nuevo valor de orden:
+     * - Primer elemento (indice 0) -> order = 0
+     * - Segundo elemento (indice 1) -> order = 1
+     * - Y asi sucesivamente...
+     *
+     * @param  \Illuminate\Http\Request  $request Solicitud HTTP con el array 'order' que contiene los IDs en el nuevo orden.
+     * @return \Illuminate\Http\JsonResponse Retorna JSON con { success: true } si la operacion fue exitosa.
      */
     public function reorder(Request $request)
     {
@@ -244,7 +353,20 @@ class ServiceController extends Controller
     }
 
     /**
-     * Obtener la vista pública de servicios (para el frontend)
+     * Muestra la vista publica de servicios para el frontend del sitio.
+     *
+     * Este metodo esta destinado a ser consumido por los visitantes del sitio
+     * web. Solo carga los servicios activos (is_active = true), ordenados por
+     * su campo 'order'. Tambien carga los asesores inmobiliarios activos con
+     * sus propiedades publicadas, la configuracion del sitio, y una coleccion
+     * vacia de imagenes de galeria para la vista publica.
+     *
+     * A diferencia del metodo index(), este metodo:
+     * - No requiere autenticacion ni permisos especiales.
+     * - Filtra solo servicios activos.
+     * - No incluye datos de filtros de ubicacion.
+     *
+     * @return \Illuminate\View\View Retorna la vista 'modulos.servicios.public' con los servicios activos y asesores.
      */
     public function publicIndex()
     {

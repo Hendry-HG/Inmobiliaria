@@ -17,8 +17,8 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre del Rol</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuarios Asignados</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permisos</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Usuarios Asignados</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Permisos</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
             </thead>
@@ -31,10 +31,10 @@
                             <span class="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Protegido</span>
                         @endif
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-500 hidden md:table-cell">
                         {{ $role->users()->count() }}
                     </td>
-                    <td class="px-6 py-4 text-gray-500 text-sm">
+                    <td class="px-6 py-4 text-gray-500 text-sm hidden lg:table-cell">
                         @php
                             // Contar permisos del sistema
                             $systemCount = $role->permissions->filter(function($p) {

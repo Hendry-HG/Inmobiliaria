@@ -12,8 +12,57 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Controlador de registro de nuevos usuarios.
+ *
+ * Flujo de registro:
+ * 1. Se muestra el formulario con las 20 preguntas de seguridad disponibles.
+ * 2. El usuario completa sus datos personales, credenciales y selecciona
+ *    3 preguntas de seguridad con sus respectivas respuestas.
+ * 3. Se valida que las 3 preguntas seleccionadas sean diferentes entre si.
+ * 4. Las respuestas de seguridad se almacenan hasheadas con Hash::make()
+ *    (mismo algoritmo que las contrasenas) para protegerlas en base de datos.
+ * 5. Las preguntas de seguridad se guardan en formato JSON en el campo
+ *    'security_questions' del usuario.
+ * 6. Se crea el usuario con estado activo (is_active = true).
+ * 7. Se asigna el rol 'Cliente' al usuario recien creado.
+ * 8. Se inicia sesion automaticamente con Auth::login() y se redirige al
+ *    dashboard de cliente.
+ *
+ * Preguntas de seguridad:
+ * - Se utilizan para la recuperacion de cuenta y verificacion de identidad.
+ * - El usuario debe responder exactamente 3 preguntas diferentes.
+ * - Las respuestas se almacenan hasheadas, por lo que no se pueden recuperar
+ *   en texto plano, solo pueden ser verificadas con Hash::check().
+ * - La fecha de configuracion de las preguntas se registra en 'security_questions_set_at'.
+ *
+ * Gestion de sesiones:
+ * - Antes del login automatico post-registro, se regenera el ID de sesion y
+ *   el token CSRF para prevenir session fixation.
+ * - Despues del login, se regenera la sesion nuevamente para garantizar un
+ *   identificador de sesion unico y seguro.
+ *
+ * Manejo de errores:
+ * - Los errores de base de datos (QueryException) se analizan para detectar
+ *   entradas duplicadas (email, numero de identificacion) y mostrar mensajes
+ *   especificos al usuario.
+ * - Los errores generales se registran en el log de Laravel con nivel error
+ *   incluyendo archivo, linea y mensaje del error.
+ *
+ * @package App\Http\Controllers\Auth
+ */
 class RegisterController extends Controller
 {
+    /**
+     * Lista de preguntas de seguridad disponibles para el registro.
+     *
+     * Contiene 20 preguntas personales que el usuario puede seleccionar.
+     * Estas preguntas se utilizan para la verificacion de identidad en
+     * procesos de recuperacion de cuenta. Cada pregunta es una cadena
+     * en espanol que representa una pregunta personal comun.
+     *
+     * @var array<string>
+     */
     private $securityQuestions = [
         '¿Cuál es el nombre de tu primera mascota?',
         '¿Cuál es el apellido de soltera de tu madre?',
@@ -37,17 +86,78 @@ class RegisterController extends Controller
         '¿Cuál es el nombre de tu tío favorito?',
     ];
 
+    /**
+     * Crea una nueva instancia del controlador.
+     *
+     * Aplica el middleware 'guest' a todas las rutas, lo que garantiza que
+     * solo los usuarios no autenticados puedan acceder al formulario y
+     * proceso de registro. Los usuarios que ya tienen sesion activa seran
+     * redirigidos automaticamente a su dashboard.
+     */
     public function __construct()
     {
         $this->middleware('guest');
     }
 
+    /**
+     * Muestra el formulario de registro de nuevo usuario.
+     *
+     * Pasa la lista completa de preguntas de seguridad a la vista para que
+     * el usuario pueda seleccionar 3 de ellas. La vista renderiza un formulario
+     * con campos para datos personales, credenciales y las preguntas de seguridad.
+     *
+     * @return \Illuminate\View\View Vista del formulario de registro con las preguntas de seguridad.
+     */
     public function showRegistrationForm()
     {
         $questions = $this->securityQuestions;
         return view('auth.register', compact('questions'));
     }
 
+    /**
+     * Procesa el registro de un nuevo usuario en el sistema.
+     *
+     * Flujo completo del registro:
+     *
+     * Fase 1 - Validacion:
+     * 1. Valida todos los campos del formulario incluyendo datos personales
+     *    (name, last_name, email, password, phone, address), datos de ubicacion
+     *    (country, state, municipality, parish, city), documento de identidad
+     *    (id_type, id_number), aceptacion de terminos, y las 3 preguntas de
+     *    seguridad con sus respuestas.
+     * 2. Valida unicidad de email e id_number (excluyendo registros soft-deleted).
+     * 3. Verifica que las 3 preguntas de seguridad seleccionadas sean diferentes.
+     *
+     * Fase 2 - Creacion:
+     * 1. Limpia el telefono eliminando caracteres no numericos.
+     * 2. Hashea las 3 respuestas de seguridad con Hash::make().
+     * 3. Crea el usuario en base de datos con:
+     *    - Todos los campos validados.
+     *    - Contrasena hasheada.
+     *    - Preguntas de seguridad en formato JSON.
+     *    - Respuestas de seguridad hasheadas.
+     *    - Estado activo (is_active = true).
+     *    - Fecha de configuracion de preguntas de seguridad.
+     *
+     * Fase 3 - Asignacion de rol:
+     * 1. Busca o crea el rol 'Cliente' con guard 'web'.
+     * 2. Asigna el rol al usuario recien creado.
+     *
+     * Fase 4 - Login automatico:
+     * 1. Regenera el ID de sesion y token CSRF (prevencion de session fixation).
+     * 2. Inicia sesion con Auth::login().
+     * 3. Regenera la sesion nuevamente post-login.
+     * 4. Redirige al dashboard de cliente con mensaje de bienvenida.
+     *
+     * Manejo de errores:
+     * - QueryException: Analiza errores de duplicidad (email, id_number) y
+     *   muestra mensajes especificos. Otros errores de BD muestran mensaje generico.
+     * - Exception: Registra error completo en log (archivo, linea, mensaje)
+     *   y muestra mensaje generico al usuario.
+     *
+     * @param  \Illuminate\Http\Request $request Solicitud HTTP con todos los campos del formulario.
+     * @return \Illuminate\Http\RedirectResponse Redireccion al dashboard de cliente o atras con errores.
+     */
     public function register(Request $request)
     {
         Log::info(' Registro iniciado', [
@@ -183,6 +293,15 @@ class RegisterController extends Controller
         }
     }
 
+    /**
+     * Devuelve la lista de preguntas de seguridad en formato JSON.
+     *
+     * Endpoint util para solicitudes AJAX que necesiten obtener las preguntas
+     * de seguridad disponibles sin recargar la pagina completa. Retorna el
+     * array completo de 20 preguntas como una respuesta JSON.
+     *
+     * @return \Illuminate\Http\JsonResponse Lista de preguntas de seguridad en formato JSON.
+     */
     public function getSecurityQuestions()
     {
         return response()->json($this->securityQuestions);

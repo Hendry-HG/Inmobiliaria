@@ -965,14 +965,21 @@
 
         if (!countrySelect) return;
 
+        function addOptions(select, items) {
+            items.forEach(function(item) {
+                var option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                select.appendChild(option);
+            });
+        }
+
         // Cargar países
         fetch('/api/locations/countries')
             .then(response => response.json())
             .then(countries => {
                 countrySelect.innerHTML = '<option value="">Seleccione un país</option>';
-                countries.forEach(country => {
-                    countrySelect.innerHTML += `<option value="${country.id}">${country.name}</option>`;
-                });
+                addOptions(countrySelect, countries);
             })
             .catch(error => {
                 console.error('Error cargando países:', error);
@@ -988,9 +995,7 @@
                     .then(states => {
                         stateSelect.disabled = false;
                         stateSelect.innerHTML = '<option value="">Seleccione un estado</option>';
-                        states.forEach(state => {
-                            stateSelect.innerHTML += `<option value="${state.id}">${state.name}</option>`;
-                        });
+                        addOptions(stateSelect, states);
                         municipalitySelect.innerHTML = '<option value="">Primero seleccione un estado</option>';
                         municipalitySelect.disabled = true;
                         parishSelect.innerHTML = '<option value="">Primero seleccione un municipio</option>';
@@ -1013,9 +1018,7 @@
                     .then(municipalities => {
                         municipalitySelect.disabled = false;
                         municipalitySelect.innerHTML = '<option value="">Seleccione un municipio</option>';
-                        municipalities.forEach(municipality => {
-                            municipalitySelect.innerHTML += `<option value="${municipality.id}">${municipality.name}</option>`;
-                        });
+                        addOptions(municipalitySelect, municipalities);
                         parishSelect.innerHTML = '<option value="">Primero seleccione un municipio</option>';
                         parishSelect.disabled = true;
                         citySelect.innerHTML = '<option value="">Primero seleccione una parroquia</option>';
@@ -1036,9 +1039,7 @@
                     .then(parishes => {
                         parishSelect.disabled = false;
                         parishSelect.innerHTML = '<option value="">Seleccione una parroquia</option>';
-                        parishes.forEach(parish => {
-                            parishSelect.innerHTML += `<option value="${parish.id}">${parish.name}</option>`;
-                        });
+                        addOptions(parishSelect, parishes);
                         citySelect.innerHTML = '<option value="">Primero seleccione una parroquia</option>';
                         citySelect.disabled = true;
                     });
@@ -1057,9 +1058,7 @@
                     .then(cities => {
                         citySelect.disabled = false;
                         citySelect.innerHTML = '<option value="">Seleccione una ciudad</option>';
-                        cities.forEach(city => {
-                            citySelect.innerHTML += `<option value="${city.id}">${city.name}</option>`;
-                        });
+                        addOptions(citySelect, cities);
                     });
             } else {
                 citySelect.disabled = true;

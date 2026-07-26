@@ -8,18 +8,50 @@ use App\Models\Property;
 use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\SiteConfiguration;
+use App\Exports\AuditLogExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AuditLogController extends Controller
 {
+    /**
+     * Constructor del controlador de auditoria.
+     *
+     * Aplica el middleware de permisos 'ver logs de auditoria' a todos los metodos
+     * de este controlador. Solo los usuarios que posean este permiso podran
+     * acceder a cualquier accion de auditoria.
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->middleware('permission:ver logs de auditoria');
     }
 
     /**
-     * Dashboard principal de auditoría
+     * Dashboard principal de auditoria.
+     *
+     * Muestra la vista central del sistema de auditoria con una tabla paginada
+     * de todos los registros de auditoria y estadisticas generales del dashboard.
+     *
+     * Flujo de datos:
+     * 1. Construye una consulta base sobre audit_logs con eager loading del usuario.
+     * 2. Aplica filtros opcionales segun los parametros de la peticion:
+     *    - user_id: filtra por un usuario especifico.
+     *    - action: busca coincidencias parciales en los campos 'action' y 'event'.
+     *    - entity: busca coincidencias parciales en el campo 'subject_type'.
+     *    - date_from / date_to: filtra por rango de fechas en created_at.
+     *    - search: busqueda libre sobre los campos 'description' e 'ip_address'.
+     * 3. Pagina los resultados en 20 registros por pagina preservando los query string.
+     * 4. Obtiene las listas de usuarios, acciones unicas y entidades unicas para
+     *    poblar los campos de los filtros del formulario.
+     * 5. Calcula las estadisticas del dashboard mediante getDashboardStats().
+     * 6. Retorna la vista 'modulos.auditorias.dashboard' con todos los datos.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function index(Request $request)
     {
@@ -73,7 +105,28 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Vista de logs de usuarios - CON HISTORIAL DEL USUARIO SELECCIONADO
+     * Vista de logs de actividad de usuarios.
+     *
+     * Muestra una lista de registros de auditoria filtrados exclusivamente a
+     * entradas que tienen un usuario asociado (user_id no nulo). Permite filtrar
+     * por usuario y rango de fechas.
+     *
+     * Flujo de datos:
+     * 1. Construye la consulta base filtrando solo logs con user_id no nulo,
+     *    ordenados de mas reciente a mas antiguo.
+     * 2. Aplica filtros opcionales: user_id y rango de fechas (date_from, date_to).
+     * 3. Pagina los resultados en 20 registros por pagina.
+     * 4. Ejecuta una consulta SQL pura (CTE) que calcula la cantidad de auditorias
+     *    de cada usuario en los ultimos 30 dias, retornando el top 10 de usuarios
+     *    mas activos con su nombre, apellido y email.
+     * 5. Si se proporciona un user_id en la peticion, busca el usuario completo
+     *    y obtiene su historial paginado de auditorias (10 registros por pagina).
+     *
+     * La vista muestra tres paneles: la tabla general de logs, un ranking de
+     * usuarios mas activos, y el historial detallado del usuario seleccionado.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function userLogs(Request $request)
     {
@@ -142,7 +195,24 @@ class AuditLogController extends Controller
     }
 
     /**
-     * BUSCAR USUARIOS PARA AUTOCOMPLETAR (AJAX)
+     * Endpoint AJAX para buscar usuarios y mostrarlos en un campo de autocompletar.
+     *
+     * Realiza una busqueda parcial (LIKE) sobre los campos 'name', 'last_name',
+     * 'email' y la concatenacion de 'name' + 'last_name'. Retorna un maximo de
+     * 20 resultados.
+     *
+     * Flujo de datos:
+     * 1. Recibe el parametro 'q' con el texto de busqueda.
+     * 2. Si la longitud del texto es menor a 2 caracteres, retorna un array vacio.
+     * 3. Consulta la tabla users aplicando busqueda LIKE en los campos indicados,
+     *    incluyendo un eager count de los logs de auditoria de los ultimos 30 dias
+     *    para cada usuario (via relacion auditLogsAsAuthor).
+     * 4. Mapea cada resultado a un array simplificado con: id, name (nombre completo),
+     *    email, initials (iniciales) y audits_count.
+     * 5. Retorna la respuesta como JSON.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function searchUsers(Request $request)
     {
@@ -178,23 +248,52 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Vista de logs de propiedades
+     * Vista de logs de actividad de propiedades.
+     *
+     * Muestra un panel completo de auditoria enfocado en propiedades inmobiliarias,
+     * incluyendo estadisticas por propiedad, ranking de propiedades con mas
+     * actividad e historial detallado de una propiedad seleccionada.
+     *
+     * Flujo de datos:
+     * 1. Obtiene todos los IDs de propiedades existentes.
+     * 2. Ejecuta dos consultas agregadas sobre audit_logs filtrando por
+     *    subject_type LIKE '%Property%':
+     *    - Cuenta el total de eventos por cada subject_id.
+     *    - Obtiene la fecha de la ultima actividad por cada subject_id.
+     * 3. Consulta todas las propiedades con su imagen primaria y mapea cada una
+     *    a un array con: id, title, location, price (formateado), status, views,
+     *    image (URL de la imagen principal), events_count y last_activity
+     *    (fecha formateada en zona horaria America/Caracas, o 'Nunca' si no hay actividad).
+     * 4. Obtiene el top 10 de propiedades con mas eventos de auditoria.
+     * 5. Si se proporciona un property_id, carga la propiedad completa con su imagen
+     *    y obtiene su historial paginado de auditorias (10 registros por pagina).
+     * 6. Obtiene la lista de acciones disponibles y la lista de propiedades publicadas
+     *    para los filtros del formulario.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function propertyLogs(Request $request)
     {
-        // Obtener TODAS las propiedades con sus estadísticas
+        // Obtener TODAS las propiedades con sus estadísticas (optimizado)
+        $allPropertyIds = Property::pluck('id');
+        $propertyEventCounts = AuditLog::where('subject_type', 'like', '%Property%')
+            ->whereIn('subject_id', $allPropertyIds)
+            ->select('subject_id', DB::raw('count(*) as total'))
+            ->groupBy('subject_id')
+            ->pluck('total', 'subject_id');
+
+        $propertyLastActivities = AuditLog::where('subject_type', 'like', '%Property%')
+            ->whereIn('subject_id', $allPropertyIds)
+            ->select('subject_id', DB::raw('max(created_at) as last_date'))
+            ->groupBy('subject_id')
+            ->pluck('last_date', 'subject_id');
+
         $propertyStats = Property::with('primaryImage')
             ->orderBy('title')
             ->get()
-            ->map(function($property) {
-                $eventsCount = AuditLog::where('subject_type', 'like', '%Property%')
-                    ->where('subject_id', $property->id)
-                    ->count();
-
-                $lastActivity = AuditLog::where('subject_type', 'like', '%Property%')
-                    ->where('subject_id', $property->id)
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+            ->map(function($property) use ($propertyEventCounts, $propertyLastActivities) {
+                $lastDate = $propertyLastActivities->get($property->id);
 
                 return [
                     'id' => $property->id,
@@ -206,8 +305,10 @@ class AuditLogController extends Controller
                     'image' => $property->primaryImage?->image_path
                         ? asset('storage/' . $property->primaryImage->image_path)
                         : null,
-                    'events_count' => $eventsCount,
-                    'last_activity' => $lastActivity ? $lastActivity->created_at->setTimezone('America/Caracas')->format('d/m/Y H:i') : 'Nunca',
+                    'events_count' => $propertyEventCounts->get($property->id, 0),
+                    'last_activity' => $lastDate
+                        ? \Carbon\Carbon::parse($lastDate)->setTimezone('America/Caracas')->format('d/m/Y H:i')
+                        : 'Nunca',
                 ];
             });
 
@@ -256,7 +357,29 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Vista de logs de citas
+     * Vista de logs de actividad de citas.
+     *
+     * Muestra los registros de auditoria relacionados con la entidad Appointment.
+     * Permite filtrar por ID de cita, status (buscando en el campo JSON new_values)
+     * y rango de fechas.
+     *
+     * Flujo de datos:
+     * 1. Construye la consulta base filtrando por subject_type LIKE '%Appointment%',
+     *    con eager loading del usuario y orden descendente por fecha.
+     * 2. Aplica filtros opcionales:
+     *    - appointment_id: filtra por el subject_id especifico de la cita.
+     *    - status: busca coincidencias en el campo JSON new_values con el patron
+     *      '%"status":"<valor>"%' para detectar cambios de estado.
+     *    - date_from / date_to: filtra por rango de fechas.
+     * 3. Pagina los resultados en 20 registros por pagina.
+     * 4. Calcula estadisticas generales de citas: total, pendientes, confirmadas,
+     *    completadas y canceladas consultando directamente la tabla appointments.
+     *
+     * La vista muestra la tabla de logs filtrados junto con tarjetas de resumen
+     * con los conteos por estado de cita.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function appointmentLogs(Request $request)
     {
@@ -294,7 +417,29 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Vista de logs de leads
+     * Vista de logs de actividad de leads (prospectos).
+     *
+     * Muestra los registros de auditoria relacionados con la entidad Lead.
+     * Permite filtrar por ID de lead, status (buscando en el campo JSON new_values)
+     * y rango de fechas.
+     *
+     * Flujo de datos:
+     * 1. Construye la consulta base filtrando por subject_type LIKE '%Lead%',
+     *    con eager loading del usuario y orden descendente por fecha.
+     * 2. Aplica filtros opcionales:
+     *    - lead_id: filtra por el subject_id especifico del lead.
+     *    - status: busca coincidencias en el campo JSON new_values con el patron
+     *      '%"status":"<valor>"%' para detectar cambios de estado.
+     *    - date_from / date_to: filtra por rango de fechas.
+     * 3. Pagina los resultados en 20 registros por pagina.
+     * 4. Calcula estadisticas generales de leads: total, nuevos, contactados,
+     *    calificados, cerrado_ganado y cerrado_perdido consultando la tabla leads.
+     *
+     * La vista muestra la tabla de logs filtrados junto con tarjetas de resumen
+     * con los conteos por estado de lead.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function leadLogs(Request $request)
     {
@@ -333,7 +478,29 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Vista de logs del sistema (configuraciones, roles, permisos, etc)
+     * Vista de logs de actividad del sistema.
+     *
+     * Muestra los registros de auditoria que no pertenecen a un modulo de negocio
+     * especifico: cambios en configuracion del sitio, gestion de roles, permisos
+     * y eventos de autenticacion (login/logout).
+     *
+     * Flujo de datos:
+     * 1. Construye la consulta base con un WHERE OR que incluye:
+     *    - subject_type nulo (eventos generales del sistema).
+     *    - subject_type LIKE '%SiteConfiguration%' (cambios de configuracion).
+     *    - subject_type LIKE '%Role%' (gestion de roles).
+     *    - subject_type LIKE '%Permission%' (gestion de permisos).
+     *    - action igual a 'login' o 'logout' (eventos de autenticacion).
+     * 2. Aplica un filtro de tipo (type) que permite refinar a una de las categorias:
+     *    config, auth, role o permission.
+     * 3. Aplica filtros de rango de fechas (date_from, date_to).
+     * 4. Pagina los resultados en 20 registros por pagina.
+     * 5. Construye un array de tipos con sus etiquetas para el selector de filtros.
+     * 6. Calcula estadisticas de configuracion: total de cambios en configuracion,
+     *    el ultimo cambio registrado y la configuracion actual del sitio.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function systemLogs(Request $request)
     {
@@ -390,7 +557,30 @@ class AuditLogController extends Controller
     }
 
     /**
-     * VISTA DE REPORTES - CENTRO DE EXPORTACIÓN DE DATOS
+     * Centro de reportes y exportacion de datos de auditoria.
+     *
+     * Pagina principal de reportes que muestra KPIs globales, contadores por modulo,
+     * graficas de actividad y opciones de exportacion. Sirve como punto de partida
+     * para generar exportaciones en CSV, Excel y PDF.
+     *
+     * Flujo de datos:
+     * 1. Calcula los KPIs principales contando registros en cada tabla:
+     *    total de logs, usuarios, propiedades, citas, leads y cambios de configuracion.
+     * 2. Cuenta los logs por modulo para la exportacion: usuarios, propiedades,
+     *    citas, leads y sistema (incluyendo subject_type nulo, SiteConfiguration,
+     *    Role y Permission).
+     * 3. Genera datos para graficas:
+     *    - logsByDay: logs por dia en los ultimos 30 dias (array asociativo fecha => total).
+     *    - logsByAction: logs agrupados por tipo de accion, ordenados por frecuencia.
+     *    - logsByUser: top 10 usuarios con mas logs, usando un CTE con LEFT JOIN.
+     *    - logsByHour: distribucion de logs por hora en las ultimas 24 horas.
+     * 4. Obtiene contadores de logs de hoy y del mes actual.
+     * 5. Carga la configuracion actual del sitio y la lista de usuarios para filtros.
+     * 6. Retorna la vista 'modulos.auditorias.reports' con todos los datos
+     *    necesarios para renderizar las graficas y formularios de exportacion.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function reports(Request $request)
     {
@@ -507,7 +697,29 @@ class AuditLogController extends Controller
     }
 
     /**
-     * API - DATOS PARA REPORTES (AJAX)
+     * Endpoint AJAX para obtener datos de graficas de reportes.
+     *
+     * Retorna conjuntos de datos en formato JSON segun el tipo solicitado,
+     * utilizado para actualizar las graficas de la pagina de reportes sin
+     * recargar la pagina completa.
+     *
+     * Tipos de datos soportados (parametro 'type'):
+     * - 'daily': logs agrupados por dia en los ultimos 30 dias.
+     *   Retorna array asociativo fecha => total.
+     * - 'actions': logs agrupados por tipo de accion, ordenados por frecuencia.
+     *   Retorna array de objetos {action, total}.
+     * - 'users': top 10 usuarios con mas logs (usando CTE con LEFT JOIN sobre
+     *   users y audit_logs). Retorna array de objetos {name, total}.
+     *   Los usuarios sin nombre se muestran como 'Sistema'.
+     * - 'hourly': distribucion de logs por hora en las ultimas 24 horas.
+     *   Retorna array asociativo hora => total.
+     * - 'config': logs de cambios en configuracion del sitio (subject_type LIKE
+     *   '%SiteConfiguration%') agrupados por dia en los ultimos 30 dias.
+     *   Retorna array asociativo fecha => total.
+     * - Cualquier otro tipo retorna un array vacio.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getReportData(Request $request)
     {
@@ -588,7 +800,20 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Detalle de un log específico
+     * Muestra el detalle completo de un registro de auditoria especifico.
+     *
+     * Flujo de datos:
+     * 1. Busca el registro de auditoria por su ID con eager loading del usuario.
+     *    Si no existe, lanza una excepcion 404 (findOrFail).
+     * 2. Si el log tiene un subject_type y subject_id asociados, intenta cargar
+     *    el modelo relacionado via la relacion polimorfica 'subject'. Si ocurre
+     *    cualquier excepcion (por ejemplo, si la entidad fue eliminada), captura
+     *    el error y asigna null al subject.
+     * 3. Retorna la vista 'modulos.auditorias.show' con el log y su sujeto
+     *    asociado (si existe).
+     *
+     * @param  int  $id  Identificador unico del registro de auditoria.
+     * @return \Illuminate\View\View
      */
     public function show($id)
     {
@@ -607,7 +832,31 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Exportar logs a CSV con filtros avanzados
+     * Exporta registros de auditoria a formato CSV con filtros avanzados.
+     *
+     * Genera un archivo CSV descargable con los registros de auditoria filtrados
+     * segun los parametros proporcionados. El archivo se genera directamente en
+     * el buffer de salida usando php://output para evitar la creacion de archivos
+     * temporales en disco.
+     *
+     * Filtros aplicados:
+     * - entity: filtra por modulo/entidad. Valores soportados:
+     *   'all' (sin filtro), 'users' (%User%), 'properties' (%Property%),
+     *   'appointments' (%Appointment%), 'leads' (%Lead%), 'system' (combina
+     *   subject_type nulo, SiteConfiguration, Role y Permission).
+     * - date_from / date_to: filtra por rango de fechas en created_at.
+     * - user_id: filtra por un usuario especifico.
+     * - action: busqueda parcial en campos 'action' y 'event'.
+     *
+     * Columnas del CSV:
+     * ID, Usuario, Email Usuario, Accion, Evento, Entidad, ID Entidad,
+     * Descripcion, IP, URL, Fecha.
+     *
+     * La fecha se formatea en zona horaria America/Caracas con patron d/m/Y H:i:s.
+     * El nombre del archivo incluye la fecha actual: auditoria_YYYY-MM-DD.csv.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
      */
     public function export(Request $request)
     {
@@ -707,7 +956,140 @@ class AuditLogController extends Controller
     }
 
     /**
-     * API para obtener datos del dashboard (AJAX)
+     * Exporta registros de auditoria a formato Excel (.xlsx) con filtros avanzados.
+     *
+     * Utiliza la libreria Maatwebsite/Excel para generar un archivo Excel
+     * descargable. Delega la construccion de la coleccion de datos a la clase
+     * AuditLogExport, pasando los mismos filtros que la exportacion CSV.
+     *
+     * Filtros aplicados (via clase AuditLogExport):
+     * - entity: modulo de entidades a exportar (all, users, properties, etc.).
+     * - date_from / date_to: rango de fechas.
+     * - user_id: usuario especifico.
+     * - action: tipo de accion de auditoria.
+     *
+     * El titulo del reporte se genera dinamicamente con getExportTitle() combinando
+     * el nombre del modulo, el formato y la fecha actual.
+     *
+     * Nombre del archivo: auditoria_{entity}_YYYY-MM-DD_HHMMSS.xlsx.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportExcel(Request $request)
+    {
+        $entity = $request->input('entity', 'all');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $userId = $request->input('user_id') ? (int) $request->input('user_id') : null;
+        $action = $request->input('action');
+        $title = $this->getExportTitle($entity, 'Excel');
+
+        return Excel::download(
+            new AuditLogExport($entity, $dateFrom, $dateTo, $userId, $action, $title),
+            'auditoria_' . $entity . '_' . now()->format('Y-m-d_His') . '.xlsx'
+        );
+    }
+
+    /**
+     * Exporta registros de auditoria a formato PDF con filtros avanzados.
+     *
+     * Genera un archivo PDF descargable utilizando la libreria DomPDF. Primero
+     * obtiene la coleccion de datos filtrados a traves de la clase AuditLogExport
+     * (misma logica que Excel y CSV), luego renderiza la vista 'pdfs.audit-report'
+     * y la convierte a PDF en formato apaisado A4.
+     *
+     * Filtros aplicados (via clase AuditLogExport):
+     * - entity: modulo de entidades a exportar (all, users, properties, etc.).
+     * - date_from / date_to: rango de fechas.
+     * - user_id: usuario especifico.
+     * - action: tipo de accion de auditoria.
+     *
+     * Antes de renderizar, construye un array de filtros legibles con etiquetas
+     * amigables para el usuario (por ejemplo, 'users' => 'Usuarios', 'created'
+     * => 'Creacion'), incluyendo el nombre completo del usuario si se filtro
+     * por uno especifico.
+     *
+     * El PDF se genera en formato A4 apaisado (landscape) y el archivo se nombra
+     * como: auditoria_{entity}_YYYY-MM-DD_HHMMSS.pdf.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportPdf(Request $request)
+    {
+        $entity = $request->input('entity', 'all');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $userId = $request->input('user_id') ? (int) $request->input('user_id') : null;
+        $action = $request->input('action');
+        $title = $this->getExportTitle($entity, 'PDF');
+
+        $export = new AuditLogExport($entity, $dateFrom, $dateTo, $userId, $action, $title);
+        $logs = $export->collection();
+
+        $entityLabels = [
+            'all' => 'Todos', 'users' => 'Usuarios', 'properties' => 'Propiedades',
+            'appointments' => 'Citas', 'leads' => 'Leads', 'services' => 'Servicios',
+            'categories' => 'Categorías', 'roles' => 'Roles', 'system' => 'Sistema',
+        ];
+        $actionLabels = [
+            'created' => 'Creación', 'updated' => 'Actualización',
+            'deleted' => 'Eliminación', 'login' => 'Login', 'logout' => 'Logout',
+        ];
+
+        $filters = [
+            'Entidad' => $entityLabels[$entity] ?? $entity,
+            'Desde' => $dateFrom ?? 'N/A',
+            'Hasta' => $dateTo ?? 'N/A',
+            'Usuario' => $userId ? (User::find($userId)->full_name ?? 'N/A') : 'Todos',
+            'Acción' => $actionLabels[$action] ?? ($action ?? 'Todas'),
+        ];
+
+        $pdf = Pdf::loadView('pdfs.audit-report', compact('logs', 'title', 'filters'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('auditoria_' . $entity . '_' . now()->format('Y-m-d_His') . '.pdf');
+    }
+
+    /**
+     * Genera el titulo descriptivo para los reportes exportados.
+     *
+     * Combina el nombre del modulo de auditoria con el formato de exportacion
+     * y la fecha actual en zona horaria America/Caracas.
+     *
+     * Ejemplo de salida: "Auditoria de Propiedades -- Excel -- 26/07/2026"
+     *
+     * @param  string  $entity  Clave del modulo (all, users, properties, appointments, leads, services, categories, roles, system).
+     * @param  string  $format  Formato de exportacion (CSV, Excel, PDF).
+     * @return string  Titulo formateado para el reporte.
+     */
+    private function getExportTitle(string $entity, string $format): string
+    {
+        $titles = [
+            'all' => 'Reporte General de Auditoría',
+            'users' => 'Auditoría de Usuarios',
+            'properties' => 'Auditoría de Propiedades',
+            'appointments' => 'Auditoría de Citas',
+            'leads' => 'Auditoría de Leads',
+            'services' => 'Auditoría de Servicios',
+            'categories' => 'Auditoría de Categorías',
+            'roles' => 'Auditoría de Roles',
+            'system' => 'Auditoría del Sistema',
+        ];
+
+        return ($titles[$entity] ?? 'Auditoría') . ' — ' . $format . ' — ' . now()->setTimezone('America/Caracas')->format('d/m/Y');
+    }
+
+    /**
+     * Endpoint AJAX para obtener las estadisticas del dashboard de auditoria.
+     *
+     * Retorna el mismo conjunto de datos que getDashboardStats() pero en formato
+     * JSON, permitiendo actualizar las tarjetas y graficas del dashboard sin
+     * recargar la pagina completa.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getDashboardData(Request $request)
     {
@@ -716,7 +1098,21 @@ class AuditLogController extends Controller
     }
 
     /**
-     * BUSCAR PROPIEDADES PARA AUTOCOMPLETAR (AJAX)
+     * Endpoint AJAX para buscar propiedades publicadas y mostrarlas en un campo
+     * de autocompletar.
+     *
+     * Flujo de datos:
+     * 1. Recibe el parametro 'q' con el texto de busqueda.
+     * 2. Si la longitud del texto es menor a 2 caracteres, retorna un array vacio.
+     * 3. Consulta propiedades con status 'publicada', aplicando busqueda LIKE
+     *    sobre los campos 'title', 'id' e 'location'.
+     * 4. Carga la imagen primaria de cada propiedad (eager loading).
+     * 5. Mapea cada resultado a un array simplificado con: id, title, location,
+     *    price (formateado) e image (URL completa de la imagen principal via asset).
+     * 6. Retorna la respuesta como JSON.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function searchProperties(Request $request)
     {
@@ -755,6 +1151,16 @@ class AuditLogController extends Controller
     // MÉTODOS PRIVADOS AUXILIARES
     // ==========================================
 
+    /**
+     * Obtiene la lista de acciones unicas registradas en la tabla de auditoria.
+     *
+     * Consulta los valores distintos de los campos 'action' y 'event', los combina
+     * en una sola coleccion eliminando duplicados, y retorna un array indexado
+     * con todas las acciones existentes. Se utiliza para poblar el selector de
+     * filtros de acciones en el dashboard.
+     *
+     * @return \Illuminate\Support\Collection  Coleccion de strings con las acciones unicas.
+     */
     private function getUniqueActions()
     {
         $actions = AuditLog::select('action')
@@ -768,6 +1174,19 @@ class AuditLogController extends Controller
         return $actions;
     }
 
+    /**
+     * Obtiene la lista de entidades unicas registradas en la tabla de auditoria.
+     *
+     * Consulta los valores distintos del campo 'subject_type', extrae el nombre
+     * de la clase (ultima parte del namespace completo separado por '\'), elimina
+     * duplicados y retorna un array indexado con los nombres simples de las entidades.
+     *
+     * Ejemplo: 'App\Models\Property' se convierte en 'Property'.
+     *
+     * Se utiliza para poblar el selector de filtros de entidades en el dashboard.
+     *
+     * @return \Illuminate\Support\Collection  Coleccion de strings con los nombres de entidades unicas.
+     */
     private function getUniqueEntities()
     {
         return AuditLog::select('subject_type')
@@ -782,6 +1201,32 @@ class AuditLogController extends Controller
             ->values();
     }
 
+    /**
+     * Calcula todas las estadisticas del dashboard de auditoria.
+     *
+     * Metodo privado que reune todos los indicadores clave necesarios para las
+     * vistas del dashboard y los reportes. Es invocado por index() y
+     * getDashboardData().
+     *
+     * Estadisticas calculadas:
+     * - total_logs: total de registros en la tabla audit_logs.
+     * - today_logs: registros creados desde el inicio del dia actual.
+     * - total_users: total de usuarios registrados.
+     * - total_properties: total de propiedades registradas.
+     * - total_appointments: total de citas registradas.
+     * - total_leads: total de leads registrados.
+     * - total_config_changes: registros de auditoria sobre SiteConfiguration.
+     * - logs_by_action: top 5 acciones mas frecuentes (action, count), ordenadas
+     *   por frecuencia descendente.
+     * - logs_by_entity: cantidad de logs agrupados por categoria de entidad usando
+     *   una expresion CASE que clasifica subject_type en: Propiedades, Citas,
+     *   Leads, Usuarios, Configuracion del Sitio, Roles, Permisos o Sistema.
+     * - recent_activity: ultimos 10 registros de auditoria con usuario cargado.
+     * - logs_by_day: cantidad de logs por dia en los ultimos 30 dias, como array
+     *   asociativo fecha => total.
+     *
+     * @return array<string, mixed>  Array asociativo con todas las estadisticas.
+     */
     private function getDashboardStats()
     {
         $now = now();

@@ -8,8 +8,33 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Middleware de verificación de roles de usuario.
+ *
+ * Valida que el usuario autenticado posea al menos uno de los roles requeridos
+ * para acceder a la ruta protegida. Se ejecuta después del middleware de autenticación
+ * en el ciclo de vida de la petición.
+ *
+ * Los roles pueden especificarse separados por pipes (|) o comas (,).
+ * Consulta directamente la base de datos para obtener los roles del usuario.
+ *
+ * Registra intentos de acceso y denegaciones en el log de la aplicación.
+ * Redirige al login si el usuario no está autenticado o desactiva la sesión
+ * si la cuenta está desactivada.
+ *
+ * @package App\Http\Middleware
+ */
 class RoleMiddleware
 {
+    /**
+     * Maneja la petición HTTP verificando los roles del usuario.
+     *
+     * @param Request $request Objeto de petición HTTP de Laravel.
+     * @param Closure $next Callback que continúa el pipeline de middleware.
+     * @param string  ...$roles Roles permitidos para acceder a la ruta (separados por | o ,).
+     *
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse Respuesta HTTP o redirección.
+     */
     public function handle(Request $request, Closure $next, ...$roles)
     {
         if (!Auth::check()) {

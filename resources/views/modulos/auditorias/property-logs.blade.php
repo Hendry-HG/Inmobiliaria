@@ -96,7 +96,7 @@
         width: 100%;
     }
 
-    /* 🔥 CORRECCIÓN: Tags de filtros */
+    /*  CORRECCIÓN: Tags de filtros */
     .filter-tags-container {
         display: flex;
         flex-wrap: wrap;
@@ -150,14 +150,14 @@
         text-decoration: underline;
     }
 
-    /* 🔥 CORRECCIÓN: Para que los resultados del buscador no se salgan */
+    /*  CORRECCIÓN: Para que los resultados del buscador no se salgan */
     #propertySearchResults {
         left: 0;
         right: 0;
         width: 100%;
     }
 
-    /* 🔥 NUEVO: Contenedor de botones de acción */
+    /*  NUEVO: Contenedor de botones de acción */
     .action-buttons {
         display: flex;
         align-items: flex-end;
@@ -208,7 +208,7 @@
         color: #64748b;
     }
 
-    /* 🔥 Ajustes responsive */
+    /*  Ajustes responsive */
     @media (max-width: 767px) {
         .action-buttons {
             width: 100%;
@@ -604,6 +604,12 @@
 
 @push('js')
 <script>
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
     // ============================================
     // BUSCADOR DE PROPIEDADES EN TIEMPO REAL
     // ============================================
@@ -660,14 +666,14 @@
                         html += `
                             <div class="user-search-result px-4 py-2.5 cursor-pointer flex items-center gap-3 ${isSelected ? 'active' : ''} hover:bg-slate-50 transition-colors"
                                  data-property-id="${prop.id}"
-                                 data-property-title="${prop.title}"
+                                 data-property-title="${escapeHtml(prop.title)}"
                                  onclick="selectProperty(this)">
                                 ${prop.image ? `<img src="${prop.image}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">` : `<div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><i class="ph ph-building text-slate-400"></i></div>`}
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-800 truncate">${prop.title}</p>
-                                    <p class="text-xs text-slate-500 truncate">${prop.location || 'Sin ubicación'}</p>
+                                    <p class="text-sm font-medium text-slate-800 truncate">${escapeHtml(prop.title)}</p>
+                                    <p class="text-xs text-slate-500 truncate">${escapeHtml(prop.location || 'Sin ubicación')}</p>
                                 </div>
-                                <span class="text-xs text-mso-gold font-bold">${prop.price}</span>
+                                <span class="text-xs text-mso-gold font-bold">${escapeHtml(prop.price)}</span>
                                 ${isSelected ? '<i class="ph ph-check-circle text-mso-gold ml-2 text-lg"></i>' : ''}
                             </div>
                         `;

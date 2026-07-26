@@ -327,7 +327,7 @@
             'created_at' => $app->created_at ? $app->created_at->format('d/m/Y H:i') : 'No disponible',
             'canEdit' => $canEdit
         ];
-    })->toArray()) : '[]' !!};
+    })->toArray()) : '[]', JSON_HEX_TAG | JSON_HEX_AMP) !!};
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Dashboard del asesor cargado correctamente');
