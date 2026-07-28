@@ -1,3 +1,4 @@
+{{-- Filtros de búsqueda de propiedades en la landing page --}}
 @props(['states' => []])
 
 <div class="relative z-30 -mt-8 px-4 lg:px-0 max-w-6xl mx-auto">

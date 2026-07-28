@@ -1,3 +1,4 @@
+{{-- Vista pública de servicios inmobiliarios para visitantes --}}
 @extends('layouts.landing')
 
 @section('title', 'Servicios Inmobiliarios')

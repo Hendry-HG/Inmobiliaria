@@ -1,3 +1,4 @@
+{{-- Sistema de mensajería en vivo entre usuarios --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Chat en Vivo')

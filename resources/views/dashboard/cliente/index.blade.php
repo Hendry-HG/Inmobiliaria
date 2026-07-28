@@ -1,3 +1,4 @@
+{{-- Dashboard principal del Cliente --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Mi Panel')

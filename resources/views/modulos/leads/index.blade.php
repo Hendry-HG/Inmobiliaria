@@ -1,3 +1,4 @@
+{{-- Listado de leads inmobiliarios con seguimiento y estados --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Leads')

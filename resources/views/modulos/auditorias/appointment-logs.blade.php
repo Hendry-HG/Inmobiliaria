@@ -1,3 +1,4 @@
+{{-- Logs de auditoría de citas --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Auditoría - Logs de Citas')

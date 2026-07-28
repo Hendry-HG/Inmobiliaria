@@ -1,3 +1,4 @@
+{{-- Formulario de creación y edición de propiedades --}}
 @extends('layouts.dashboard')
 
 @section('title', isset($property) ? 'Editar Propiedad' : 'Nueva Propiedad')

@@ -9,11 +9,39 @@ use App\Models\Appointment;
 use App\Models\Lead;
 use Illuminate\Console\Command;
 
+/**
+ * Comando artisan para reparar descripciones de logs de auditoria.
+ *
+ * Busca registros en audit_logs con descripcion vacia, nula o generica
+ * y las reconstruye a partir de los datos del sujeto (Property, User,
+ * Appointment, Lead). Genera descripciones legibles como:
+ * "Juan CREO la propiedad 'Casa en venta'".
+ *
+ * Util para corregir registros creados antes de implementar el
+ * sistema de descripciones automaticas.
+ *
+ * Uso: php artisan audit:fix-descriptions
+ *
+ * @package App\Console\Commands
+ */
 class FixAuditDescriptions extends Command
 {
+    /**
+     * Firma del comando artisan.
+     *
+     * @var string
+     */
     protected $signature = 'audit:fix-descriptions';
     protected $description = 'Actualiza las descripciones de los logs de auditoría existentes';
 
+    /**
+     * Ejecuta la reparacion de descripciones de auditoria.
+     *
+     * Orquesta la llamada a metodos privados que reparan cada tipo de log:
+     * propiedades, usuarios, citas y leads.
+     *
+     * @return int 0 en exito.
+     */
     public function handle()
     {
         $this->info('Actualizando descripciones de logs...');
@@ -33,6 +61,15 @@ class FixAuditDescriptions extends Command
         $this->info(' ¡Descripciones actualizadas!');
     }
 
+    /**
+     * Reconstruye las descripciones de logs de propiedades.
+     *
+     * Busca logs de tipo Property con descripcion vacia y genera
+     * descripciones con el nombre del usuario, la accion y el titulo
+     * de la propiedad. Para actualizaciones, incluye los campos modificados.
+     *
+     * @return void
+     */
     private function fixPropertyLogs()
     {
         $logs = AuditLog::where('subject_type', 'like', '%Property%')
@@ -84,6 +121,14 @@ class FixAuditDescriptions extends Command
         }
     }
 
+    /**
+     * Reconstruye las descripciones de logs de usuarios.
+     *
+     * Genera descripciones para eventos de login, logout, created,
+     * updated y deleted sobre el modelo User.
+     *
+     * @return void
+     */
     private function fixUserLogs()
     {
         $logs = AuditLog::where('subject_type', 'like', '%User%')
@@ -124,6 +169,15 @@ class FixAuditDescriptions extends Command
         }
     }
 
+    /**
+     * Reconstruye las descripciones de logs de citas.
+     *
+     * Genera descripciones para eventos de created, updated y deleted
+     * sobre Appointment. Incluye el titulo de la propiedad relacionada
+     * y el estado actualizado en caso de modificacion.
+     *
+     * @return void
+     */
     private function fixAppointmentLogs()
     {
         $logs = AuditLog::where('subject_type', 'like', '%Appointment%')
@@ -168,6 +222,15 @@ class FixAuditDescriptions extends Command
         }
     }
 
+    /**
+     * Reconstruye las descripciones de logs de leads.
+     *
+     * Genera descripciones para eventos de created, updated y deleted
+     * sobre Lead. Incluye el nombre del lead y el estado actualizado
+     * en caso de modificacion.
+     *
+     * @return void
+     */
     private function fixLeadLogs()
     {
         $logs = AuditLog::where('subject_type', 'like', '%Lead%')

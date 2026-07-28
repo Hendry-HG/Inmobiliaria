@@ -1,3 +1,4 @@
+{{-- Componente de perfil de usuario del dashboard --}}
 <div id="perfil" class="dashboard-section hidden space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
             <h3 class="font-serif text-xl font-bold text-slate-800 mb-4">Mi Perfil</h3>

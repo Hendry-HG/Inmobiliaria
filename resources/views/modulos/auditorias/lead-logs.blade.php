@@ -1,3 +1,4 @@
+{{-- Logs de auditoría de leads --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Auditoría - Logs de Leads')

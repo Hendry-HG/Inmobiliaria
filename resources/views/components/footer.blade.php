@@ -1,3 +1,4 @@
+{{-- Pie de página con información de contacto y enlaces --}}
 <footer class="bg-slate-900 text-white pt-20 pb-10">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">

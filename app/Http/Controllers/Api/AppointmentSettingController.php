@@ -527,7 +527,7 @@ class AppointmentSettingController extends Controller
             ], 401);
         }
 
-        // 🔥 ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+        //  ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
         $this->permissionService->setUser($user);
 
         // VERIFICAR PERMISO CON PERMISSIONSERVICE

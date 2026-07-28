@@ -1,3 +1,4 @@
+{{-- Formulario de edición de lead existente --}}
 <form id="editLeadForm" method="POST" action="{{ route('leads.update', $lead) }}">
     @csrf
     @method('PUT')

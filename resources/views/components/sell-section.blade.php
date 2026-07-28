@@ -1,3 +1,4 @@
+{{-- Sección de venta de propiedades en la landing page --}}
 <section id="vender" class="bg-mso-blue py-24 relative overflow-hidden">
     <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-white/5 to-transparent"></div>
 

@@ -1,3 +1,4 @@
+{{-- Filas parciales de la tabla de propiedades para carga dinámica --}}
 @forelse($properties as $property)
 <tr class="hover:bg-slate-50 transition-colors">
     <td class="p-4">

@@ -1,3 +1,4 @@
+{{-- Listado y gestión de usuarios del sistema --}}
 @if(!isset($embedded))
     @extends('layouts.dashboard')
     @section('title', 'Gestión de Usuarios')

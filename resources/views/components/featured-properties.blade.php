@@ -1,3 +1,4 @@
+{{-- Sección de propiedades destacadas en la landing page --}}
 @props(['properties' => null])
 
 @php

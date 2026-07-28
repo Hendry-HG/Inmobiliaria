@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Crea la tabla de notificaciones de usuario para alertas internas
+ * del sistema de gestión inmobiliaria.
+ */
 return new class extends Migration
 {
     public function up(): void

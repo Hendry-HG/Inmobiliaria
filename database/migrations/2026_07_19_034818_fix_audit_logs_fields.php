@@ -5,6 +5,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Corrige y completa campos faltantes en la tabla audit_logs,
+ * cambiando tipos a TEXT y convirtiendo valores JSON a JSONB.
+ */
 return new class extends Migration
 {
     public function up(): void

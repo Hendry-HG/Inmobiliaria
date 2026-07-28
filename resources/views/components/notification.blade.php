@@ -1,3 +1,4 @@
+{{-- Componente de notificaciones toast del sistema --}}
 @props([
     'type' => 'success',
     'message' => null,

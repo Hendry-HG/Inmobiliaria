@@ -1,3 +1,4 @@
+{{-- Dashboard principal del Super Administrador --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Panel Super Admin')

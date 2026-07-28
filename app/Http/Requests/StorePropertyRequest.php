@@ -42,39 +42,23 @@ class StorePropertyRequest extends FormRequest
         return [
             /** Titulo de la propiedad. Obligatorio, texto y limite de 255 caracteres. */
             'title' => 'required|string|max:255',
-            /** Descripcion detallada de la propiedad. Obligatorio y de tipo texto. */
-            'description' => 'required|string',
-            /** Precio de la propiedad. Obligatorio, numerico y no puede ser negativo. */
-            'price' => 'required|numeric|min:0',
-            /** Tipo de operacion: venta, alquiler o ambos. Solo valores permitidos. */
+            'description' => 'required|string|max:10000',
+            'price' => 'required|numeric|min:0|max:99999999999',
             'type' => ['required', Rule::in(['venta', 'alquiler', 'venta/alquiler'])],
-            /** Estado de la publicacion. Solo valores del enumerado permitido. */
             'status' => ['required', Rule::in(['borrador', 'pendiente', 'publicada', 'vendida', 'alquilada', 'inactiva'])],
-            /** Pais al que pertenece la propiedad. Debe existir en la tabla countries. */
             'country_id' => 'required|exists:countries,id',
-            /** Estado/region al que pertenece la propiedad. Debe existir en la tabla states. */
             'state_id' => 'required|exists:states,id',
-            /** Municipio al que pertenece la propiedad. Debe existir en la tabla municipalities. */
             'municipality_id' => 'required|exists:municipalities,id',
-            /** Parroquia (opcional). Debe existir en la tabla parishes si se proporciona. */
             'parish_id' => 'nullable|exists:parishes,id',
-            /** Ciudad (opcional). Debe existir en la tabla cities si se proporciona. */
             'city_id' => 'nullable|exists:cities,id',
-            /** Direccion fisica de la propiedad. Opcional, maximo 500 caracteres. */
             'address' => 'nullable|string|max:500',
-            /** Cantidad de habitaciones. Opcional, entero no negativo. */
-            'bedrooms' => 'nullable|integer|min:0',
-            /** Cantidad de banos. Opcional, entero no negativo. */
-            'bathrooms' => 'nullable|integer|min:0',
-            /** Cantidad de espacios de estacionamiento. Opcional, entero no negativo. */
-            'parking_spaces' => 'nullable|integer|min:0',
-            /** Superficie en metros cuadrados. Opcional, numerico no negativo. */
-            'area' => 'nullable|numeric|min:0',
-            /** Categoria de la propiedad. Opcional, debe existir en la tabla categories. */
+            'bedrooms' => 'nullable|integer|min:0|max:50',
+            'bathrooms' => 'nullable|integer|min:0|max:50',
+            'parking_spaces' => 'nullable|integer|min:0|max:100',
+            'area' => 'nullable|numeric|min:0|max:99999999',
+            'land_area' => 'nullable|numeric|min:0|max:99999999',
             'category_id' => 'nullable|exists:categories,id',
-            /** Arreglo de imagenes obligatorio. Minimo 1 imagen, maximo 15 imagenes. */
             'images' => 'required|array|min:1|max:15',
-            /** Cada imagen debe ser un archivo de imagen JPG o PNG, maximo 2MB. */
             'images.*' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ];
     }
@@ -97,6 +81,13 @@ class StorePropertyRequest extends FormRequest
             'images.max' => 'Máximo 15 imágenes permitidas.',
             'images.*.mimes' => 'Solo se permiten imágenes en formato JPG o PNG.',
             'images.*.max' => 'Cada imagen debe pesar menos de 2MB.',
+            'description.max' => 'La descripción no puede exceder 10,000 caracteres.',
+            'price.max' => 'El precio no puede exceder $99,999,999,999.',
+            'bedrooms.max' => 'No pueden haber más de 50 habitaciones.',
+            'bathrooms.max' => 'No pueden haber más de 50 baños.',
+            'parking_spaces.max' => 'No pueden haber más de 100 espacios de estacionamiento.',
+            'area.max' => 'El área no puede exceder 99,999,999 m².',
+            'land_area.max' => 'El área del terreno no puede exceder 99,999,999 m².',
         ];
     }
 }

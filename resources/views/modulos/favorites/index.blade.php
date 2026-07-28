@@ -1,3 +1,4 @@
+{{-- Listado de propiedades marcadas como favoritas por el usuario --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Mis Propiedades Favoritas')

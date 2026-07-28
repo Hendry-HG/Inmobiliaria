@@ -244,7 +244,7 @@ class ChatController extends Controller
 
         $contactos = $this->getAvailableContactos($user, $isCliente, $isAsesor);
 
-        // ✅ Pasar contactos con el nombre correcto para la vista
+        //  Pasar contactos con el nombre correcto para la vista
         $asesoresDisponibles = $isCliente ? $contactos : collect();
         $clientesDisponibles = $isAsesor ? $contactos : collect();
 

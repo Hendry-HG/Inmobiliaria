@@ -1,3 +1,4 @@
+{{-- Verificación de autenticación para acciones de propiedad --}}
 @props(['propertyId'])
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden sticky top-24">

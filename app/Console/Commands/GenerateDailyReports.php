@@ -9,26 +9,46 @@ use App\Models\Property;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\DailyReportMail; // Tendrías que crear este Mailable
+use App\Mail\DailyReportMail;
 
+/**
+ * Comando artisan para generar reportes diarios de actividad.
+ *
+ * Recopila estadisticas del dia anterior (leads, citas completadas,
+ * propiedades creadas) y genera un ReportSnapshot por cada usuario
+ * con rol Super Admin o Administrador. Los snapshots se almacenan
+ * con estado 'generated' y se envian por correo electronico.
+ *
+ * Uso: php artisan reports:generate-daily
+ *
+ * @package App\Console\Commands
+ */
 class GenerateDailyReports extends Command
 {
     /**
-     * 
+     * Firma del comando artisan.
      *
      * @var string
      */
     protected $signature = 'reports:generate-daily';
 
     /**
-     * 
+     * Descripcion del comando.
      *
      * @var string
      */
     protected $description = 'Genera y archiva el reporte diario de ventas y actividad';
 
     /**
-     * 
+     * Ejecuta la generacion de reportes diarios.
+     *
+     * Flujo:
+     * 1. Determina la fecha del dia anterior.
+     * 2. Obtiene usuarios con rol Super Admin o Administrador.
+     * 3. Para cada usuario, recopila estadisticas y crea/actualiza un ReportSnapshot.
+     * 4. Intenta enviar el reporte por correo (manejo de excepciones).
+     *
+     * @return int 0 en exito.
      */
     public function handle()
     {

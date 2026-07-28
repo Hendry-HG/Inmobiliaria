@@ -1,3 +1,4 @@
+{{-- Formulario de edición de servicio inmobiliario --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Editar Servicio')

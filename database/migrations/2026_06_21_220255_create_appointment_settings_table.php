@@ -5,6 +5,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Crea la tabla de configuración de citas para definir horarios,
+ * duración de slots y recordatorios por asesor.
+ */
 return new class extends Migration
 {
     public function up(): void

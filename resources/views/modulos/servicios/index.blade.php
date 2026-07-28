@@ -1,3 +1,4 @@
+{{-- Listado de servicios inmobiliarios disponibles --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Servicios')

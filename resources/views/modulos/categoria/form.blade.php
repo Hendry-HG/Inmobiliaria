@@ -1,3 +1,4 @@
+{{-- Formulario de creación y edición de categorías --}}
 @extends('layouts.dashboard')
 
 @section('title', isset($category) ? 'Editar Categoría' : 'Nueva Categoría')

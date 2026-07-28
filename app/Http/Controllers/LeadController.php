@@ -158,7 +158,9 @@ class LeadController extends Controller
 
             if (Auth::check()) {
                 $userId = Auth::id();
-                if (Auth::user()->hasRole('Asesor Inmobiliario')) {
+                /** @var User $user */
+                $user = Auth::user();
+                if ($user->hasRole('Asesor Inmobiliario')) {
                     $query->where('asesor_id', $userId);
                 }
             }
@@ -440,7 +442,9 @@ class LeadController extends Controller
             abort(403, 'Debes iniciar sesión para crear leads.');
         }
 
-        if (!Auth::user()->can('crear lead')) {
+        /** @var User $user */
+        $user = Auth::user();
+        if (!$user->can('crear lead')) {
             abort(403, 'No tienes permiso para crear leads.');
         }
 

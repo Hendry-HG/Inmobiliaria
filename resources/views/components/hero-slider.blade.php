@@ -1,3 +1,4 @@
+{{-- Slider hero con imágenes destacadas de la landing page --}}
 @php
     $config = App\Models\SiteConfiguration::getConfig();
     $slides = $config->hero_images ?? [];

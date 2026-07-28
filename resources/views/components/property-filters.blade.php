@@ -1,3 +1,4 @@
+{{-- Filtros avanzados de búsqueda de propiedades --}}
 <aside class="w-full lg:w-72 flex-shrink-0">
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
         <div class="flex justify-between items-center mb-6">

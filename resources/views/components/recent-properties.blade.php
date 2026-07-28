@@ -1,3 +1,4 @@
+{{-- Lista de propiedades recientes para mostrar en la página --}}
 @props([
     'properties' => null,
     'limit' => 8,

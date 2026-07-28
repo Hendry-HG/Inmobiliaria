@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Agrega las columnas faltantes 'action' y 'event' a la tabla
+ * de audit_logs si no existen previamente.
+ */
 return new class extends Migration
 {
     public function up(): void

@@ -1,3 +1,4 @@
+{{-- Detalle de un registro de auditoría --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Detalle del Log')

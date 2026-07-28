@@ -738,6 +738,22 @@ class PermissionService
         }
     }
 
+    /**
+     * Refresca los permisos del usuario limpiando cache y recargando desde la base de datos.
+     *
+     * Util para cuando los permisos o roles del usuario han sido modificados
+     * y se necesita que la siguiente consulta obtenga datos frescos.
+     * Limpia la cache personalizada, la cache de Spatie, y fuerza una
+     * recarga de permisos en el PermissionRegistrar.
+     *
+     * @return void
+     */
+    public function refresh(): void
+    {
+        $this->clearCache();
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+
     // ==========================================
     // METODO DE DEPURACION
     // ==========================================

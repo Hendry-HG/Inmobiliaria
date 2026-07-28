@@ -1,3 +1,4 @@
+{{-- Dashboard genérico para roles sin dashboard específico --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Panel de Control')

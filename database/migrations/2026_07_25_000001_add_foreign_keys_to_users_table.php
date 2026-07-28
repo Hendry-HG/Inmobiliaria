@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Agrega las llaves foráneas de geografía (país, estado, municipio,
+ * parroquia y ciudad) a la tabla de usuarios.
+ */
 return new class extends Migration
 {
     public function up(): void

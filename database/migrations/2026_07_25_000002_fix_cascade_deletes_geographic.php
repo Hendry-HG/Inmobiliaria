@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Cambia las eliminaciones en cascada a restrict en las llaves
+ * foráneas geográficas y de relaciones de múltiples tablas principales.
+ */
 return new class extends Migration
 {
     public function up(): void

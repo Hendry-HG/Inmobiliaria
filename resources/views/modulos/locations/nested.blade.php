@@ -1,3 +1,4 @@
+{{-- Vista anidada de ubicaciones geográficas jerárquicas --}}
 @extends('layouts.dashboard')
 
 @php

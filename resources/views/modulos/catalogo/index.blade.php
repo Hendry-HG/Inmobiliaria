@@ -1,3 +1,4 @@
+{{-- Catálogo público de propiedades disponibles --}}
 @extends('layouts.landing')
 
 @section('title', 'Catálogo de Propiedades en Venezuela')

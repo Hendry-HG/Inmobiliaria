@@ -1,3 +1,4 @@
+{{-- Listado de permisos de visibilidad del sidebar --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Permisos del Sidebar')

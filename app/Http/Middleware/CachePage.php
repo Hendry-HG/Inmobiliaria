@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 /**
  * Middleware de caché de páginas.
@@ -44,7 +45,9 @@ class CachePage
         }
 
         $userId = Auth::id() ?? 'guest';
-        $userRoles = Auth::user()?->getRoleNames()->implode(',', '') ?? '';
+        /** @var User|null $user */
+        $user = Auth::user();
+        $userRoles = $user?->getRoleNames()?->implode(',', '') ?? '';
         $key = 'page_' . md5($userId . '_' . $userRoles . '_' . $request->fullUrl());
 
         if (Cache::has($key)) {

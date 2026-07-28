@@ -39,6 +39,8 @@ use Illuminate\Validation\ValidationException;
  * - Cada login exitoso genera un registro en AuditLog con accion 'login'.
  * - Los intentos fallidos se registran en el log de Laravel con nivel warning.
  * - La reactivacion de cuentas tambien genera eventos de auditoria.
+ *
+ * @package App\Http\Controllers\Auth
  */
 class LoginController extends Controller
 {

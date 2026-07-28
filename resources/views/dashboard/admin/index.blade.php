@@ -1,3 +1,4 @@
+{{-- Dashboard principal del Administrador --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Panel Administrador')

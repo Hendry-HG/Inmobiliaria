@@ -1,3 +1,4 @@
+{{-- Configuración de horarios y disponibilidad de agenda --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Configuración de Agenda')

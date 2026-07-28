@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Crea las tablas de servicios y galerías de imágenes para
+ * gestionar el catálogo de servicios inmobiliarios del sitio.
+ */
 return new class extends Migration
 {
     public function up(): void

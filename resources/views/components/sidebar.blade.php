@@ -1,3 +1,4 @@
+{{-- Barra lateral de navegación del panel de administración --}}
 @props(['user'])
 
 @php

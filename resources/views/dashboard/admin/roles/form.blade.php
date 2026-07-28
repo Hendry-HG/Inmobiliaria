@@ -1,3 +1,4 @@
+{{-- Formulario de creación y edición de roles --}}
 @extends('layouts.dashboard')
 
 @section('title', isset($role) ? 'Editar Rol' : 'Crear Rol')

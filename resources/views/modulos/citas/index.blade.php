@@ -1,3 +1,4 @@
+{{-- Listado y gestión de citas inmobiliarias --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Citas')

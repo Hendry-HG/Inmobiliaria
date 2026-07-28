@@ -1,3 +1,4 @@
+{{-- Dashboard principal del Asesor Inmobiliario --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Panel Asesor')

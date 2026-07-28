@@ -1,3 +1,4 @@
+{{-- Formulario de creación de nuevo usuario --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Crear Usuario')

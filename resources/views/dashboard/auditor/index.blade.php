@@ -1,3 +1,4 @@
+{{-- Dashboard principal del Auditor --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Panel Auditoría')

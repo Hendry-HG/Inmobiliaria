@@ -7,11 +7,40 @@ use App\Models\SiteConfiguration;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Comando artisan para sincronizar propiedades destacadas.
+ *
+ * Lee la lista de IDs de propiedades destacadas desde SiteConfiguration
+ * y actualiza el campo is_featured en la tabla properties. Desmarca todas
+ * las propiedades previamente destacadas y marca solo las que esten
+ * en la lista actual con estado 'publicada'. Limpia las claves de cache
+ * relacionadas con el home y configuracion del sitio.
+ *
+ * Uso: php artisan properties:sync-featured
+ *
+ * @package App\Console\Commands
+ */
 class SyncFeaturedProperties extends Command
 {
+    /**
+     * Firma y descripcion del comando artisan.
+     *
+     * @var string
+     */
     protected $signature = 'properties:sync-featured';
     protected $description = 'Sincroniza propiedades destacadas';
 
+    /**
+     * Ejecuta el comando: sincroniza propiedades destacadas y limpia cache.
+     *
+     * Flujo:
+     * 1. Obtiene la lista de IDs desde SiteConfiguration.
+     * 2. Desmarca todas las propiedades con is_featured = true.
+     * 3. Marca las propiedades en la lista que tengan estado 'publicada'.
+     * 4. Limpia las claves de cache del home y configuracion.
+     *
+     * @return int 0 en exito.
+     */
     public function handle()
     {
         $config = SiteConfiguration::getConfig();

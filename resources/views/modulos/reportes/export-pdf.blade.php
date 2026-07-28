@@ -1,3 +1,4 @@
+{{-- Plantilla HTML para exportación de reportes a PDF --}}
 <!DOCTYPE html>
 <html>
 <head>

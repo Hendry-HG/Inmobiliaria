@@ -1,3 +1,4 @@
+{{-- Perfil del usuario con datos personales y configuración --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Mi Perfil')

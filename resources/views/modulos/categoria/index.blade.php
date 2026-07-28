@@ -1,3 +1,4 @@
+{{-- Listado de categorías de propiedades --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Categorías')

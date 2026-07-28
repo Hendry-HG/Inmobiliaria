@@ -1,3 +1,4 @@
+{{-- Header de navegación de la landing page --}}
 <nav class="bg-white/90 backdrop-blur-sm shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">

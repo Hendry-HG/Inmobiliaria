@@ -1,3 +1,4 @@
+{{-- Barra de navegación principal del sitio web --}}
 <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm transition-all duration-500" id="mainNavbar" x-data="{ mobileMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16 sm:h-20 items-center">

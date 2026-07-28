@@ -1,3 +1,4 @@
+{{-- Listado de ubicaciones geográficas (países) --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Países')

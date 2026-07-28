@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Crea la tabla de auditoría (audit_logs) para registrar eventos,
+ * valores anteriores y nuevos de cada acción realizada en el sistema.
+ */
 return new class extends Migration
 {
     public function up(): void

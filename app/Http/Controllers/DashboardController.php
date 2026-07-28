@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -16,10 +15,8 @@ use App\Models\AuditLog;
 use App\Models\Favorite;
 use App\Services\PermissionService;
 
-class DashboardController extends Controller
-{
 /**
- * Controlador de Dashboard
+ * Controlador de Dashboard.
  *
  * Gestiona la redireccion y renderizacion de dashboards segun el rol del usuario.
  * Implementa dashboards especificos para: Super Admin, Administrador, Asesor
@@ -280,6 +277,7 @@ class DashboardController extends Controller
         $appointments = Appointment::with(['property', 'asesor', 'user'])
             ->where('asesor_id', $user->id)
             ->orderBy('scheduled_date', 'desc')
+            ->limit(50)
             ->get();
 
         $myProperties = Property::where('user_id', $user->id)->count();

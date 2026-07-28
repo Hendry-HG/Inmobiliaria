@@ -1,3 +1,4 @@
+{{-- Listado general de logs de auditoría --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Panel Auditoría')

@@ -1,3 +1,4 @@
+{{-- Dashboard de auditoría con métricas generales --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Auditoría - Dashboard')

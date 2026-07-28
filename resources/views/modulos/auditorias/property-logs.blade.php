@@ -1,3 +1,4 @@
+{{-- Logs de auditoría de propiedades --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Auditoría - Logs de Propiedades')

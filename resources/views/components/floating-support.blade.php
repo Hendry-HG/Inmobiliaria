@@ -1,4 +1,4 @@
-{{-- resources/views/components/floating-support.blade.php --}}
+{{-- Botón flotante de soporte con WhatsApp y redes sociales --}}
 @php
     $config = App\Models\SiteConfiguration::getConfig();
     $hasContacts = $config->support_whatsapp || $config->support_instagram || $config->support_phone || $config->support_email;

@@ -1,3 +1,4 @@
+{{-- Detalle de propiedad en catálogo público --}}
 @extends('layouts.landing')
 
 @section('title', $property->title . ' - ' . config('app.name'))

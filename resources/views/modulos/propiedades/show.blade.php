@@ -1,3 +1,4 @@
+{{-- Detalle completo de una propiedad individual --}}
 @extends('layouts.dashboard')
 
 @section('title', $property->title)

@@ -70,8 +70,8 @@ class UpdatePropertyRequest extends FormRequest
 
         return [
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
+            'description' => 'required|string|max:10000',
+            'price' => 'required|numeric|min:0|max:99999999999',
             'type' => ['required', Rule::in(['venta', 'alquiler', 'venta/alquiler'])],
             'status' => ['required', Rule::in(['borrador', 'pendiente', 'publicada', 'vendida', 'alquilada', 'inactiva'])],
             'country_id' => 'required|exists:countries,id',
@@ -80,10 +80,11 @@ class UpdatePropertyRequest extends FormRequest
             'parish_id' => 'nullable|exists:parishes,id',
             'city_id' => 'nullable|exists:cities,id',
             'address' => 'nullable|string|max:500',
-            'bedrooms' => 'nullable|integer|min:0',
-            'bathrooms' => 'nullable|integer|min:0',
-            'parking_spaces' => 'nullable|integer|min:0',
-            'area' => 'nullable|numeric|min:0',
+            'bedrooms' => 'nullable|integer|min:0|max:50',
+            'bathrooms' => 'nullable|integer|min:0|max:50',
+            'parking_spaces' => 'nullable|integer|min:0|max:100',
+            'area' => 'nullable|numeric|min:0|max:99999999',
+            'land_area' => 'nullable|numeric|min:0|max:99999999',
             'category_id' => 'nullable|exists:categories,id',
             'images' => $totalImages > 15 ? 'max:0' : 'nullable|array|max:15',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -102,12 +103,16 @@ class UpdatePropertyRequest extends FormRequest
     public function messages(): array
     {
         return [
-            /** Mensaje cuando se excede el limite maximo de 15 imagenes en total. */
             'images.max' => 'Máximo 15 imágenes en total.',
-            /** Mensaje cuando una imagen no esta en el formato permitido. */
             'images.*.mimes' => 'Solo se permiten imágenes en formato JPG o PNG.',
-            /** Mensaje cuando una imagen excede el peso maximo de 2MB. */
             'images.*.max' => 'Cada imagen debe pesar menos de 2MB.',
+            'description.max' => 'La descripción no puede exceder 10,000 caracteres.',
+            'price.max' => 'El precio no puede exceder $99,999,999,999.',
+            'bedrooms.max' => 'No pueden haber más de 50 habitaciones.',
+            'bathrooms.max' => 'No pueden haber más de 50 baños.',
+            'parking_spaces.max' => 'No pueden haber más de 100 espacios de estacionamiento.',
+            'area.max' => 'El área no puede exceder 99,999,999 m².',
+            'land_area.max' => 'El área del terreno no puede exceder 99,999,999 m².',
         ];
     }
 

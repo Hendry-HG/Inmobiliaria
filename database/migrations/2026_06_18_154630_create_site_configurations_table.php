@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Crea la tabla de configuraciones del sitio para almacenar el
+ * contenido dinámico de la página de inicio, hero, footer y contacto.
+ */
 return new class extends Migration
 {
     public function up(): void

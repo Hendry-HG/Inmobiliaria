@@ -1,3 +1,4 @@
+{{-- Modal de edición de usuario --}}
 <div class="bg-white rounded-lg shadow-xl overflow-hidden max-w-2xl w-full mx-4">
     <div class="bg-mso-blue px-6 py-4 flex justify-between items-center">
         <h3 class="text-lg font-bold text-white">Editar Usuario</h3>

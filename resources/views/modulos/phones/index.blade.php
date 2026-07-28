@@ -1,3 +1,4 @@
+{{-- Listado de configuraciones telefónicas por país --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Configuración Telefónica por País')

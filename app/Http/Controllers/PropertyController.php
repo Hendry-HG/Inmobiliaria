@@ -22,6 +22,17 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
+/**
+ * Controlador principal de propiedades inmobiliarias.
+ *
+ * Gestiona el ciclo de vida completo de las propiedades: listado, creacion,
+ * edicion, eliminacion y consultas publicas. Implementa un sistema de cache
+ * multinivel (por listings, detalles, conteos y filtros) con invalidacion
+ * automatica en escritura. Los endpoints publicos (/api/public/property/*)
+ * operan sin autenticacion y estan optimizados para motores de busqueda (SEO).
+ *
+ * @package App\Http\Controllers
+ */
 class PropertyController extends Controller
 {
     use AuditTrait;

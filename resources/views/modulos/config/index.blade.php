@@ -1,3 +1,4 @@
+{{-- Panel de configuración general del sitio --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Configuración del Sitio')

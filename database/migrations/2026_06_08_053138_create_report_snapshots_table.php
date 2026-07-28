@@ -5,6 +5,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Crea la tabla de instantáneas de reportes para almacenar datos
+ * congelados de reportes generados por tipo y período.
+ */
 return new class extends Migration
 {
     public function up(): void

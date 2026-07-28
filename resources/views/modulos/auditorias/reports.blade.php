@@ -1,3 +1,4 @@
+{{-- Reportes y exportación de datos de auditoría --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Exportar Datos - Auditoría')

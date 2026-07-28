@@ -1,3 +1,4 @@
+{{-- Página de bienvenida predeterminada de Laravel --}}
 <!DOCTYPE html>
 <html lang="es">
 <head>

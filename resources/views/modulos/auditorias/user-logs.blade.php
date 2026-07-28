@@ -1,3 +1,4 @@
+{{-- Logs de auditoría de usuarios --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Auditoría - Logs de Usuarios')

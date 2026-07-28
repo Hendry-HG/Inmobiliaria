@@ -1,3 +1,4 @@
+{{-- Formulario de creación de nuevo servicio inmobiliario --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Crear Servicio')

@@ -1,3 +1,4 @@
+{{-- Listado de propiedades con filtros, paginación y acciones CRUD --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Propiedades')

@@ -559,7 +559,7 @@ class AppointmentController extends Controller
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
 
-            // 🔥 ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+            //  ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
             $this->permissionService->setUser($user);
 
             $userRoles = $this->getUserRoles($user->id);
@@ -685,7 +685,7 @@ class AppointmentController extends Controller
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
 
-            // 🔥 ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
+            // ACTUALIZAR EL PERMISSION SERVICE CON EL USUARIO ACTUAL
             $this->permissionService->setUser($user);
 
             $userRoles = $this->getUserRoles($user->id);

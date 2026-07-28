@@ -1,3 +1,4 @@
+{{-- Detalle completo de un servicio inmobiliario --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Detalle del Servicio')

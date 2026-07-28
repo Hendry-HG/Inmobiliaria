@@ -1,3 +1,4 @@
+{{-- Vista principal de inicio del sitio web inmobiliario --}}
 @extends('layouts.landing')
 
 @section('title', 'Tu hogar en Venezuela')

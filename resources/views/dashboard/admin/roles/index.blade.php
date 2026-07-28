@@ -1,3 +1,4 @@
+{{-- Listado de roles y permisos del sistema --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Gestión de Roles')

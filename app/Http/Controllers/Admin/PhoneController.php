@@ -5,15 +5,52 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
+/**
+ * Controlador para la gestion de configuraciones telefonicas por pais.
+ *
+ * Permite administrar los formatos de telefono (codigo de pais, mascara,
+ * longitudes) utilizados para validacion de telefonos de usuarios y propiedades.
+ * Incluye endpoints publicos (sin autenticacion) para consumo del frontend
+ * y endpoints protegidos para administracion.
+ *
+ * Endpoints publicos:
+ * - getPresets(): Presets predefinidos de formatos telefonicos (Americas, Europa, Asia).
+ * - getPhoneCodes(): Codigos telefonicos de todos los paises configurados.
+ * - getPhoneConfig($countryId): Configuracion telefonica de un pais especifico.
+ *
+ * Endpoints protegidos (Super Admin o Administrador):
+ * - index(): Listado de paises con paginacion.
+ * - edit($country): Formulario de edicion de configuracion telefonica.
+ * - update($request, $country): Actualiza la configuracion telefonica de un pais.
+ * - bulkUpdate($request): Actualiza multiples paises en una sola operacion.
+ *
+ * Las respuestas de los endpoints publicos se cachean por 24 horas para
+ * optimizar el rendimiento. La cache se invalida al actualizar configuraciones.
+ *
+ * @package App\Http\Controllers\Admin
+ */
 class PhoneController extends Controller
 {
+    /**
+     * Duracion de la cache en segundos (24 horas).
+     *
+     * @var int
+     */
     const CACHE_DURATION = 86400; // 24 horas
 
+    /**
+     * Constructor: configura middleware de autenticacion y roles.
+     *
+     * Los endpoints publicos (getPresets, getPhoneCodes, getPhoneConfig)
+     * no requieren autenticacion para permitir su consumo desde el frontend.
+     */
     public function __construct()
     {
         $this->middleware(['auth', 'role:Super Admin|Administrador'])->except([
@@ -23,17 +60,39 @@ class PhoneController extends Controller
         ]);
     }
 
+    /**
+     * Muestra el listado de paises con su configuracion telefonica.
+     *
+     * @return \Illuminate\View\View Vista con el listado paginado de paises.
+     */
     public function index()
     {
         $countries = Country::orderBy('name')->paginate(20);
         return view('modulos.phones.index', compact('countries'));
     }
 
+    /**
+     * Muestra el formulario de edicion de configuracion telefonica para un pais.
+     *
+     * @param Country $country Pais a editar (resuelto por route model binding).
+     * @return \Illuminate\View\View Vista con el formulario de edicion.
+     */
     public function edit(Country $country)
     {
         return view('modulos.phones.edit', compact('country'));
     }
 
+    /**
+     * Actualiza la configuracion telefonica de un pais.
+     *
+     * Valida y sanitiza los datos: formato ISO en mayusculas, codigo telefonico
+    * con prefijo '+', y longitudes coherentes. Limpia la cache despues de
+    * la actualizacion para reflejar los cambios en los endpoints publicos.
+     *
+     * @param Request $request Peticion HTTP con los datos de configuracion.
+     * @param Country $country Pais a actualizar (resuelto por route model binding).
+     * @return \Illuminate\Http\RedirectResponse Redireccion con mensaje de exito o error.
+     */
     public function update(Request $request, Country $country)
     {
         $validated = $request->validate([
@@ -98,9 +157,20 @@ class PhoneController extends Controller
         }
     }
 
+    /**
+     * Actualiza las configuraciones telefonicas de multiples paises en lote.
+     *
+     * Endpoint AJAX que procesa hasta 50 paises en una sola operacion.
+     * Retorna HTTP 207 (Multi-Status) si algunas actualizaciones fallaron.
+     *
+     * @param Request $request Peticion HTTP con array de paises a actualizar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con el resultado de la operacion.
+     */
     public function bulkUpdate(Request $request)
     {
-        if (!auth()->user()->hasPermissionTo('actualizar configuracion telefonica')) {
+        /** @var User $user */
+        $user = Auth::user();
+        if (!$user || !$user->hasPermissionTo('actualizar configuracion telefonica')) {
             abort(403, 'No tienes permiso para realizar esta acción.');
         }
 
@@ -153,7 +223,13 @@ class PhoneController extends Controller
     }
 
     /**
-     * API pública para obtener presets de teléfonos - SIN AUTENTICACIÓN
+     * API publica: retorna presets predefinidos de formatos telefonicos.
+     *
+     * Incluye formatos para Americas, Europa y Asia. Util para autocomplete
+     * y seleccion rapida de formatos en formularios del frontend.
+     * Respuesta cacheada por 24 horas.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con los presets agrupados por region.
      */
     public function getPresets()
     {
@@ -197,6 +273,14 @@ class PhoneController extends Controller
         });
     }
 
+    /**
+     * API publica: retorna los codigos telefonicos de todos los paises configurados.
+     *
+     * Incluye: ID, nombre, codigo ISO, codigo telefonico, formato y longitudes.
+     * Respuesta cacheada por 24 horas.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la lista de paises y sus codigos.
+     */
     public function getPhoneCodes()
     {
         return Cache::remember('api_phone_codes', self::CACHE_DURATION, function () {
@@ -209,6 +293,16 @@ class PhoneController extends Controller
         });
     }
 
+    /**
+     * API publica: retorna la configuracion telefonica de un pais especifico.
+     *
+     * Incluye codigo telefonico, mascara de formato, longitudes y placeholder
+     * generado. Si el pais no existe o no tiene configuracion, retorna valores
+     * por defecto para Venezuela (+58). Respuesta cacheada por 24 horas.
+     *
+     * @param int $countryId ID del pais a consultar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la configuracion telefonica.
+     */
     public function getPhoneConfig($countryId)
     {
         $cacheKey = "api_phone_config_{$countryId}";
@@ -236,6 +330,16 @@ class PhoneController extends Controller
         });
     }
 
+    /**
+     * Genera un placeholder de ejemplo a partir de una mascara de formato.
+     *
+     * Reemplaza cada '0' de la mascara con digitos secuenciales (1-9, 0, 1-9...)
+     * para crear un numero de ejemplo realista que muestre al usuario el formato
+     * esperado del telefono.
+     *
+     * @param string $mask Mascara de formato (ej: '000-0000000').
+     * @return string Placeholder con digitos de ejemplo (ej: '123-4567890').
+     */
     private function generatePlaceholder($mask)
     {
         $numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];

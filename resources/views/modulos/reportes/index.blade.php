@@ -1,3 +1,4 @@
+{{-- Panel de reportes y estadísticas gerenciales --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Reportes Gerenciales')

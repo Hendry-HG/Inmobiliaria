@@ -10,10 +10,34 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Controlador de Configuración del Sitio
+ *
+ * Gestiona la configuración general del sitio web inmobiliario, incluyendo:
+ * - Sección Hero (badge, títulos, subtítulo e imágenes del carrusel principal)
+ * - Propiedades destacadas en la página de inicio
+ * - Información de contacto y soporte (WhatsApp, Instagram, teléfono, email)
+ * - Texto del pie de página (footer)
+ * - Estadísticas generales del sitio
+ *
+ * Utiliza el modelo SiteConfiguration (patrón singleton) para almacenar
+ * toda la configuración en una sola fila de la base de datos.
+ *
+ * Reglas de permisos:
+ * - 'ver configuración': acceso de lectura a todas las acciones
+ * - 'editar configuración': requerido para actualizar y restaurar valores
+ */
 class SiteConfigController extends Controller
 {
     use AuditTrait;
 
+    /**
+     * Constructor del controlador
+     *
+     * Aplica middlewares de permisos a las acciones del controlador.
+     * - Todos los métodos requieren el permiso 'ver configuración'
+     * - Solo update() y reset() requieren adicionalmente 'editar configuración'
+     */
     public function __construct()
     {
         $this->middleware('permission:ver configuración');
@@ -21,7 +45,15 @@ class SiteConfigController extends Controller
     }
 
     /**
-     * Mostrar formulario de configuración
+     * Muestra el formulario de configuración del sitio
+     *
+     * Carga y muestra la configuración actual del sitio, incluyendo:
+     * - Datos del hero (badge, títulos, imágenes)
+     * - Propiedades publicadas disponibles para destacar
+     * - Propiedades actualmente destacadas (seleccionadas)
+     * - Estadísticas: total de propiedades, vistas totales y propiedad más vista
+     *
+     * @return \Illuminate\View\View Vista modulos.config.index
      */
     public function index()
     {
@@ -60,7 +92,18 @@ class SiteConfigController extends Controller
     }
 
     /**
-     * Actualizar configuración
+     * Actualiza la configuración del sitio
+     *
+     * Procesa el formulario de edición y actualiza todos los campos.
+     * Flujo del método:
+     * 1. Validación de todos los campos del formulario
+     * 2. Procesamiento de imágenes del hero (eliminación, subida y combinación)
+     * 3. Procesamiento de propiedades destacadas (conversión y validación de IDs)
+     * 4. Actualización de todos los campos en la base de datos
+     * 5. Registro de auditoría con los cambios realizados
+     *
+     * @param  \Illuminate\Http\Request  $request  Datos del formulario
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request)
     {
@@ -88,7 +131,7 @@ class SiteConfigController extends Controller
         // PROCESAR IMÁGENES DEL HERO
         // ==========================================
 
-        // 1. Eliminar imágenes marcadas
+        // 1. Eliminar imágenes marcadas por el usuario (recibe índices en JSON)
         $deletedImages = json_decode($request->input('deleted_hero_images', '[]'), true);
         $currentImages = $config->hero_images ?? [];
 
@@ -96,7 +139,7 @@ class SiteConfigController extends Controller
             $currentImages = json_decode($currentImages, true) ?? [];
         }
 
-        // Filtrar imágenes que no están marcadas para eliminar
+        // Filtrar: conservar solo las imágenes NO marcadas para eliminar
         $remainingImages = [];
         foreach ($currentImages as $index => $image) {
             if (!in_array($index, $deletedImages)) {
@@ -104,7 +147,7 @@ class SiteConfigController extends Controller
             }
         }
 
-        // 2. Subir nuevas imágenes
+        // 2. Subir nuevas imágenes al storage público (carpeta hero-images)
         $newImages = [];
         if ($request->hasFile('hero_images_new')) {
             foreach ($request->file('hero_images_new') as $file) {
@@ -115,7 +158,7 @@ class SiteConfigController extends Controller
             }
         }
 
-        // 3. Combinar imágenes existentes y nuevas
+        // 3. Combinar imágenes existentes con las nuevas
         $allImages = array_merge($remainingImages, $newImages);
 
         // ==========================================
@@ -124,10 +167,12 @@ class SiteConfigController extends Controller
 
         $featuredProperties = $request->input('featured_properties', []);
 
+        // Si viene como string separado por comas, convertir a array
         if (is_string($featuredProperties)) {
             $featuredProperties = explode(',', $featuredProperties);
         }
 
+        // Filtrar IDs numéricos válidos y reindexar
         $featuredProperties = array_filter($featuredProperties, function($id) {
             return is_numeric($id) && $id > 0;
         });
@@ -135,7 +180,7 @@ class SiteConfigController extends Controller
         $featuredProperties = array_values($featuredProperties);
 
         // ==========================================
-        // ACTUALIZAR CONFIGURACIÓN
+        // ACTUALIZAR CONFIGURACIÓN EN BD
         // ==========================================
 
         $config->update([
@@ -182,6 +227,7 @@ class SiteConfigController extends Controller
             'footer_text' => 'texto del footer',
         ];
 
+        // Comparar valores antiguos con los nuevos para generar descripción legible
         foreach ($config->getChanges() as $key => $value) {
             if ($key !== 'updated_at' && isset($oldValues[$key])) {
                 $label = $fieldLabels[$key] ?? $key;
@@ -191,6 +237,7 @@ class SiteConfigController extends Controller
             }
         }
 
+        // Registrar cambio con descripción detallada o log genérico si no hay cambios
         if (!empty($changes)) {
             $this->logUpdated($config, $oldValues, $changes);
         } else {
@@ -204,7 +251,13 @@ class SiteConfigController extends Controller
     }
 
     /**
-     * Eliminar una imagen del hero
+     * Elimina una imagen específica del carrusel del hero (endpoint AJAX)
+     *
+     * Elimina la imagen por su índice en el array, borra el archivo físico
+     * del storage y reindexa el array de imágenes.
+     *
+     * @param  int  $index  Índice de la imagen a eliminar (0-based)
+     * @return \Illuminate\Http\JsonResponse  Respuesta JSON con resultado
      */
     public function deleteImage($index)
     {
@@ -216,6 +269,7 @@ class SiteConfigController extends Controller
                 $images = json_decode($images, true) ?? [];
             }
 
+            // Verificar que la imagen en el índice exista
             if (!isset($images[$index])) {
                 return response()->json([
                     'success' => false,
@@ -223,6 +277,7 @@ class SiteConfigController extends Controller
                 ], 404);
             }
 
+            // Eliminar archivo físico del disco público
             $imagePath = $images[$index];
             if (strpos($imagePath, '/storage/') !== false) {
                 $path = str_replace('/storage/', '', $imagePath);
@@ -231,6 +286,7 @@ class SiteConfigController extends Controller
                 }
             }
 
+            // Remover del array y reindexar para mantener continuidad
             unset($images[$index]);
             $images = array_values($images);
 
@@ -251,14 +307,21 @@ class SiteConfigController extends Controller
     }
 
     /**
-     * Resetear configuración a valores por defecto
+     * Restaura la configuración del sitio a sus valores por defecto
+     *
+     * 1. Guarda los valores actuales para auditoría
+     * 2. Elimina todas las imágenes del hero del storage público
+     * 3. Restaura todos los campos a valores predeterminados
+     * 4. Registra la acción en el log de auditoría
+     *
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function reset()
     {
         $config = SiteConfiguration::getConfig();
         $oldValues = $config->toArray();
 
-        // Eliminar imágenes del storage
+        // Eliminar todas las imágenes del hero del disco público
         $images = $config->hero_images ?? [];
         if (is_string($images)) {
             $images = json_decode($images, true) ?? [];
@@ -273,7 +336,7 @@ class SiteConfigController extends Controller
             }
         }
 
-        // Restaurar valores por defecto (SIN IMÁGENES)
+        // Restaurar valores por defecto (sin imágenes predefinidas)
         $config->update([
             'hero_badge' => 'Exclusividad & Confort',
             'hero_title_line1' => 'El Arte de',
@@ -299,7 +362,14 @@ class SiteConfigController extends Controller
     }
 
     /**
-     * Buscar propiedades para autocompletar (AJAX)
+     * Busca propiedades por término de búsqueda (endpoint AJAX para autocompletado)
+     *
+     * Busca propiedades publicadas por título, ID o ubicación (búsqueda parcial).
+     * Retorna máximo 20 resultados ordenados por vistas (más populares primero),
+     * incluyendo la URL de la imagen principal para vista previa en el autocomplete.
+     *
+     * @param  \Illuminate\Http\Request  $request  Parámetro 'q' con el término de búsqueda
+     * @return \Illuminate\Http\JsonResponse  Array JSON con las propiedades encontradas
      */
     public function searchProperties(Request $request)
     {

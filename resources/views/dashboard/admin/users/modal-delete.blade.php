@@ -1,3 +1,4 @@
+{{-- Modal de confirmación de eliminación de usuario --}}
 <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4 text-center">
     <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
         <i class="ph ph-warning text-3xl"></i>

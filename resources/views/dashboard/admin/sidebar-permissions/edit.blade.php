@@ -1,3 +1,4 @@
+{{-- Formulario de edición de permisos del sidebar --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Editar Permisos del Sidebar')

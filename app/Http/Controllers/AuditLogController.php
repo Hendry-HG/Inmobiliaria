@@ -907,7 +907,7 @@ class AuditLogController extends Controller
             });
         }
 
-        $logs = $query->get();
+        $logs = $query->limit(5000)->get();
 
         $headers = [
             'Content-Type' => 'text/csv',
