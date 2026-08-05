@@ -29,16 +29,6 @@
 @endphp
 
 {{-- ============================================= --}}
-{{-- SIDEBAR MÓVIL - BOTÓN FLOTANTE --}}
-{{-- ============================================= --}}
-<button id="mobileMenuToggle"
-        class="lg:hidden fixed bottom-4 right-4 z-50 bg-mso-blue text-white p-4 rounded-full shadow-2xl hover:bg-mso-gold hover:text-mso-blue transition-all duration-300 hover:scale-110"
-        onclick="toggleMobileSidebar()"
-        aria-label="Abrir menú">
-    <i class="ph ph-list text-2xl"></i>
-</button>
-
-{{-- ============================================= --}}
 {{-- SIDEBAR DESKTOP --}}
 {{-- ============================================= --}}
 <aside id="sidebar"
@@ -110,7 +100,7 @@
                 {{-- ADMINISTRACIÓN --}}
                 {{-- ========================================== --}}
                 @if($isSuperAdmin || $isAdmin)
-                @if($canSee('sidebar.users') || $canSee('sidebar.roles'))
+                @if($canSee('sidebar.users') || $canSee('sidebar.roles') || $isSuperAdmin)
                 <li class="pt-3" x-show="sidebarOpen" x-transition:enter.duration.300ms>
                     <p class="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Administración</p>
                 </li>
@@ -518,7 +508,7 @@
 
         {{-- ADMINISTRACIÓN --}}
         @if($isSuperAdmin || $isAdmin)
-        @if($canSee('sidebar.users') || $canSee('sidebar.roles'))
+        @if($canSee('sidebar.users') || $canSee('sidebar.roles') || $isSuperAdmin)
         <div class="pt-3">
             <p class="px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Administración</p>
         </div>

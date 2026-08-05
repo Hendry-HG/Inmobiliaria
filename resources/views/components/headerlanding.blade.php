@@ -16,7 +16,7 @@
 
                 @auth
                     <!-- Usuario autenticado -->
-                    <span class="text-gray-700">{{ auth()->user()->name }}</span>
+                    <span class="text-gray-700">{{ auth()->user()->full_name }}</span>
                     <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-blue-600">Dashboard</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
@@ -64,7 +64,7 @@
             <a href="#" class="text-gray-700 text-lg">Contacto</a>
 
             @auth
-                <span class="text-gray-700 text-lg">{{ auth()->user()->name }}</span>
+                <span class="text-gray-700 text-lg">{{ auth()->user()->full_name }}</span>
                 <a href="{{ route('dashboard') }}" class="text-gray-700 text-lg">Dashboard</a>
                 <form method="POST" action="{{ route('logout') }}" class="w-48">
                     @csrf

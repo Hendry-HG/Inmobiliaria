@@ -111,7 +111,12 @@ class RegisterController extends Controller
     public function showRegistrationForm()
     {
         $questions = $this->securityQuestions;
-        return view('auth.register', compact('questions'));
+        $phoneCountries = \App\Models\Country::whereNotNull('phone_code')
+            ->where('phone_code', '!=', '')
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone_code', 'phone_format', 'phone_min_length', 'phone_max_length']);
+
+        return view('auth.register', compact('questions', 'phoneCountries'));
     }
 
     /**
@@ -167,18 +172,19 @@ class RegisterController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'last_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:500'],
-            'id_type' => ['nullable', 'string', 'in:V,E,J'],
-            'id_number' => ['nullable', 'string', 'max:20', Rule::unique('users', 'id_number')->whereNull('deleted_at')],
-            'country_id' => ['nullable', 'integer', 'exists:countries,id'],
-            'state_id' => ['nullable', 'integer', 'exists:states,id'],
-            'municipality_id' => ['nullable', 'integer', 'exists:municipalities,id'],
-            'parish_id' => ['nullable', 'integer', 'exists:parishes,id'],
-            'city_id' => ['nullable', 'integer', 'exists:cities,id'],
+            'password' => ['required', 'string', 'min:10', 'confirmed', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/'],
+            'phone' => ['required', 'string', 'regex:/^[0-9]{7,15}$/', 'max:20'],
+            'phone_code' => ['required', 'string', 'regex:/^\+\d{1,4}$/', 'max:6'],
+            'address' => ['required', 'string', 'max:500'],
+            'id_type' => ['required', 'string', 'in:V,E,J'],
+            'id_number' => ['required', 'string', 'max:20', Rule::unique('users', 'id_number')->whereNull('deleted_at')],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
+            'state_id' => ['required', 'integer', 'exists:states,id'],
+            'municipality_id' => ['required', 'integer', 'exists:municipalities,id'],
+            'parish_id' => ['required', 'integer', 'exists:parishes,id'],
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
             'terms' => ['required', 'accepted'],
             'security_question_1' => ['required', 'string', 'in:' . implode(',', $this->securityQuestions)],
             'security_answer_1' => ['required', 'string', 'min:2', 'max:255'],
@@ -186,6 +192,21 @@ class RegisterController extends Controller
             'security_answer_2' => ['required', 'string', 'min:2', 'max:255'],
             'security_question_3' => ['required', 'string', 'in:' . implode(',', $this->securityQuestions)],
             'security_answer_3' => ['required', 'string', 'min:2', 'max:255'],
+        ], [
+            'email.unique' => 'Este correo ya está en uso por otro usuario.',
+            'id_number.unique' => 'Este número de identificación ya está en uso por otro usuario.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.regex' => 'El teléfono debe contener entre 7 y 15 dígitos.',
+            'phone_code.regex' => 'El código de país no es válido.',
+            'last_name.required' => 'El apellido es obligatorio.',
+            'id_type.required' => 'Selecciona el tipo de identificación.',
+            'id_number.required' => 'El número de identificación es obligatorio.',
+            'address.required' => 'La dirección es obligatoria.',
+            'country_id.required' => 'Selecciona un país.',
+            'state_id.required' => 'Selecciona un estado.',
+            'municipality_id.required' => 'Selecciona un municipio.',
+            'parish_id.required' => 'Selecciona una parroquia.',
+            'city_id.required' => 'Selecciona una ciudad.',
         ]);
 
         $questions = [
@@ -202,9 +223,15 @@ class RegisterController extends Controller
         }
 
         try {
-            $phone = $validated['phone'] ?? null;
-            if ($phone) {
-                $phone = preg_replace('/[^0-9]/', '', $phone);
+            $phone = preg_replace('/[^0-9]/', '', $validated['phone_code']) . $validated['phone'];
+
+            $phoneExists = User::whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '.', ''), '(', ''), ')', '') = ?", [$phone])
+                ->exists();
+
+            if ($phoneExists) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['phone' => 'Este teléfono ya está en uso por otro usuario.']);
             }
 
             $hashedAnswers = [
@@ -218,7 +245,7 @@ class RegisterController extends Controller
                 'last_name' => $validated['last_name'] ?? null,
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'phone' => $phone,
+                'phone' => '+' . $phone,
                 'address' => $validated['address'] ?? null,
                 'id_type' => $validated['id_type'] ?? null,
                 'id_number' => $validated['id_number'] ?? null,
@@ -305,5 +332,42 @@ class RegisterController extends Controller
     public function getSecurityQuestions()
     {
         return response()->json($this->securityQuestions);
+    }
+
+    /**
+     * Verifica en vivo si un campo del formulario de registro ya está en uso.
+     *
+     * Endpoint público usado por el formulario de registro para avisar al
+     * usuario (sin recargar la página) cuando el correo, el número de
+     * identificación o el teléfono ya pertenecen a otra cuenta. Acepta
+     * 'field' (email|id_number|phone) y 'value'.
+     *
+     * @param  \Illuminate\Http\Request $request Solicitud con 'field' y 'value'.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la disponibilidad del valor.
+     */
+    public function checkUnique(Request $request)
+    {
+        $field = $request->input('field');
+        $value = trim((string) $request->input('value'));
+
+        if (!in_array($field, ['email', 'id_number', 'phone'], true)) {
+            return response()->json(['available' => true]);
+        }
+
+        if ($value === '') {
+            return response()->json(['available' => true]);
+        }
+
+        $query = User::query();
+
+        if ($field === 'email') {
+            $query->whereRaw('LOWER(email) = ?', [mb_strtolower($value)]);
+        } elseif ($field === 'id_number') {
+            $query->whereRaw('LOWER(id_number) = ?', [mb_strtolower($value)]);
+        } else {
+            $query->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '.', ''), '(', ''), ')', '') = ?", [preg_replace('/[^0-9]/', '', $value)]);
+        }
+
+        return response()->json(['available' => !$query->exists()]);
     }
 }

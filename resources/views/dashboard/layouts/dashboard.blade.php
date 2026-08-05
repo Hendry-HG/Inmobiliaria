@@ -27,7 +27,7 @@
                 <div class="px-6 py-4 flex justify-between items-center">
                     <h1 class="text-2xl font-semibold text-gray-800">@yield('header')</h1>
                     <div class="flex items-center space-x-4">
-                        <span class="text-gray-600">{{ Auth::user()->name }}</span>
+                        <span class="text-gray-600">{{ Auth::user()->full_name }}</span>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="text-red-600 hover:text-red-800">
@@ -52,5 +52,8 @@
             </main>
         </div>
     </div>
+
+    <!-- Modal global de campos incompletos -->
+    @include('components.missing-fields-modal')
 </body>
 </html>

@@ -31,23 +31,23 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Badge (Etiqueta)</label>
-                        <input type="text" name="hero_badge" value="{{ old('hero_badge', $config->hero_badge ?? '') }}"
+                        <label for="hero_badge" class="block text-sm font-medium text-slate-700 mb-1">Badge (Etiqueta)</label>
+                        <input type="text" name="hero_badge" id="hero_badge" value="{{ old('hero_badge', $config->hero_badge ?? '') }}"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Título Línea 1</label>
-                        <input type="text" name="hero_title_line1" value="{{ old('hero_title_line1', $config->hero_title_line1 ?? '') }}"
+                        <label for="hero_title_line1" class="block text-sm font-medium text-slate-700 mb-1">Título Línea 1</label>
+                        <input type="text" name="hero_title_line1" id="hero_title_line1" value="{{ old('hero_title_line1', $config->hero_title_line1 ?? '') }}"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Título Línea 2</label>
-                        <input type="text" name="hero_title_line2" value="{{ old('hero_title_line2', $config->hero_title_line2 ?? '') }}"
+                        <label for="hero_title_line2" class="block text-sm font-medium text-slate-700 mb-1">Título Línea 2</label>
+                        <input type="text" name="hero_title_line2" id="hero_title_line2" value="{{ old('hero_title_line2', $config->hero_title_line2 ?? '') }}"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Subtítulo</label>
-                        <input type="text" name="hero_subtitle" value="{{ old('hero_subtitle', $config->hero_subtitle ?? '') }}"
+                        <label for="hero_subtitle" class="block text-sm font-medium text-slate-700 mb-1">Subtítulo</label>
+                        <input type="text" name="hero_subtitle" id="hero_subtitle" value="{{ old('hero_subtitle', $config->hero_subtitle ?? '') }}"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                 </div>
@@ -91,7 +91,7 @@
 
                     {{-- Input para subir nuevas imágenes --}}
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Agregar nuevas imágenes</label>
+                        <label for="hero_images_input" class="block text-sm font-medium text-slate-700 mb-1">Agregar nuevas imágenes</label>
                         <input type="file" name="hero_images_new[]" id="hero_images_input" multiple accept="image/*"
                                class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-mso-gold file:text-mso-blue hover:file:bg-mso-blue hover:file:text-white cursor-pointer">
                         <p class="text-xs text-slate-400 mt-1">Formatos: JPG, PNG, WebP. Máximo 2MB por imagen.</p>
@@ -116,13 +116,13 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Badge Destacadas</label>
-                        <input type="text" name="featured_badge" value="{{ old('featured_badge', $config->featured_badge ?? '') }}"
+                        <label for="featured_badge" class="block text-sm font-medium text-slate-700 mb-1">Badge Destacadas</label>
+                        <input type="text" name="featured_badge" id="featured_badge" value="{{ old('featured_badge', $config->featured_badge ?? '') }}"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Título Destacadas</label>
-                        <input type="text" name="featured_title" value="{{ old('featured_title', $config->featured_title ?? '') }}"
+                        <label for="featured_title" class="block text-sm font-medium text-slate-700 mb-1">Título Destacadas</label>
+                        <input type="text" name="featured_title" id="featured_title" value="{{ old('featured_title', $config->featured_title ?? '') }}"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                 </div>
@@ -148,13 +148,13 @@
 
                 {{-- Selector de Propiedades Destacadas --}}
                 <div class="mt-4">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="propertySearch" class="block text-sm font-medium text-slate-700 mb-2">
                         Seleccionar Propiedades Destacadas (<span id="selectedCount">{{ count($featuredIds) }}</span> seleccionadas)
                     </label>
 
                     {{-- Campo de búsqueda --}}
                     <div class="relative mb-3">
-                        <input type="text" id="propertySearch"
+                        <input type="text" id="propertySearch" autocomplete="off" aria-label="Buscar propiedad destacada"
                                placeholder=" Buscar propiedad por nombre, ubicación o ID..."
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
@@ -244,26 +244,26 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">WhatsApp</label>
-                        <input type="text" name="support_whatsapp" value="{{ old('support_whatsapp', $config->support_whatsapp ?? '') }}"
+                        <label for="support_whatsapp" class="block text-sm font-medium text-slate-700 mb-1">WhatsApp</label>
+                        <input type="text" name="support_whatsapp" id="support_whatsapp" autocomplete="off" value="{{ old('support_whatsapp', $config->support_whatsapp ?? '') }}"
                                placeholder="58XXXXXXXXX"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Instagram</label>
-                        <input type="text" name="support_instagram" value="{{ old('support_instagram', $config->support_instagram ?? '') }}"
+                        <label for="support_instagram" class="block text-sm font-medium text-slate-700 mb-1">Instagram</label>
+                        <input type="text" name="support_instagram" id="support_instagram" autocomplete="off" value="{{ old('support_instagram', $config->support_instagram ?? '') }}"
                                placeholder="usuario_instagram"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
-                        <input type="text" name="support_phone" value="{{ old('support_phone', $config->support_phone ?? '') }}"
+                        <label for="support_phone" class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
+                        <input type="text" name="support_phone" id="support_phone" autocomplete="tel" value="{{ old('support_phone', $config->support_phone ?? '') }}"
                                placeholder="+58 412 1234567"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Email de Soporte</label>
-                        <input type="email" name="support_email" value="{{ old('support_email', $config->support_email ?? '') }}"
+                        <label for="support_email" class="block text-sm font-medium text-slate-700 mb-1">Email de Soporte</label>
+                        <input type="email" name="support_email" id="support_email" autocomplete="email" value="{{ old('support_email', $config->support_email ?? '') }}"
                                placeholder="contacto@mso.com"
                                class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                     </div>
@@ -280,8 +280,8 @@
                 </h4>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Texto del Footer</label>
-                    <input type="text" name="footer_text" value="{{ old('footer_text', $config->footer_text ?? '') }}"
+                    <label for="footer_text" class="block text-sm font-medium text-slate-700 mb-1">Texto del Footer</label>
+                    <input type="text" name="footer_text" id="footer_text" value="{{ old('footer_text', $config->footer_text ?? '') }}"
                            placeholder="© 2024 MSO Grupo Inmobiliario. Todos los derechos reservados."
                            class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold">
                 </div>
@@ -305,34 +305,32 @@
 @push('js')
 <script>
     // ============================================================
-    // CONFIGURACIÓN
-    // ============================================================
-    const deleteHeroImageUrl = '{{ route("admin.config.delete-image", ["index" => "PLACEHOLDER"]) }}';
-
-    // ============================================================
     // ELIMINAR IMÁGENES DEL HERO
     // ============================================================
     function deleteHeroImage(index) {
         if (!confirm('¿Estás seguro de eliminar esta imagen?')) return;
 
-        const url = deleteHeroImageUrl.replace('PLACEHOLDER', index);
+        const imageElement = document.querySelector(`.image-item[data-index="${index}"] img`);
+        const imageUrl = imageElement ? imageElement.src : '';
 
-        fetch(url, {
+        fetch('{{ route('admin.config.delete-image') }}', {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ url: imageUrl })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const imageElement = document.querySelector(`.image-item[data-index="${index}"]`);
                 if (imageElement) {
-                    imageElement.remove();
+                    imageElement.closest('.image-item').remove();
                 }
-                updateDeletedImages(index);
+                if (imageUrl) {
+                    updateDeletedImages(imageUrl);
+                }
             } else {
                 alert(data.message || 'Error al eliminar la imagen');
             }
@@ -343,7 +341,7 @@
         });
     }
 
-    function updateDeletedImages(index) {
+    function updateDeletedImages(imageUrl) {
         const hiddenInput = document.getElementById('deleted_hero_images');
         let deletedImages = [];
 
@@ -353,8 +351,8 @@
             deletedImages = [];
         }
 
-        if (!deletedImages.includes(index)) {
-            deletedImages.push(index);
+        if (!deletedImages.includes(imageUrl)) {
+            deletedImages.push(imageUrl);
             hiddenInput.value = JSON.stringify(deletedImages);
         }
     }

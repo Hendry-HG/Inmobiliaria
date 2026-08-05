@@ -18,10 +18,7 @@ const echoConfig = {
 if (!window.Echo) {
     try {
         window.Echo = new Echo(echoConfig);
-        console.log(' Echo inicializado correctamente');
     } catch (error) {
         console.warn(' Error al inicializar Echo:', error);
     }
 }
-
-console.log(' Bootstrap cargado correctamente');

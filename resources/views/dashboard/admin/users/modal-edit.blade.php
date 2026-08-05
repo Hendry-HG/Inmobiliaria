@@ -7,7 +7,7 @@
         </button>
     </div>
 
-    <form action="{{ route('admin.users.update', $user) }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scroll">
+    <form action="{{ route('admin.users.update', $user) }}" method="POST" enctype="multipart/form-data" data-user-id="{{ $user->id }}" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scroll">
         @csrf
         @method('PUT')
 
@@ -29,15 +29,23 @@
             {{-- EMAIL --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input type="email" name="email" value="{{ old('email', $user->email) }}"
+                <input type="email" name="email" id="edit_email" value="{{ old('email', $user->email) }}"
                        class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required>
+                <div id="edit-email-error" class="text-red-500 text-xs mt-1 hidden">Este correo ya está en uso por otro usuario.</div>
+                @error('email')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- TELÉFONO --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
+                <input type="text" name="phone" id="edit_phone" value="{{ old('phone', $user->phone) }}"
                        class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <div id="edit-phone-error" class="text-red-500 text-xs mt-1 hidden">Este teléfono ya está en uso por otro usuario.</div>
+                @error('phone')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- ROL --}}
@@ -55,7 +63,7 @@
             {{-- TIPO DE IDENTIFICACIÓN --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Cédula</label>
-                <select name="id_type" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <select name="id_type" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="Tipo de Identificación">
                     <option value="">Seleccionar</option>
                     <option value="V" {{ old('id_type', $user->id_type) == 'V' ? 'selected' : '' }}>Venezolano (V)</option>
                     <option value="E" {{ old('id_type', $user->id_type) == 'E' ? 'selected' : '' }}>Extranjero (E)</option>
@@ -67,14 +75,18 @@
             {{-- NÚMERO DE IDENTIFICACIÓN --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Número de Cédula</label>
-                <input type="text" name="id_number" value="{{ old('id_number', $user->id_number) }}"
-                       class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <input type="text" name="id_number" id="edit_id_number" value="{{ old('id_number', $user->id_number) }}"
+                       class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="Número de Identificación">
+                <div id="edit-id_number-error" class="text-red-500 text-xs mt-1 hidden">Este número de identificación ya está en uso por otro usuario.</div>
+                @error('id_number')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- PAÍS --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">País</label>
-                <select name="country_id" id="edit_country_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <select name="country_id" id="edit_country_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="País">
                     <option value="">Seleccionar país</option>
                     @foreach($countries ?? [] as $country)
                         <option value="{{ $country->id }}" {{ old('country_id', $user->country_id) == $country->id ? 'selected' : '' }}>{{ $country->name }}</option>
@@ -85,7 +97,7 @@
             {{-- ESTADO --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                <select name="state_id" id="edit_state_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <select name="state_id" id="edit_state_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="Estado">
                     <option value="">Seleccionar estado</option>
                     @foreach($states ?? [] as $state)
                         <option value="{{ $state->id }}" {{ old('state_id', $user->state_id) == $state->id ? 'selected' : '' }}>{{ $state->name }}</option>
@@ -96,7 +108,7 @@
             {{-- MUNICIPIO --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Municipio</label>
-                <select name="municipality_id" id="edit_municipality_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <select name="municipality_id" id="edit_municipality_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="Municipio">
                     <option value="">Seleccionar municipio</option>
                     @foreach($municipalities ?? [] as $municipality)
                         <option value="{{ $municipality->id }}" {{ old('municipality_id', $user->municipality_id) == $municipality->id ? 'selected' : '' }}>{{ $municipality->name }}</option>
@@ -107,7 +119,7 @@
             {{-- PARROQUIA --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Parroquia</label>
-                <select name="parish_id" id="edit_parish_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <select name="parish_id" id="edit_parish_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="Parroquia">
                     <option value="">Seleccionar parroquia</option>
                     @foreach($parishes ?? [] as $parish)
                         <option value="{{ $parish->id }}" {{ old('parish_id', $user->parish_id) == $parish->id ? 'selected' : '' }}>{{ $parish->name }}</option>
@@ -118,7 +130,7 @@
             {{-- CIUDAD --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
-                <select name="city_id" id="edit_city_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <select name="city_id" id="edit_city_id" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none" required data-label="Ciudad">
                     <option value="">Seleccionar ciudad</option>
                     @foreach($cities ?? [] as $city)
                         <option value="{{ $city->id }}" {{ old('city_id', $user->city_id) == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
@@ -129,23 +141,24 @@
             {{-- DIRECCIÓN --}}
             <div class="col-span-1 md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                <textarea name="address" rows="3"
+                <textarea name="address" rows="3" required data-label="Dirección"
                           class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">{{ old('address', $user->address) }}</textarea>
             </div>
 
             {{-- CONTRASEÑA --}}
             <div class="col-span-1 md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
-                <input type="password" name="password" placeholder="Dejar vacío para mantener la actual"
+                <input type="password" name="password" id="edit_password" placeholder="Dejar vacío para mantener la actual"
                        class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
-                <p class="text-xs text-gray-500 mt-1">Mínimo 10 caracteres.</p>
+                <div id="edit-password-strength" class="text-xs text-gray-500 mt-1">Mínimo 10 caracteres, con mayúscula, minúscula, número y carácter especial.</div>
             </div>
 
             {{-- CONFIRMAR CONTRASEÑA --}}
             <div class="col-span-1 md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
-                <input type="password" name="password_confirmation" placeholder="Repite la contraseña"
+                <input type="password" name="password_confirmation" id="edit_password_confirmation" placeholder="Repite la contraseña"
                        class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-mso-gold outline-none">
+                <div id="edit-pass-error" class="text-red-500 text-xs mt-1 hidden">Las contraseñas no coinciden</div>
             </div>
 
             {{-- FOTO DE PERFIL --}}

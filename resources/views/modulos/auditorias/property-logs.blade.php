@@ -276,19 +276,19 @@
     {{-- ============================================ --}}
     {{-- BUSCADOR Y FILTROS --}}
     {{-- ============================================ --}}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
         <form action="{{ route('audit-logs.property-logs') }}" method="GET">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 items-end">
                 {{-- Buscador de propiedades --}}
-                <div class="md:col-span-4">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                <div>
+                    <label for="propertySearchInput" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">
                         <i class="ph ph-magnifying-glass text-mso-gold"></i> Buscar Propiedad
                     </label>
                     <div class="search-container">
                         <input type="text"
                                id="propertySearchInput"
                                placeholder="Buscar por título o ID..."
-                               class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none"
+                               class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all"
                                autocomplete="off"
                                value="{{ request('property_id') && isset($selectedProperty) ? $selectedProperty->title : '' }}">
                         <div id="propertySearchResults" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
@@ -307,46 +307,53 @@
                 </div>
 
                 {{-- Filtro de acción --}}
-                <div class="md:col-span-3">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                <div>
+                    <label for="proplog_action" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">
                         <i class="ph ph-tag text-mso-gold"></i> Acción
                     </label>
-                    <select name="action" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none">
+                    @php
+                        $propertyActionLabels = [
+                            'created' => 'Creación',
+                            'updated' => 'Actualización',
+                            'deleted' => 'Eliminación',
+                            'published' => 'Publicación',
+                            'unpublished' => 'Despublicación',
+                            'sold' => 'Venta',
+                            'restored' => 'Restauración',
+                        ];
+                    @endphp
+                    <select name="action" id="proplog_action" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                         <option value="">Todas las acciones</option>
                         @foreach($actions ?? [] as $action)
                             <option value="{{ $action }}" {{ request('action') == $action ? 'selected' : '' }}>
-                                {{ ucfirst(str_replace('_', ' ', $action)) }}
+                                {{ $propertyActionLabels[$action] ?? ucfirst(str_replace('_', ' ', $action)) }}
                             </option>
                         @endforeach
                     </select>
                 </div>
 
                 {{-- Fechas --}}
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                <div>
+                    <label for="proplog_date_from" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">
                         <i class="ph ph-calendar text-mso-gold"></i> Desde
                     </label>
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border rounded-lg p-2.5">
+                    <input type="date" name="date_from" id="proplog_date_from" value="{{ request('date_from') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                <div>
+                    <label for="proplog_date_to" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">
                         <i class="ph ph-calendar text-mso-gold"></i> Hasta
                     </label>
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border rounded-lg p-2.5">
+                    <input type="date" name="date_to" id="proplog_date_to" value="{{ request('date_to') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                 </div>
 
                 {{-- Botones de acción --}}
-                <div class="md:col-span-1">
-                    <label class="block text-sm font-medium text-slate-700 mb-1 opacity-0">Acciones</label>
-                    <div class="action-buttons">
-                        <button type="submit" class="btn-filter" title="Aplicar filtros">
-                            <i class="ph ph-funnel"></i>
-                            <span class="hidden sm:inline">Filtrar</span>
-                        </button>
-                        <a href="{{ route('audit-logs.property-logs') }}" class="btn-clear" title="Limpiar filtros">
-                            <i class="ph ph-x"></i>
-                        </a>
-                    </div>
+                <div class="sm:col-span-2 lg:col-span-2 flex gap-2">
+                    <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap" title="Aplicar filtros">
+                        <i class="ph ph-magnifying-glass"></i> Buscar
+                    </button>
+                    <a href="{{ route('audit-logs.property-logs') }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap" title="Limpiar filtros">
+                        <i class="ph ph-x"></i> Limpiar
+                    </a>
                 </div>
             </div>
 

@@ -120,7 +120,7 @@
             @endcan
 
             @can('crear cita')
-            <a href="{{ route('citas.create') }}"
+            <a href="{{ route('citas.index') }}"
                class="flex flex-col items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
                 <i class="ph ph-calendar-plus text-2xl text-green-500"></i>
                 <span class="text-sm font-medium mt-2">Agendar Cita</span>

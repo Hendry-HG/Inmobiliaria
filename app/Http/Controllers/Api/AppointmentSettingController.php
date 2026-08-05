@@ -142,13 +142,13 @@ class AppointmentSettingController extends Controller
         try {
             $settings = AppointmentSetting::firstOrNew(['user_id' => Auth::id()]);
             $settings->user_id = Auth::id();
-            $settings->is_active = $request->has('is_active');
-            $settings->apply_always = $request->has('apply_always');
+            $settings->is_active = $request->boolean('is_active');
+            $settings->apply_always = $request->boolean('apply_always');
             $settings->valid_from = $request->valid_from;
             $settings->valid_to = $request->valid_to;
             $settings->slot_duration = (int) $request->slot_duration;
             $settings->break_duration = (int) $request->break_duration;
-            $settings->notify_client = $request->has('notify_client');
+            $settings->notify_client = $request->boolean('notify_client');
             $settings->reminder_minutes = (int) $request->reminder_minutes;
 
             $dailyConfig = [];

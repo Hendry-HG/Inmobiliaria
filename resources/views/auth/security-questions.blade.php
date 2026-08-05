@@ -89,7 +89,6 @@
                     if (metaTag) {
                         metaTag.content = data.csrf_token;
                     }
-                    console.log(' Token CSRF actualizado');
                 }
             })
             .catch(() => {

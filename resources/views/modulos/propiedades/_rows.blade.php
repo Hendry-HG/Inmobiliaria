@@ -63,7 +63,7 @@
     @can('ver usuarios')
         @if(isset($isAdmin) && $isAdmin)
             <td class="p-4 text-slate-600 hidden lg:table-cell">
-                {{ $property->user->name ?? 'N/A' }}
+                {{ $property->user->full_name ?? 'N/A' }}
             </td>
         @endif
     @endcan

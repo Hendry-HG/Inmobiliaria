@@ -76,18 +76,18 @@
     {{-- ============================================ --}}
     {{-- FILTROS Y BUSCADOR DE USUARIOS --}}
     {{-- ============================================ --}}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <form action="{{ route('audit-logs.user-logs') }}" method="GET" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
+        <form action="{{ route('audit-logs.user-logs') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
             {{-- Buscador de usuarios --}}
-            <div class="md:col-span-4">
-                <label class="block text-sm font-medium text-slate-700 mb-1">
+            <div>
+                <label for="userSearchInput" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">
                     <i class="ph ph-magnifying-glass text-mso-gold"></i> Buscar Usuario
                 </label>
                 <div class="relative">
                     <input type="text"
                            id="userSearchInput"
                            placeholder="Buscar por nombre o email..."
-                           class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none pr-10"
+                           class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all pr-10"
                            autocomplete="off"
                            value="{{ request('user_id') && isset($selectedUser) ? $selectedUser->full_name . ' (' . $selectedUser->email . ')' : '' }}">
                     <div id="userSearchResults" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
@@ -105,22 +105,22 @@
             </div>
 
             {{-- Fechas --}}
-            <div class="md:col-span-3">
-                <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border rounded-lg p-2.5">
+            <div>
+                <label for="userlog_date_from" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Desde</label>
+                <input type="date" name="date_from" id="userlog_date_from" value="{{ request('date_from') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
-            <div class="md:col-span-3">
-                <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-                <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border rounded-lg p-2.5">
+            <div>
+                <label for="userlog_date_to" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Hasta</label>
+                <input type="date" name="date_to" id="userlog_date_to" value="{{ request('date_to') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
 
             {{-- Botones --}}
-            <div class="md:col-span-2 flex items-end gap-2">
-                <button type="submit" class="bg-mso-blue text-white px-6 py-2.5 rounded-lg hover:bg-slate-800 transition-colors flex-1 flex items-center justify-center gap-2">
-                    <i class="ph ph-funnel"></i> Filtrar
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-magnifying-glass"></i> Buscar
                 </button>
-                <a href="{{ route('audit-logs.user-logs') }}" class="px-4 py-2.5 border rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1">
-                    <i class="ph ph-x"></i>
+                <a href="{{ route('audit-logs.user-logs') }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-x"></i> Limpiar
                 </a>
             </div>
         </form>

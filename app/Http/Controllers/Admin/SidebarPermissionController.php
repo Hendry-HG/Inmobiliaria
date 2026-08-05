@@ -18,9 +18,9 @@ use Illuminate\Support\Facades\Log;
  * (permisos cuyo nombre comienza con "sidebar."). Estos permisos determinan
  * qué elementos del menú lateral puede ver cada rol.
  *
- * IMPORTANTE: Este controlador solo permite modificar los permisos del sidebar
- * del rol "Super Admin". Los permisos del sidebar de otros roles se gestionan
- * a través del RoleController.
+ * Solo el Super Admin puede acceder a este controlador, pero puede editar la
+ * visibilidad del sidebar de CUALQUIER rol para configurar qué verá cada
+ * usuario en el menú lateral.
  *
  * Flujo de datos:
  * - Los permisos del sidebar se almacenan en la tabla 'permissions' con prefijo 'sidebar.'
@@ -86,36 +86,26 @@ class SidebarPermissionController extends Controller
     }
 
     /**
-     * Muestra el formulario de edición de permisos del sidebar para el rol Super Admin.
+     * Muestra el formulario de edición de permisos del sidebar para cualquier rol.
      *
      * FLUJO DE PROTECCIÓN DEL SUPER ADMIN:
-     * Este método implementa una doble capa de protección:
-     * 1. Primero verifica que el usuario autenticado sea Super Admin (checkSuperAdminAccess)
-     * 2. Luego verifica que el rol a editar sea exactamente "Super Admin"
-     *
-     * Esto garantiza que solo el Super Admin puede modificar sus propios permisos
-     * del sidebar. No es posible modificar los permisos del sidebar de otros roles
-     * desde este controlador; eso se gestiona a través del RoleController.
+     * Solo el usuario autenticado con el rol "Super Admin" puede acceder
+     * (verificado en checkSuperAdminAccess). El Super Admin puede editar la
+     * visibilidad del sidebar de TODOS los roles para configurar qué verá
+     * cada usuario en el menú lateral.
      *
      * Flujo de datos:
      * 1. Verifica acceso de Super Admin
-     * 2. Valida que el rol recibido sea "Super Admin" (si no, aborta 403)
-     * 3. Carga los permisos actuales del rol (eager loading)
-     * 4. Consulta todos los permisos disponibles del sidebar (prefijo 'sidebar.')
-     * 5. Retorna el formulario de edición con el rol y los permisos del sidebar
+     * 2. Carga los permisos actuales del rol (eager loading)
+     * 3. Consulta todos los permisos disponibles del sidebar (prefijo 'sidebar.')
+     * 4. Retorna el formulario de edición con el rol y los permisos del sidebar
      *
      * @param \Spatie\Permission\Models\Role $role El rol a editar (resuelto por route model binding)
      * @return \Illuminate\View\View Vista del formulario de edición
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpHttpException 403 si el rol no es Super Admin
      */
     public function edit(Role $role)
     {
         $this->checkSuperAdminAccess();
-
-        // SOLO el Super Admin puede editar sus propios permisos del sidebar
-        if ($role->name !== 'Super Admin') {
-            abort(403, 'Solo puedes editar los permisos del sidebar del rol Super Admin.');
-        }
 
         $role->load('permissions');
 
@@ -125,7 +115,7 @@ class SidebarPermissionController extends Controller
     }
 
     /**
-     * Actualiza los permisos del sidebar del rol Super Admin.
+     * Actualiza los permisos del sidebar de un rol.
      *
      * ESTE ES EL MÉTODO MÁS CRÍTICO DEL CONTROLADOR.
      * Gestiona la separación y fusión de permisos del sistema y del sidebar,
@@ -133,8 +123,7 @@ class SidebarPermissionController extends Controller
      *
      * FLUJO DE PROTECCIÓN DEL SUPER ADMIN:
      * - Verifica que el usuario autenticado sea Super Admin
-     * - Verifica que el rol a modificar sea exactamente "Super Admin"
-     * - Si el rol no es Super Admin, redirige con mensaje de error
+     * - El Super Admin puede actualizar los permisos del sidebar de CUALQUIER rol
      *
      * SEPARACIÓN DE PERMISOS:
      * - Los permisos del sidebar comienzan con "sidebar." (ej: "sidebar.propiedades")
@@ -160,18 +149,12 @@ class SidebarPermissionController extends Controller
      * 7. Se actualiza la versión de permisos en la sesión
      *
      * @param \Illuminate\Http\Request $request Request HTTP con los permisos del sidebar
-     * @param \Spatie\Permission\Models\Role $role El rol a actualizar (debe ser Super Admin)
+     * @param \Spatie\Permission\Models\Role $role El rol a actualizar
      * @return \Illuminate\Http\RedirectResponse Redirección con mensaje de éxito o error
      */
     public function update(Request $request, Role $role)
     {
         $this->checkSuperAdminAccess();
-
-        // SOLO el Super Admin puede actualizar sus propios permisos del sidebar
-        if ($role->name !== 'Super Admin') {
-            return redirect()->route('super-admin.sidebar-permissions.index')
-                ->with('error', 'Solo puedes editar los permisos del sidebar del rol Super Admin.');
-        }
 
         try {
             // ==========================================

@@ -5,6 +5,15 @@
 @section('header', 'Mis Citas')
 
 @section('content')
+<style>
+    .stat-card {
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+</style>
 @php
     $primaryRole = $userRoles[0] ?? 'Cliente';
     $isAdmin = in_array('Super Admin', $userRoles) || in_array('Administrador', $userRoles) || in_array('Auditor', $userRoles);
@@ -17,8 +26,8 @@
     foreach($appointments as $app) {
         $propTitle = $app->property ? $app->property->title : 'Propiedad eliminada';
         $propAddress = $app->property ? $app->property->address : 'N/A';
-        $asesorName = $app->asesor ? $app->asesor->name : 'Sin Asesor';
-        $userName = $app->user ? $app->user->name : ($app->contact_name ?? 'Cliente');
+        $asesorName = $app->asesor ? $app->asesor->full_name : 'Sin Asesor';
+        $userName = $app->user ? $app->user->full_name : ($app->contact_name ?? 'Cliente');
         $userEmail = $app->user ? $app->user->email : ($app->contact_email ?? 'N/A');
 
         // Obtener imagen principal de la propiedad
@@ -110,13 +119,13 @@
                 </div>
                 <div id="asesorCalendar"></div>
             </div>
-            <div class="lg:col-span-7 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="lg:col-span-7 bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-4 overflow-hidden">
                 <h3 class="font-bold text-slate-700 text-sm mb-3">Filtros de Búsqueda</h3>
-                <form method="GET" action="{{ route('citas.index') }}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form method="GET" action="{{ route('citas.index') }}" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 items-end">
                     <input type="hidden" name="asesor_id" value="{{ Auth::id() }}">
                     <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Estado</label>
-                        <select name="status" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <label for="citas_status" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
+                        <select name="status" id="citas_status" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                             <option value="todos">Todos</option>
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pendientes</option>
                             <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmadas</option>
@@ -126,20 +135,24 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Fecha Desde</label>
-                        <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <label for="citas_date_from" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Fecha Desde</label>
+                        <input type="date" name="date_from" id="citas_date_from" value="{{ request('date_from') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Fecha Hasta</label>
-                        <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <label for="citas_date_to" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Fecha Hasta</label>
+                        <input type="date" name="date_to" id="citas_date_to" value="{{ request('date_to') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Buscar</label>
-                        <input type="text" name="search" placeholder="Nombre del cliente..." value="{{ request('search') }}" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <label for="citas_search" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Buscar</label>
+                        <input type="text" name="search" id="citas_search" placeholder="Nombre del cliente..." value="{{ request('search') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     </div>
-                    <div class="md:col-span-2 flex justify-center gap-3">
-                        <button type="submit" class="bg-mso-blue text-white px-8 py-2 rounded-lg">Buscar</button>
-                        <a href="{{ route('citas.index') }}?asesor_id={{ Auth::id() }}" class="bg-slate-100 text-slate-600 border px-8 py-2 rounded-lg">Limpiar</a>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                            <i class="ph ph-magnifying-glass"></i> Buscar
+                        </button>
+                        <a href="{{ route('citas.index') }}?asesor_id={{ Auth::id() }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                            <i class="ph ph-x"></i> Limpiar
+                        </a>
                     </div>
                 </form>
             </div>
@@ -184,7 +197,7 @@
                                     <h4 class="font-bold text-slate-800 cursor-pointer hover:text-mso-blue" onclick="window.showPropertyPreview({{ $appointment->id }})">
                                         {{ $appointment->property->title ?? 'Propiedad eliminada' }}
                                     </h4>
-                                    <p class="text-sm text-slate-600">{{ $appointment->contact_name ?? ($appointment->user->name ?? 'Cliente') }}</p>
+                                    <p class="text-sm text-slate-600">{{ $appointment->contact_name ?? ($appointment->user->full_name ?? 'Cliente') }}</p>
                                     <p class="text-xs text-slate-400">{{ $appointment->property->address ?? '' }}</p>
                                     @if($appointment->property)
                                     <div class="flex gap-3 mt-1 text-xs text-slate-500">
@@ -259,7 +272,7 @@
                 @csrf
                 <input type="hidden" id="actionAppointmentId">
                 <div>
-                    <label class="block text-xs font-medium mb-1">Cambiar Estado</label>
+                    <label for="statusSelect" class="block text-xs font-medium mb-1">Cambiar Estado</label>
                     <select id="statusSelect" class="w-full border rounded-lg px-4 py-2.5 text-sm">
                         <option value="pending">Pendiente</option>
                         <option value="confirmed">Confirmada</option>
@@ -269,12 +282,12 @@
                     </select>
                 </div>
                 <div class="mt-3">
-                    <label class="block text-xs font-medium mb-1">Reprogramar</label>
+                    <label for="rescheduleDateInput" class="block text-xs font-medium mb-1">Reprogramar</label>
                     <input type="datetime-local" id="rescheduleDateInput" class="w-full border rounded-lg px-4 py-2.5 text-sm">
                     <p class="text-xs text-slate-400 mt-1">Dejar vacío para mantener la fecha actual</p>
                 </div>
                 <div class="mt-3">
-                    <label class="block text-xs font-medium mb-1">Nota</label>
+                    <label for="actionMessage" class="block text-xs font-medium mb-1">Nota</label>
                     <textarea id="actionMessage" rows="3" class="w-full border rounded-lg px-4 py-2.5 text-sm resize-none"></textarea>
                 </div>
                 <div class="flex gap-3 mt-4">
@@ -291,45 +304,70 @@
     {{-- ============================================= --}}
     @if($isAdmin)
     <div class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div class="bg-white rounded-xl p-4 shadow-sm border">
-                <p class="text-sm text-slate-500">Total</p>
-                <p class="text-2xl font-bold">{{ $stats['total'] ?? 0 }}</p>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Total</p>
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="ph ph-calendar text-base"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-bold text-slate-800">{{ $stats['total'] ?? 0 }}</p>
             </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border">
-                <p class="text-sm text-slate-500">Pendientes</p>
+            <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Pendientes</p>
+                    <div class="w-8 h-8 rounded-lg bg-yellow-50 text-yellow-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="ph ph-clock text-base"></i>
+                    </div>
+                </div>
                 <p class="text-2xl font-bold text-yellow-600">{{ $stats['pending'] ?? 0 }}</p>
             </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border">
-                <p class="text-sm text-slate-500">Confirmadas</p>
+            <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Confirmadas</p>
+                    <div class="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="ph ph-check-circle text-base"></i>
+                    </div>
+                </div>
                 <p class="text-2xl font-bold text-green-600">{{ $stats['confirmed'] ?? 0 }}</p>
             </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border">
-                <p class="text-sm text-slate-500">Completadas</p>
+            <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Completadas</p>
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="ph ph-check-square text-base"></i>
+                    </div>
+                </div>
                 <p class="text-2xl font-bold text-blue-600">{{ $stats['completed'] ?? 0 }}</p>
             </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm border">
-                <p class="text-sm text-slate-500">Canceladas</p>
+            <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Canceladas</p>
+                    <div class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="ph ph-x-circle text-base"></i>
+                    </div>
+                </div>
                 <p class="text-2xl font-bold text-red-600">{{ $stats['cancelled'] ?? 0 }}</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border p-4">
-            <form method="GET" action="{{ route('citas.index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-4 overflow-hidden">
+            <form method="GET" action="{{ route('citas.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 items-end">
                 <div>
-                    <label class="text-xs text-slate-600">Asesor</label>
-                    <select name="asesor_id" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <label for="admin_asesor_id" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Asesor</label>
+                    <select name="asesor_id" id="admin_asesor_id" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                         <option value="todos">Todos</option>
                         @if(isset($asesores))
                             @foreach($asesores as $asesor)
-                            <option value="{{ $asesor->id }}" {{ request('asesor_id') == $asesor->id ? 'selected' : '' }}>{{ $asesor->name }}</option>
+                            <option value="{{ $asesor->id }}" {{ request('asesor_id') == $asesor->id ? 'selected' : '' }}>{{ $asesor->full_name }}</option>
                             @endforeach
                         @endif
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-600">Estado</label>
-                    <select name="status" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <label for="admin_status" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
+                    <select name="status" id="admin_status" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                         <option value="todos">Todos</option>
                         <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pendiente</option>
                         <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmada</option>
@@ -339,19 +377,19 @@
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-600">Fecha Desde</label>
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <label for="admin_date_from" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Fecha Desde</label>
+                    <input type="date" name="date_from" id="admin_date_from" value="{{ request('date_from') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-600">Fecha Hasta</label>
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <label for="admin_date_to" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Fecha Hasta</label>
+                    <input type="date" name="date_to" id="admin_date_to" value="{{ request('date_to') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                 </div>
-                <div class="md:col-span-2">
-                    <label class="text-xs text-slate-600">Buscar</label>
+                <div class="sm:col-span-2 lg:col-span-2">
+                    <label for="admin_search" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Buscar</label>
                     <div class="flex gap-2">
-                        <input type="text" name="search" placeholder="Cliente, email, propiedad..." value="{{ request('search') }}" class="flex-1 border rounded-lg px-3 py-2 text-sm">
-                        <button type="submit" class="bg-mso-blue text-white px-4 rounded-lg"><i class="ph-bold ph-magnifying-glass"></i></button>
-                        <a href="{{ route('citas.index') }}" class="bg-slate-200 text-slate-600 px-4 rounded-lg flex items-center"><i class="ph-bold ph-x"></i></a>
+                        <input type="text" name="search" id="admin_search" placeholder="Cliente, email, propiedad..." value="{{ request('search') }}" class="flex-1 min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                        <button type="submit" class="bg-mso-blue text-white px-4 rounded-lg flex-shrink-0"><i class="ph-bold ph-magnifying-glass"></i></button>
+                        <a href="{{ route('citas.index') }}" class="bg-slate-200 text-slate-600 px-4 rounded-lg flex items-center flex-shrink-0"><i class="ph-bold ph-x"></i></a>
                     </div>
                 </div>
             </form>
@@ -394,14 +432,14 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 hidden md:table-cell">
-                                <div class="font-medium">{{ $appointment->contact_name ?? ($appointment->user->name ?? 'N/A') }}</div>
+                                <div class="font-medium">{{ $appointment->contact_name ?? ($appointment->user->full_name ?? 'N/A') }}</div>
                                 <div class="text-xs text-slate-400">{{ $appointment->contact_email ?? ($appointment->user->email ?? 'N/A') }}</div>
                             </td>
                             <td class="px-4 py-3">
                                 <div>{{ $appointment->scheduled_date ? $appointment->scheduled_date->format('d/m/Y') : 'N/A' }}</div>
                                 <div class="text-xs text-slate-400">{{ $appointment->scheduled_date ? $appointment->scheduled_date->format('h:i A') : '' }}</div>
                             </td>
-                            <td class="px-4 py-3 hidden lg:table-cell">{{ $appointment->asesor->name ?? 'N/A' }}</td>
+                            <td class="px-4 py-3 hidden lg:table-cell">{{ $appointment->asesor->full_name ?? 'N/A' }}</td>
                             <td class="px-4 py-3">
                                 @php
                                     $adminBadgeClass = match($appointment->status) {
@@ -459,7 +497,7 @@
                     <p class="text-sm font-semibold" id="adminModalPropertyTitle">...</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium mb-1">Cambiar Estado</label>
+                    <label for="adminStatusSelect" class="block text-xs font-medium mb-1">Cambiar Estado</label>
                     <select id="adminStatusSelect" class="w-full border rounded-lg px-4 py-2.5 text-sm">
                         <option value="pending">Pendiente</option>
                         <option value="confirmed">Confirmada</option>
@@ -469,11 +507,11 @@
                     </select>
                 </div>
                 <div class="mt-3">
-                    <label class="block text-xs font-medium mb-1">Reprogramar</label>
+                    <label for="adminRescheduleDate" class="block text-xs font-medium mb-1">Reprogramar</label>
                     <input type="datetime-local" id="adminRescheduleDate" class="w-full border rounded-lg px-4 py-2.5 text-sm">
                 </div>
                 <div class="mt-3">
-                    <label class="block text-xs font-medium mb-1">Nota</label>
+                    <label for="adminNotes" class="block text-xs font-medium mb-1">Nota</label>
                     <textarea id="adminNotes" rows="3" class="w-full border rounded-lg px-4 py-2.5 text-sm resize-none"></textarea>
                 </div>
                 <div class="flex gap-3 mt-4">
@@ -516,7 +554,7 @@
                                 <p class="font-semibold cursor-pointer text-mso-blue hover:underline" onclick="window.showPropertyPreview({{ $appointment->id }})">
                                     {{ $appointment->property->title ?? 'Propiedad' }}
                                 </p>
-                                <p class="text-xs text-slate-500">{{ $appointment->scheduled_date ? $appointment->scheduled_date->format('h:i A') : '--:--' }} • Asesor: {{ $appointment->asesor->name ?? 'N/A' }}</p>
+                                <p class="text-xs text-slate-500">{{ $appointment->scheduled_date ? $appointment->scheduled_date->format('h:i A') : '--:--' }} • Asesor: {{ $appointment->asesor->full_name ?? 'N/A' }}</p>
                             </div>
                             <div class="text-right">
                                 <div class="bg-slate-100 rounded-lg px-2 py-1 text-center min-w-[65px]">
@@ -959,13 +997,13 @@ window.showClientDetailModal = function(appointmentId) {
                 <button onclick="window.showPropertyPreview(${appointmentId})" class="text-mso-blue hover:underline text-sm">Ver propiedad <i class="ph-bold ph-arrow-right"></i></button>
             </div>
             <div class="grid grid-cols-2 gap-4">
-                <div><label class="text-xs text-slate-500">Propiedad</label><p class="font-medium">${escapeHtml(appointment.title)}</p></div>
-                <div><label class="text-xs text-slate-500">Dirección</label><p class="text-sm">${escapeHtml(appointment.address)}</p></div>
-                <div><label class="text-xs text-slate-500">Fecha</label><p class="font-medium">${appointment.date_display}</p></div>
-                <div><label class="text-xs text-slate-500">Hora</label><p class="font-medium">${appointment.time} hrs</p></div>
-                <div><label class="text-xs text-slate-500">Asesor</label><p>${escapeHtml(appointment.asesor)}</p></div>
+                <div><p class="text-xs text-slate-500 font-medium">Propiedad</p><p class="font-medium">${escapeHtml(appointment.title)}</p></div>
+                <div><p class="text-xs text-slate-500 font-medium">Dirección</p><p class="text-sm">${escapeHtml(appointment.address)}</p></div>
+                <div><p class="text-xs text-slate-500 font-medium">Fecha</p><p class="font-medium">${appointment.date_display}</p></div>
+                <div><p class="text-xs text-slate-500 font-medium">Hora</p><p class="font-medium">${appointment.time} hrs</p></div>
+                <div><p class="text-xs text-slate-500 font-medium">Asesor</p><p>${escapeHtml(appointment.asesor)}</p></div>
             </div>
-            <div><label class="text-xs text-slate-500">Notas</label><p class="text-sm bg-slate-50 p-2 rounded">${escapeHtml(appointment.notes || 'Sin notas adicionales')}</p></div>
+            <div><p class="text-xs text-slate-500 font-medium">Notas</p><p class="text-sm bg-slate-50 p-2 rounded">${escapeHtml(appointment.notes || 'Sin notas adicionales')}</p></div>
         </div>
     `;
 

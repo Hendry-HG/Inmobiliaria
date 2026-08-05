@@ -17,7 +17,8 @@
                 </div>
                 <div class="flex flex-col min-w-0">
                     <span class="font-serif font-bold text-base sm:text-xl text-slate-800 leading-none tracking-wide group-hover:text-mso-blue transition-colors">MSO</span>
-                    <span class="hidden xs:block text-[8px] sm:text-[10px] text-slate-500 uppercase tracking-[0.2em]">Inmobiliaria</span>
+                    {{-- TEXTO "Grupo Inmobiliario" - AHORA VISIBLE EN TODOS LOS DISPOSITIVOS --}}
+                    <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase tracking-[0.2em]">Grupo Inmobiliario</span>
                 </div>
             </a>
 
@@ -141,9 +142,9 @@
 
                         {{-- FOTO DE PERFIL SOLO DESKTOP --}}
                         <a href="{{ route('profile.index') }}" class="relative hidden md:block">
-                            <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
+                            <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->full_name) . '&background=c5a059&color=fff&size=40' }}"
                                  class="w-10 h-10 rounded-full border-2 border-mso-gold object-cover hover:opacity-80 transition-opacity"
-                                 alt="{{ $user->name }}">
+                                 alt="{{ $user->full_name }}">
                         </a>
                     </div>
                 @else
@@ -167,9 +168,9 @@
                         <button @click="mobileProfileOpen = !mobileProfileOpen"
                                 type="button"
                                 class="relative focus:outline-none p-1 hover:bg-slate-100 rounded-full transition-colors">
-                            <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
+                            <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->full_name) . '&background=c5a059&color=fff&size=40' }}"
                                  class="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-mso-gold object-cover hover:opacity-80 transition-opacity"
-                                 alt="{{ $user->name }}">
+                                 alt="{{ $user->full_name }}">
                         </button>
 
                         {{-- Menú desplegable móvil --}}
@@ -187,11 +188,11 @@
                             {{-- Información del usuario --}}
                             <div class="p-4 border-b border-slate-100 bg-slate-50 rounded-t-lg">
                                 <div class="flex items-center gap-3">
-                                    <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=c5a059&color=fff&size=40' }}"
+                                    <img src="{{ $user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->full_name) . '&background=c5a059&color=fff&size=40' }}"
                                          class="w-10 h-10 rounded-full border-2 border-mso-gold object-cover"
-                                         alt="{{ $user->name }}">
+                                         alt="{{ $user->full_name }}">
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-slate-800 truncate">{{ $user->name }}</p>
+                                        <p class="text-sm font-bold text-slate-800 truncate">{{ $user->full_name }}</p>
                                         <p class="text-[10px] text-slate-500 truncate">{{ $roleDisplayName }}</p>
                                     </div>
                                 </div>

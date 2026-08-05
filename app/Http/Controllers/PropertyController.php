@@ -62,6 +62,23 @@ class PropertyController extends Controller
     }
 
     /**
+     * Verifica que el usuario tenga un rol autorizado para gestionar propiedades.
+     *
+     * Los únicos roles con acceso al módulo de propiedades son Super Admin,
+     * Administrador y Asesor Inmobiliario. Cualquier otro rol autenticado
+     * (ej. Cliente, Auditor o roles personalizados) recibe un 403.
+     *
+     * @param User $user Usuario autenticado.
+     * @return void
+     */
+    private function authorizePropertyAccess(User $user): void
+    {
+        if (!$user->hasRole('Super Admin') && !$user->hasRole('Administrador') && !$user->hasRole('Asesor Inmobiliario')) {
+            abort(403, 'No tienes permiso para gestionar propiedades.');
+        }
+    }
+
+    /**
      * Lista de propiedades del panel de administracion/asesor.
      *
      * Muestra todas las propiedades al administrador y Super Admin, pero solo
@@ -91,6 +108,8 @@ class PropertyController extends Controller
         if (!$user) {
             return redirect()->route('login');
         }
+
+        $this->authorizePropertyAccess($user);
 
         $query = Property::with([
             'user', 'category', 'primaryImage',
@@ -555,8 +574,13 @@ class PropertyController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        $this->authorizePropertyAccess($user);
+
         try {
-            $data = $request->except(['images', 'deleted_images', 'is_featured', 'featured_until']);
+            $data = $request->except([
+                'images', 'deleted_images', 'is_featured', 'featured_until',
+                'user_id', 'views', 'inquiries', 'meta_data'
+            ]);
             $data['user_id'] = $user->id;
             $data['features'] = $request->input('features', []);
             $data['location'] = $this->propertyService->buildLocationString($data);
@@ -676,6 +700,12 @@ class PropertyController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        $this->authorizePropertyAccess($user);
+
+        if ($user->hasRole('Asesor Inmobiliario') && $property->user_id !== $user->id) {
+            abort(403, 'No tienes permiso para actualizar esta propiedad.');
+        }
+
         $deletedImages = [];
         if ($request->filled('deleted_images')) {
             $ids = explode(',', $request->input('deleted_images'));
@@ -688,7 +718,10 @@ class PropertyController extends Controller
         try {
             $oldValues = $property->toArray();
 
-            $data = $request->except(['images', 'deleted_images', 'is_featured', 'featured_until']);
+            $data = $request->except([
+                'images', 'deleted_images', 'is_featured', 'featured_until',
+                'user_id', 'views', 'inquiries', 'meta_data'
+            ]);
             $data['features'] = $request->input('features', []);
             $data['location'] = $this->propertyService->buildLocationString($data);
             $data['description'] = $this->propertyService->cleanDescription($data['description']);
@@ -746,6 +779,8 @@ class PropertyController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+
+        $this->authorizePropertyAccess($user);
 
         if ($user->hasRole('Asesor Inmobiliario') && $property->user_id !== $user->id) {
             abort(403, 'No tienes permiso para ver esta propiedad.');

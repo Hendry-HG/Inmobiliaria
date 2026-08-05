@@ -314,9 +314,7 @@
             
             // Convertir arrays (checkboxes)
             data.type = formData.getAll('type[]');
-            
-            console.log('Filtros aplicados:', data);
-            
+
             // Aquí puedes enviar los datos por AJAX o redirigir
             // Ejemplo: window.location.href = '/propiedades?' + new URLSearchParams(data).toString();
             

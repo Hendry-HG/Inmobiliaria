@@ -89,7 +89,7 @@
                                 <div class="flex-1 w-full sm:w-auto">
                                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
                                         <div>
-                                            <h4 class="font-semibold text-sm text-slate-800">{{ $appointment->contact_name ?? $appointment->user->name ?? 'Cliente' }}</h4>
+                                            <h4 class="font-semibold text-sm text-slate-800">{{ $appointment->contact_name ?? $appointment->user->full_name ?? 'Cliente' }}</h4>
                                             <p class="text-[10px] text-slate-500 flex items-center gap-1">
                                                 <i class="ph ph-phone"></i> {{ $appointment->contact_phone ?? 'Sin teléfono' }}
                                             </p>
@@ -112,7 +112,7 @@
                                              onerror="this.src='https://via.placeholder.com/40'">
                                         <div>
                                             <p class="text-xs font-medium text-slate-800 truncate max-w-[150px]">{{ $appointment->property->title }}</p>
-                                            <p class="text-[10px] text-slate-500">{{ $appointment->property->city ?? 'Sin ubicación' }}</p>
+                                            <p class="text-[10px] text-slate-500">{{ $appointment->property->full_location ?? 'Sin ubicación' }}</p>
                                         </div>
                                     </div>
                                     @endif
@@ -269,7 +269,7 @@
                                         {{ $appointment->scheduled_date->format('h:i A') }}
                                     </p>
                                     <p class="text-[10px] text-slate-600 truncate">
-                                        {{ $appointment->contact_name ?? $appointment->user->name ?? 'Cliente' }}
+                                        {{ $appointment->contact_name ?? $appointment->user->full_name ?? 'Cliente' }}
                                     </p>
                                     @if($appointment->property)
                                         <p class="text-[10px] text-slate-500 truncate">
@@ -312,10 +312,10 @@
         return [
             'id' => $app->id,
             'title' => $app->property->title ?? 'Sin Propiedad',
-            'client' => $app->contact_name ?? $app->user->name,
+            'client' => $app->contact_name ?? $app->user->full_name,
             'client_email' => $app->user->email ?? 'No disponible',
             'client_phone' => $app->user->phone ?? 'No disponible',
-            'asesor' => $app->asesor->name ?? 'Sin Asesor',
+            'asesor' => $app->asesor->full_name ?? 'Sin Asesor',
             'asesor_id' => $app->asesor_id,
             'date' => $app->scheduled_date ? $app->scheduled_date->format('Y-m-d') : '',
             'time' => $app->scheduled_date ? $app->scheduled_date->format('H:i') : '--:--',
@@ -328,11 +328,9 @@
             'created_at' => $app->created_at ? $app->created_at->format('d/m/Y H:i') : 'No disponible',
             'canEdit' => $canEdit
         ];
-    })->toArray()) : '[]', JSON_HEX_TAG | JSON_HEX_AMP) !!};
+    })->toArray(), JSON_HEX_TAG | JSON_HEX_AMP) : '[]' !!};
 
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Dashboard del asesor cargado correctamente');
-        console.log('Citas disponibles:', dashboardAppointments.length);
     });
 </script>
 

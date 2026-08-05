@@ -353,7 +353,7 @@
                         <div class="flex-1 min-w-0">
                             <h4 class="text-[10px] sm:text-xs md:text-sm font-bold text-slate-800 truncate">{{ Str::limit($property->title, 30) }}</h4>
                             <p class="text-[10px] sm:text-xs text-mso-gold font-bold">{{ $property->formatted_price ?? 'Consultar' }}</p>
-                            <p class="text-[8px] sm:text-[9px] md:text-[10px] text-slate-400 mt-0.5 truncate">{{ $property->city ?? 'Sin ubicación' }}</p>
+                            <p class="text-[8px] sm:text-[9px] md:text-[10px] text-slate-400 mt-0.5 truncate">{{ $property->full_location ?? 'Sin ubicación' }}</p>
                         </div>
                     </div>
                 @empty

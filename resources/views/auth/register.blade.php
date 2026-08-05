@@ -8,19 +8,19 @@
         background: #ffffff;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         border: 1px solid #f1f5f9;
-        max-width: 720px;
+        max-width: 580px;
         width: 100%;
         border-radius: 0;
     }
     .auth-header {
         background-color: #f8fafc;
-        padding: 1.25rem 1.5rem 1rem;
+        padding: 1rem 1.5rem 0.85rem;
         border-bottom: 1px solid #f1f5f9;
         text-align: center;
     }
     .auth-header h2 {
         font-family: 'Georgia', 'Times New Roman', serif;
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 700;
         color: #0f172a;
         margin-bottom: 0.1rem;
@@ -30,18 +30,18 @@
         font-size: 0.8rem;
     }
     .auth-body {
-        padding: 1.25rem 1.5rem 1.25rem;
+        padding: 1rem 1.25rem 1rem;
     }
     .auth-footer {
         background-color: #f8fafc;
-        padding: 0.6rem 1.5rem;
+        padding: 0.5rem 1.5rem;
         border-top: 1px solid #f1f5f9;
         display: flex;
         justify-content: center;
         gap: 2rem;
     }
     .form-group {
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.7rem;
     }
     .form-group label {
         display: block;
@@ -212,58 +212,69 @@
         list-style: disc;
         font-size: 0.7rem;
     }
-    .text-xs {
+    /* Utilidades escopadas SOLO al formulario para no pisar las clases
+       globales de Tailwind (navbar, footer y botones de redes sociales) */
+    .auth-card .text-xs {
         font-size: 0.7rem;
     }
-    .text-slate-500 {
+    .auth-card .text-slate-500 {
         color: #64748b;
     }
-    .text-slate-600 {
+    .auth-card .text-slate-600 {
         color: #475569;
     }
-    .text-green-600 {
+    .auth-card .text-green-600 {
         color: #16a34a;
     }
-    .text-red-500 {
+    .auth-card .text-red-500 {
         color: #ef4444;
     }
-    .text-center {
+    .auth-card .text-center {
         text-align: center;
     }
-    .mt-1 {
+    .auth-card .mt-1 {
         margin-top: 0.2rem;
     }
-    .mt-2 {
+    .auth-card .mt-2 {
         margin-top: 0.4rem;
     }
-    .flex {
+    .auth-card .flex {
         display: flex;
     }
-    .items-center {
+    .auth-card .flex-1 {
+        flex: 1 1 0%;
+        min-width: 0;
+    }
+    .auth-card .phone-code-select {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 7.5rem;
+    }
+    .auth-card .items-center {
         align-items: center;
     }
-    .gap-2 {
+    .auth-card .gap-2 {
         gap: 0.4rem;
     }
-    .gap-3 {
+    .auth-card .gap-3 {
         gap: 0.6rem;
     }
-    .grid-cols-3 {
+    .auth-card .grid-cols-3 {
         grid-template-columns: repeat(3, 1fr);
     }
-    .grid-cols-1 {
+    .auth-card .grid-cols-1 {
         grid-template-columns: 1fr;
     }
-    .grid {
+    .auth-card .grid {
         display: grid;
     }
-    .col-span-1 {
+    .auth-card .col-span-1 {
         grid-column: span 1;
     }
-    .col-span-2 {
+    .auth-card .col-span-2 {
         grid-column: span 2;
     }
-    .mb-1 {
+    .auth-card .mb-1 {
         margin-bottom: 0.2rem;
     }
     .auth-divider {
@@ -299,10 +310,10 @@
     }
 
     @media (min-width: 768px) {
-        .md\:grid-cols-2 {
+        .auth-card .md\:grid-cols-2 {
             grid-template-columns: repeat(2, 1fr);
         }
-        .md\:col-span-2 {
+        .auth-card .md\:col-span-2 {
             grid-column: span 2;
         }
     }
@@ -361,33 +372,40 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="last_name">Apellido</label>
-                            <input id="last_name" name="last_name" type="text"
+                            <label for="last_name">Apellido *</label>
+                            <input id="last_name" name="last_name" type="text" required
                                    class="form-input"
                                    placeholder="Apellido"
                                    autocomplete="family-name"
                                    value="{{ old('last_name') }}">
+                            @error('last_name')
+                                <p class="error-message"><i class="ph ph-warning-circle"></i> {{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
                     {{-- Tipo ID y Número --}}
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="col-span-1 form-group">
-                            <label for="id_type">Tipo ID</label>
-                            <select id="id_type" name="id_type" class="form-select" autocomplete="off">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="form-group">
+                            <label for="id_type">Tipo ID *</label>
+                            <select id="id_type" name="id_type" class="form-select" autocomplete="off" required>
                                 <option value="">Tipo</option>
-                                <option value="V" {{ old('id_type') == 'V' ? 'selected' : '' }}>V</option>
-                                <option value="E" {{ old('id_type') == 'E' ? 'selected' : '' }}>E</option>
-                                <option value="J" {{ old('id_type') == 'J' ? 'selected' : '' }}>J</option>
+                                <option value="V" {{ old('id_type') == 'V' ? 'selected' : '' }}>Venezolano (V)</option>
+                                <option value="E" {{ old('id_type') == 'E' ? 'selected' : '' }}>Extranjero (E)</option>
+                                <option value="J" {{ old('id_type') == 'J' ? 'selected' : '' }}>Jurídico (J)</option>
                             </select>
                         </div>
-                        <div class="col-span-2 form-group">
-                            <label for="id_number">Número de ID</label>
-                            <input id="id_number" name="id_number" type="text"
+                        <div class="form-group">
+                            <label for="id_number">Número de ID *</label>
+                            <input id="id_number" name="id_number" type="text" required
                                    class="form-input"
-                                   placeholder="12345678 (opcional)"
+                                   placeholder="12345678"
                                    autocomplete="off"
+                                   inputmode="numeric"
                                    value="{{ old('id_number') }}">
+                            <div id="id_number-error" class="text-red-500 text-xs mt-1 hidden">
+                                Este número de identificación ya está en uso por otro usuario.
+                            </div>
                         </div>
                     </div>
 
@@ -395,31 +413,53 @@
                     <div class="form-group">
                         <label for="phone">Teléfono *</label>
                         <div class="flex gap-2">
-                            <input type="text" value="+58" disabled
-                                   class="w-14 form-input" style="text-align: center; color: #94a3b8; cursor: not-allowed; font-size: 0.8rem;">
-                            <input id="phone" name="phone" type="tel" required
-                                   class="flex-1 form-input @error('phone') form-input-error @enderror"
-                                   placeholder="412 123 4567"
-                                   autocomplete="tel-national"
-                                   value="{{ old('phone') }}">
+                                <select id="phone_code" name="phone_code" autocomplete="off"
+                                        class="form-select phone-code-select" required>
+                                    @forelse($phoneCountries as $country)
+                                        <option value="{{ $country->phone_code }}"
+                                                data-country-id="{{ $country->id }}"
+                                                data-format="{{ $country->phone_format ?? '' }}"
+                                                data-min="{{ $country->phone_min_length ?? 7 }}"
+                                                data-max="{{ $country->phone_max_length ?? 15 }}"
+                                                {{ old('phone_code', $phoneCountries->first()?->phone_code ?? '+58') == $country->phone_code ? 'selected' : '' }}>
+                                            {{ $country->name }} {{ $country->phone_code }}
+                                        </option>
+                                    @empty
+                                        <option value="+58" selected>Venezuela +58</option>
+                                    @endforelse
+                                </select>
+                                <input id="phone" name="phone" type="tel" required
+                                       class="flex-1 form-input @error('phone') form-input-error @enderror"
+                                       placeholder="412-1234567"
+                                       autocomplete="tel-national"
+                                       inputmode="numeric"
+                                       value="{{ old('phone') }}">
+                            </div>
+                            <div id="phone-format-error" class="text-red-500 text-xs mt-1 hidden">
+                                El teléfono no tiene la longitud válida para el país.
+                            </div>
+                            <div id="phone-error" class="text-red-500 text-xs mt-1 hidden">
+                                Este teléfono ya está en uso por otro usuario.
+                            </div>
+                            @error('phone')
+                                <p class="error-message"><i class="ph ph-warning-circle"></i> {{ $message }}</p>
+                            @enderror
                         </div>
-                        @error('phone')
-                            <p class="error-message"><i class="ph ph-warning-circle"></i> {{ $message }}</p>
-                        @enderror
-                    </div>
 
-                    {{-- Correo --}}
-                    <div class="form-group">
-                        <label for="email">Correo Electrónico *</label>
-                        <input id="email" name="email" type="email" required
-                               class="form-input @error('email') form-input-error @enderror"
-                               placeholder="ejemplo@correo.com"
-                               autocomplete="email"
-                               value="{{ old('email') }}">
-                        @error('email')
-                            <p class="error-message"><i class="ph ph-warning-circle"></i> {{ $message }}</p>
-                        @enderror
-                    </div>
+                        <div class="form-group">
+                            <label for="email">Correo Electrónico *</label>
+                            <input id="email" name="email" type="email" required
+                                   class="form-input @error('email') form-input-error @enderror"
+                                   placeholder="ejemplo@correo.com"
+                                   autocomplete="email"
+                                   value="{{ old('email') }}">
+                            <div id="email-error" class="text-red-500 text-xs mt-1 hidden">
+                                Este correo ya está en uso por otro usuario.
+                            </div>
+                            @error('email')
+                                <p class="error-message"><i class="ph ph-warning-circle"></i> {{ $message }}</p>
+                            @enderror
+                        </div>
 
                     {{-- Botón Siguiente Paso 1 --}}
                     <div class="flex justify-end pt-2">
@@ -439,7 +479,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div class="form-group">
                             <label for="reg_country_id">País *</label>
-                            <select name="country_id" id="reg_country_id" required class="form-select @error('country_id') form-input-error @enderror">
+                            <select name="country_id" id="reg_country_id" required autocomplete="off" class="form-select @error('country_id') form-input-error @enderror">
                                 <option value="">Seleccione un país</option>
                             </select>
                             @error('country_id')
@@ -449,7 +489,7 @@
 
                         <div class="form-group">
                             <label for="reg_state_id">Estado *</label>
-                            <select name="state_id" id="reg_state_id" class="form-select @error('state_id') form-input-error @enderror" disabled>
+                            <select name="state_id" id="reg_state_id" required autocomplete="off" class="form-select @error('state_id') form-input-error @enderror" disabled>
                                 <option value="">Primero seleccione un país</option>
                             </select>
                             @error('state_id')
@@ -459,7 +499,7 @@
 
                         <div class="form-group">
                             <label for="reg_municipality_id">Municipio *</label>
-                            <select name="municipality_id" id="reg_municipality_id" class="form-select @error('municipality_id') form-input-error @enderror" disabled>
+                            <select name="municipality_id" id="reg_municipality_id" required autocomplete="off" class="form-select @error('municipality_id') form-input-error @enderror" disabled>
                                 <option value="">Primero seleccione un estado</option>
                             </select>
                             @error('municipality_id')
@@ -469,7 +509,7 @@
 
                         <div class="form-group">
                             <label for="reg_parish_id">Parroquia *</label>
-                            <select name="parish_id" id="reg_parish_id" class="form-select @error('parish_id') form-input-error @enderror" disabled>
+                            <select name="parish_id" id="reg_parish_id" required autocomplete="off" class="form-select @error('parish_id') form-input-error @enderror" disabled>
                                 <option value="">Primero seleccione un municipio</option>
                             </select>
                             @error('parish_id')
@@ -479,7 +519,7 @@
 
                         <div class="form-group md:col-span-2">
                             <label for="reg_city_id">Ciudad *</label>
-                            <select name="city_id" id="reg_city_id" class="form-select @error('city_id') form-input-error @enderror" disabled>
+                            <select name="city_id" id="reg_city_id" required autocomplete="off" class="form-select @error('city_id') form-input-error @enderror" disabled>
                                 <option value="">Primero seleccione una parroquia</option>
                             </select>
                             @error('city_id')
@@ -490,10 +530,10 @@
 
                     {{-- Dirección --}}
                     <div class="form-group">
-                        <label for="address">Dirección</label>
-                        <textarea id="address" name="address" rows="2"
-                                  class="form-input resize-none"
-                                  placeholder="Tu dirección completa (opcional)">{{ old('address') }}</textarea>
+                        <label for="address">Dirección *</label>
+                        <textarea id="address" name="address" rows="2" required
+                                  class="form-input resize-none" autocomplete="street-address"
+                                  placeholder="Tu dirección completa">{{ old('address') }}</textarea>
                     </div>
 
                     {{-- Botones Paso 2 --}}
@@ -561,7 +601,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <div class="form-group">
                                 <label for="security_question_1">Pregunta 1 *</label>
-                                <select name="security_question_1" id="security_question_1" required
+                                <select name="security_question_1" id="security_question_1" required autocomplete="off"
                                         class="form-select security-question @error('security_question_1') form-input-error @enderror">
                                     <option value="">Selecciona una pregunta</option>
                                     <option value="¿Cuál es el nombre de tu primera mascota?">¿Cuál es el nombre de tu primera mascota?</option>
@@ -604,7 +644,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <div class="form-group">
                                 <label for="security_question_2">Pregunta 2 *</label>
-                                <select name="security_question_2" id="security_question_2" required
+                                <select name="security_question_2" id="security_question_2" required autocomplete="off"
                                         class="form-select security-question @error('security_question_2') form-input-error @enderror">
                                     <option value="">Selecciona una pregunta</option>
                                     <option value="¿Cuál es el nombre de tu primera mascota?">¿Cuál es el nombre de tu primera mascota?</option>
@@ -647,7 +687,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <div class="form-group">
                                 <label for="security_question_3">Pregunta 3 *</label>
-                                <select name="security_question_3" id="security_question_3" required
+                                <select name="security_question_3" id="security_question_3" required autocomplete="off"
                                         class="form-select security-question @error('security_question_3') form-input-error @enderror">
                                     <option value="">Selecciona una pregunta</option>
                                     <option value="¿Cuál es el nombre de tu primera mascota?">¿Cuál es el nombre de tu primera mascota?</option>
@@ -689,7 +729,7 @@
 
                     {{-- Términos --}}
                     <div class="flex items-center gap-2 mt-1">
-                        <input id="terms" name="terms" type="checkbox" required class="checkbox-custom" {{ old('terms') ? 'checked' : '' }}>
+                        <input id="terms" name="terms" type="checkbox" required autocomplete="off" class="checkbox-custom" {{ old('terms') ? 'checked' : '' }}>
                         <label for="terms" class="text-xs text-slate-600 select-none">
                             Acepto los <a href="#" class="text-mso-gold hover:text-slate-900 transition-colors font-medium">Términos y Condiciones</a>
                         </label>
@@ -747,6 +787,77 @@
     let currentStep = 1;
     const totalSteps = 3;
     let isSubmitting = false;
+    let fieldChecks = {};
+
+    // ============================================
+    //  VERIFICACIÓN DE UNICIDAD EN VIVO (AJAX)
+    // ============================================
+    const registerCheckUrl = '{{ route('api.register.check-field') }}';
+
+    function runUniqueChecks() {
+        const fields = ['email', 'id_number', 'phone'];
+        fields.forEach(field => {
+            const input = document.getElementById(field);
+            if (!input) return;
+            if (field === 'phone') {
+                const code = document.getElementById('phone_code');
+                const codeDigits = code ? code.value.replace(/[^0-9]/g, '') : '58';
+                const numDigits = input.value.replace(/[^0-9]/g, '');
+                checkUniqueField('phone', numDigits ? '+' + codeDigits + numDigits : '');
+            } else {
+                checkUniqueField(field, input.value.trim());
+            }
+        });
+    }
+
+    function checkUniqueField(field, value) {
+        if (!value) {
+            fieldChecks[field] = true;
+            const errorDiv = document.getElementById(field + '-error');
+            if (errorDiv) errorDiv.classList.add('hidden');
+            const input = document.getElementById(field);
+            if (input) input.style.borderBottomColor = '';
+            return;
+        }
+
+        fetch(registerCheckUrl + '?field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            fieldChecks[field] = data.available;
+            const errorDiv = document.getElementById(field + '-error');
+            const input = document.getElementById(field);
+            if (!data.available) {
+                if (errorDiv) errorDiv.classList.remove('hidden');
+                if (input) input.style.borderBottomColor = '#ef4444';
+            } else {
+                if (errorDiv) errorDiv.classList.add('hidden');
+                if (input) input.style.borderBottomColor = '';
+            }
+        })
+        .catch(() => {
+            fieldChecks[field] = true;
+        });
+    }
+
+    function attachUniqueCheck(input, field, transform) {
+        if (!input) return;
+
+        let timeout = null;
+
+        const doCheck = function() {
+            let value = input.value.trim();
+            if (typeof transform === 'function') value = transform();
+            checkUniqueField(field, value);
+        };
+
+        input.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(doCheck, 600);
+        });
+        input.addEventListener('blur', doCheck);
+    }
 
     function goToStep(step) {
         if (step < 1 || step > totalSteps) return;
@@ -772,49 +883,190 @@
         currentStep = step;
     }
 
+    function getFieldLabel(el) {
+        if (el.dataset && el.dataset.label) return el.dataset.label;
+        if (el.id) {
+            try {
+                const label = document.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+                if (label) return (label.textContent || '').replace(/\s*\*\s*$/, '').trim();
+            } catch (e) {}
+        }
+        if (el.placeholder && el.placeholder.trim()) return el.placeholder.trim();
+        if (el.name) {
+            return el.name
+                .replace(/[\[\]]/g, ' ')
+                .replace(/[_.]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        }
+        return 'Campo requerido';
+    }
+
+    function collectStepMissing(step) {
+        const missing = [];
+        const stepEl = document.getElementById('step-' + step);
+        if (!stepEl) return missing;
+
+        stepEl.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.disabled) return;
+            const type = (el.type || '').toLowerCase();
+            if (type === 'submit' || type === 'button' || type === 'hidden') return;
+
+            if (type === 'checkbox' || type === 'radio') {
+                if (el.required && !el.checked) missing.push(getFieldLabel(el));
+                return;
+            }
+
+            if (!el.required) return;
+            const value = (el.value || '').trim();
+
+            if (type === 'email' || /email/i.test(el.name || '')) {
+                if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) missing.push(getFieldLabel(el));
+                return;
+            }
+
+            if (!value) missing.push(getFieldLabel(el));
+        });
+
+        return missing;
+    }
+
+    function showMissing(labels) {
+        const unique = labels.filter(function(v, i, a) { return a.indexOf(v) === i; });
+        if (window.showMissingFieldsModal) {
+            window.showMissingFieldsModal(unique);
+        } else {
+            alert('Faltan campos por completar: ' + unique.join(', '));
+        }
+    }
+
+    function getPhoneConfig() {
+        const select = document.getElementById('phone_code');
+        const option = select && select.selectedOptions && select.selectedOptions[0];
+        return {
+            min: parseInt(option && option.dataset.min, 10) || 7,
+            max: parseInt(option && option.dataset.max, 10) || 15,
+            format: (option && option.dataset.format) || ''
+        };
+    }
+
+    function applyPhoneConfig() {
+        const cfg = getPhoneConfig();
+        const phone = document.getElementById('phone');
+        if (!phone) return;
+        phone.maxLength = cfg.max;
+        if (cfg.format) {
+            phone.placeholder = cfg.format.replace(/0/g, 'x');
+        }
+        const fmtErr = document.getElementById('phone-format-error');
+        if (fmtErr) fmtErr.classList.add('hidden');
+        phone.style.borderBottomColor = '';
+    }
+
     function validateStep(step) {
         let isValid = true;
+        const missing = [];
 
         if (step === 1) {
             const name = document.getElementById('name');
             const email = document.getElementById('email');
             const phone = document.getElementById('phone');
+            const phoneFormatError = document.getElementById('phone-format-error');
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const phoneDigits = phone.value.replace(/[^0-9]/g, '');
+            const pc = getPhoneConfig();
 
             if (!name.value || name.value.trim().length < 2) {
                 name.style.borderBottomColor = '#ef4444';
+                missing.push('Nombre Completo');
                 isValid = false;
-                alert('Por favor, ingresa tu nombre completo.');
             } else {
                 name.style.borderBottomColor = '';
             }
 
             if (!email.value || !emailPattern.test(email.value)) {
                 email.style.borderBottomColor = '#ef4444';
+                missing.push('Correo Electrónico');
                 isValid = false;
-                alert('Por favor, ingresa un correo electrónico válido.');
             } else {
                 email.style.borderBottomColor = '';
             }
 
-            if (!phone.value || phone.value.length < 7) {
+            if (!phoneDigits || phoneDigits.length < pc.min || phoneDigits.length > pc.max) {
                 phone.style.borderBottomColor = '#ef4444';
+                if (phoneFormatError) phoneFormatError.classList.remove('hidden');
+                missing.push('Teléfono');
                 isValid = false;
-                alert('El teléfono debe tener al menos 7 dígitos.');
             } else {
                 phone.style.borderBottomColor = '#22c55e';
+                if (phoneFormatError) phoneFormatError.classList.add('hidden');
             }
+
+            const needsCheck = ['email', 'phone', 'id_number'].some(function(f) {
+                const input = document.getElementById(f);
+                if (fieldChecks[f] !== undefined) return false;
+                return input && input.value.trim() !== '';
+            });
+
+            if (needsCheck) {
+                isValid = false;
+                runUniqueChecks();
+                missing.push('Verificación de disponibilidad de correo, cédula y teléfono');
+            } else {
+                if (fieldChecks.email === false) {
+                    email.style.borderBottomColor = '#ef4444';
+                    missing.push('Correo Electrónico (ya está en uso)');
+                    isValid = false;
+                }
+                if (fieldChecks.id_number === false) {
+                    document.getElementById('id_number').style.borderBottomColor = '#ef4444';
+                    missing.push('Número de ID (ya está en uso)');
+                    isValid = false;
+                }
+                if (fieldChecks.phone === false) {
+                    phone.style.borderBottomColor = '#ef4444';
+                    missing.push('Teléfono (ya está en uso)');
+                    isValid = false;
+                }
+            }
+
+            missing.push.apply(missing, collectStepMissing(1));
         }
 
         if (step === 2) {
             const country = document.getElementById('reg_country_id');
             if (!country.value) {
                 country.style.borderBottomColor = '#ef4444';
+                missing.push('País');
                 isValid = false;
-                alert('Por favor, selecciona un país.');
             } else {
                 country.style.borderBottomColor = '';
             }
+
+            missing.push.apply(missing, collectStepMissing(2));
+        }
+
+        if (step === 3) {
+            const pass = document.getElementById('password');
+            const passConfirm = document.getElementById('password_confirmation');
+            const passError = document.getElementById('pass-error');
+            if (pass && passConfirm && passConfirm.value !== pass.value) {
+                passConfirm.style.borderBottomColor = '#ef4444';
+                if (passError) passError.classList.remove('hidden');
+                missing.push('Confirmación de Contraseña');
+                isValid = false;
+            } else if (passConfirm) {
+                passConfirm.style.borderBottomColor = '';
+                if (passError) passError.classList.add('hidden');
+            }
+
+            missing.push.apply(missing, collectStepMissing(3));
+        }
+
+        if (missing.length) {
+            showMissing(missing);
+            return false;
         }
 
         return isValid;
@@ -876,7 +1128,6 @@
                 if (metaTag) {
                     metaTag.content = data.csrf_token;
                 }
-                console.log(' Token CSRF actualizado (registro)');
             }
         })
         .catch(() => {
@@ -908,6 +1159,47 @@
         initLocationSelects();
 
         // ============================================
+        //  VERIFICAR UNICIDAD (CORREO, CÉDULA, TELÉFONO)
+        // ============================================
+        const emailInput = document.getElementById('email');
+        const idNumberInput = document.getElementById('id_number');
+        const phoneInput = document.getElementById('phone');
+        const phoneCodeSelect = document.getElementById('phone_code');
+
+        // Teléfono: solo dígitos + limpiar errores al escribir
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                const fmtErr = document.getElementById('phone-format-error');
+                if (fmtErr) fmtErr.classList.add('hidden');
+                const pErr = document.getElementById('phone-error');
+                if (pErr) pErr.classList.add('hidden');
+                this.style.borderBottomColor = '';
+            });
+        }
+
+        // Teléfono completo = código + número
+        const phoneTransform = function() {
+            const code = phoneCodeSelect ? phoneCodeSelect.value.replace(/[^0-9]/g, '') : '58';
+            const num = phoneInput ? phoneInput.value.replace(/[^0-9]/g, '') : '';
+            return '+' + code + num;
+        };
+
+        attachUniqueCheck(emailInput, 'email', null);
+        attachUniqueCheck(idNumberInput, 'id_number', null);
+        attachUniqueCheck(phoneInput, 'phone', phoneTransform);
+
+        applyPhoneConfig();
+        if (phoneCodeSelect) {
+            phoneCodeSelect.addEventListener('change', function() {
+                applyPhoneConfig();
+                if (phoneInput && phoneInput.value.trim()) {
+                    checkUniqueField('phone', phoneTransform());
+                }
+            });
+        }
+
+        // ============================================
         //  REFRESCAR TOKEN CADA 5 MINUTOS
         // ============================================
         setInterval(refreshCsrfToken, 300000);
@@ -933,6 +1225,20 @@
                     return false;
                 }
 
+                // Asegurar que las verificaciones de unicidad estén completas
+                const pendingChecks = ['email', 'id_number', 'phone'].some(function(f) {
+                    const input = document.getElementById(f);
+                    const hasValue = input && input.value.trim() !== '';
+                    return hasValue && fieldChecks[f] === undefined;
+                });
+
+                if (pendingChecks) {
+                    e.preventDefault();
+                    runUniqueChecks();
+                    showMissing(['Verificación de disponibilidad de correo, cédula y teléfono']);
+                    return false;
+                }
+
                 if (!validateStep(3)) {
                     e.preventDefault();
                     return false;
@@ -947,7 +1253,6 @@
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'wait';
 
-                console.log('📤 Enviando formulario de registro...');
                 return true;
             });
         }

@@ -130,7 +130,7 @@ class PropertyService
                 'property_id' => $property->id,
                 'image_path' => $path,
                 'thumbnail_path' => $thumbnailPath,
-                'is_primary' => !$hasPrimary && $index === 0 && !$isUpdate,
+                'is_primary' => !$hasPrimary && $index === 0,
                 'order' => $currentMaxOrder + $index + 1,
                 'mime_type' => $file->getClientMimeType(),
                 'size' => $file->getSize(),

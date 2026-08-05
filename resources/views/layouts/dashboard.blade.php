@@ -6,9 +6,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - MSO Inmobiliaria</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('favicon-96x96.png') }}">
@@ -23,17 +20,6 @@
     <!-- Fuentes -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        mso: { blue: '#0f172a', gold: '#c5a059' }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         /* ============================================ */
         /* ESTILOS BASE */
@@ -199,6 +185,7 @@
             }
         }
     </style>
+    @stack('styles')
     @stack('css')
 </head>
 <body class="bg-slate-50 font-sans antialiased">
@@ -355,11 +342,11 @@
                     }" class="relative">
                         {{-- Botón del perfil (visible en todos los tamaños) --}}
                         <button @click="toggleMenu()" @click.away="closeMenu()" class="flex items-center gap-2 group focus:outline-none">
-                            <img src="{{ Auth::user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=c5a059&color=fff&size=40' }}"
+                            <img src="{{ Auth::user()->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->full_name) . '&background=c5a059&color=fff&size=40' }}"
                                  class="w-9 h-9 rounded-full border-2 border-slate-200 object-cover group-hover:border-mso-gold transition-colors"
-                                 alt="{{ Auth::user()->name }}">
+                                 alt="{{ Auth::user()->full_name }}">
                             <span class="hidden sm:inline-block text-sm font-medium text-slate-700 group-hover:text-mso-gold transition-colors">
-                                {{ Auth::user()->name }}
+                                {{ Auth::user()->full_name }}
                             </span>
                             <i class="ph ph-caret-down hidden sm:inline-block text-slate-400 group-hover:text-mso-gold transition-colors text-xs"></i>
                         </button>
@@ -535,7 +522,6 @@
                         if (metaTag) {
                             metaTag.content = data.csrf_token;
                         }
-                        console.log(' Token CSRF actualizado (dashboard)');
                     }
                 })
                 .catch(() => {
@@ -604,6 +590,10 @@
         });
     </script>
 
+    <!-- Modal global de campos incompletos -->
+    @include('components.missing-fields-modal')
+
     @stack('js')
+    @stack('scripts')
 </body>
 </html>

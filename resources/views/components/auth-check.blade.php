@@ -43,12 +43,12 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
-                            <input type="date" name="date_picker" id="authCheckDatePicker" required
+                            <input type="date" name="date_picker" id="authCheckDatePicker" required data-label="Fecha de la visita"
                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-mso-gold outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hora</label>
-                            <select name="time_picker" id="authCheckTimePicker" required
+                            <select name="time_picker" id="authCheckTimePicker" required data-label="Hora disponible"
                                     class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-mso-gold outline-none">
                                 <option value="">Hora</option>
                                 <option value="09:00">09:00 AM</option>
@@ -119,7 +119,7 @@
                         hiddenInput.value = datePicker.value + 'T' + timePicker.value + ':00';
                     } else {
                         e.preventDefault();
-                        alert('Por favor selecciona fecha y hora para continuar.');
+                        showMissingFieldsModal(['Fecha y hora de la visita']);
                     }
                 }
             });

@@ -115,47 +115,45 @@
     </div>
 
     {{-- FILTROS GLOBALES --}}
-    <div class="filters-section">
-        <div class="filter-group">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
+        <form method="GET" action="{{ route('audit-logs.reports') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 items-end" autocomplete="off">
             <div>
-                <label class="text-xs font-medium text-slate-600 block mb-1">Desde</label>
-                <input type="date" id="dateFrom" class="w-full">
+                <label for="dateFrom" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Desde</label>
+                <input type="date" id="dateFrom" name="date_from" value="{{ request('date_from') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
             <div>
-                <label class="text-xs font-medium text-slate-600 block mb-1">Hasta</label>
-                <input type="date" id="dateTo" class="w-full">
+                <label for="dateTo" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Hasta</label>
+                <input type="date" id="dateTo" name="date_to" value="{{ request('date_to') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
             <div>
-                <label class="text-xs font-medium text-slate-600 block mb-1">Usuario</label>
-                <select id="filterUser" class="w-full">
+                <label for="filterUser" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Usuario</label>
+                <select id="filterUser" name="user_id" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     <option value="">Todos los usuarios</option>
                     @foreach($users ?? [] as $user)
-                        <option value="{{ $user->id }}">{{ $user->full_name }}</option>
+                        <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->full_name }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="text-xs font-medium text-slate-600 block mb-1">Acción</label>
-                <select id="filterAction" class="w-full">
+                <label for="filterAction" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Acción</label>
+                <select id="filterAction" name="action" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     <option value="">Todas</option>
-                    <option value="created">Creación</option>
-                    <option value="updated">Actualización</option>
-                    <option value="deleted">Eliminación</option>
-                    <option value="login">Login</option>
-                    <option value="logout">Logout</option>
+                    <option value="created" {{ request('action') == 'created' ? 'selected' : '' }}>Creación</option>
+                    <option value="updated" {{ request('action') == 'updated' ? 'selected' : '' }}>Actualización</option>
+                    <option value="deleted" {{ request('action') == 'deleted' ? 'selected' : '' }}>Eliminación</option>
+                    <option value="login" {{ request('action') == 'login' ? 'selected' : '' }}>Login</option>
+                    <option value="logout" {{ request('action') == 'logout' ? 'selected' : '' }}>Logout</option>
                 </select>
             </div>
-            <div class="flex items-end gap-2">
-                <button onclick="aplicarFiltros()"
-                        class="bg-mso-blue text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium flex items-center gap-2">
-                    <i class="ph ph-funnel"></i> Aplicar
+            <div class="sm:col-span-2 lg:col-span-2 flex gap-2">
+                <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-magnifying-glass"></i> Buscar
                 </button>
-                <button onclick="limpiarFiltros()"
-                        class="px-4 py-2 border rounded-lg hover:bg-slate-50 transition-colors text-sm">
-                    Limpiar
-                </button>
+                <a href="{{ route('audit-logs.reports') }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-x"></i> Limpiar
+                </a>
             </div>
-        </div>
+        </form>
     </div>
 
     {{-- TARJETAS DE EXPORTACIÓN --}}
@@ -179,13 +177,13 @@
                 </span>
                 <div class="flex gap-2">
                     <button onclick="exportar('all','csv')" class="export-btn bg-slate-100 text-slate-700 hover:bg-slate-200">
-                        <i class="ph ph-file-csv"></i> CSV
+                        <i class="ph ph-file-csv"></i>
                     </button>
                     <button onclick="exportar('all','excel')" class="export-btn export-btn-excel">
-                        <i class="ph ph-file-xlsx"></i> Excel
+                        <i class="ph ph-file-xls"></i>
                     </button>
                     <button onclick="exportar('all','pdf')" class="export-btn export-btn-pdf">
-                        <i class="ph ph-file-pdf"></i> PDF
+                        <i class="ph ph-file-pdf"></i>
                     </button>
                 </div>
             </div>
@@ -212,7 +210,7 @@
                         <i class="ph ph-file-csv"></i>
                     </button>
                     <button onclick="exportar('users','excel')" class="export-btn export-btn-excel">
-                        <i class="ph ph-file-xlsx"></i>
+                        <i class="ph ph-file-xls"></i>
                     </button>
                     <button onclick="exportar('users','pdf')" class="export-btn export-btn-pdf">
                         <i class="ph ph-file-pdf"></i>
@@ -242,7 +240,7 @@
                         <i class="ph ph-file-csv"></i>
                     </button>
                     <button onclick="exportar('properties','excel')" class="export-btn export-btn-excel">
-                        <i class="ph ph-file-xlsx"></i>
+                        <i class="ph ph-file-xls"></i>
                     </button>
                     <button onclick="exportar('properties','pdf')" class="export-btn export-btn-pdf">
                         <i class="ph ph-file-pdf"></i>
@@ -272,7 +270,7 @@
                         <i class="ph ph-file-csv"></i>
                     </button>
                     <button onclick="exportar('appointments','excel')" class="export-btn export-btn-excel">
-                        <i class="ph ph-file-xlsx"></i>
+                        <i class="ph ph-file-xls"></i>
                     </button>
                     <button onclick="exportar('appointments','pdf')" class="export-btn export-btn-pdf">
                         <i class="ph ph-file-pdf"></i>
@@ -302,7 +300,7 @@
                         <i class="ph ph-file-csv"></i>
                     </button>
                     <button onclick="exportar('leads','excel')" class="export-btn export-btn-excel">
-                        <i class="ph ph-file-xlsx"></i>
+                        <i class="ph ph-file-xls"></i>
                     </button>
                     <button onclick="exportar('leads','pdf')" class="export-btn export-btn-pdf">
                         <i class="ph ph-file-pdf"></i>
@@ -332,7 +330,7 @@
                         <i class="ph ph-file-csv"></i>
                     </button>
                     <button onclick="exportar('system','excel')" class="export-btn export-btn-excel">
-                        <i class="ph ph-file-xlsx"></i>
+                        <i class="ph ph-file-xls"></i>
                     </button>
                     <button onclick="exportar('system','pdf')" class="export-btn export-btn-pdf">
                         <i class="ph ph-file-pdf"></i>
@@ -340,6 +338,75 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- RESULTADOS DE AUDITORÍA FILTRADA --}}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="ph ph-list-checks text-mso-gold"></i>
+                    Auditorías
+                </h4>
+                <p class="text-xs text-slate-400">{{ $filteredLogs->total() }} registros encontrados</p>
+            </div>
+            <div class="text-xs text-slate-400">
+                @if($filteredLogs->total() > 0)
+                    Mostrando {{ $filteredLogs->firstItem() }} - {{ $filteredLogs->lastItem() }}
+                @endif
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Usuario</th>
+                        <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Acción</th>
+                        <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Entidad</th>
+                        <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Descripción</th>
+                        <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500 text-right">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($filteredLogs as $log)
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                    {{ $log->user ? strtoupper(substr($log->user->name, 0, 1)) : 'S' }}
+                                </div>
+                                <span>{{ $log->user ? $log->user->full_name : 'Sistema' }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-3">
+                            <span class="px-2 py-1 rounded text-xs font-medium whitespace-nowrap
+                                @if(str_contains($log->action ?? $log->event, 'create')) bg-green-100 text-green-700
+                                @elseif(str_contains($log->action ?? $log->event, 'update')) bg-blue-100 text-blue-700
+                                @elseif(str_contains($log->action ?? $log->event, 'delete')) bg-red-100 text-red-700
+                                @else bg-slate-100 text-slate-700 @endif">
+                                {{ ucfirst(str_replace('_', ' ', $log->action ?? $log->event ?? 'Desconocido')) }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3">{{ $log->subject_type ? class_basename($log->subject_type) : 'Sistema' }}</td>
+                        <td class="px-6 py-3 text-slate-500 max-w-md truncate">{{ $log->description }}</td>
+                        <td class="px-6 py-3 text-right text-slate-500 whitespace-nowrap">{{ $log->created_at ? $log->created_at->setTimezone('America/Caracas')->format('d/m/Y H:i') : '' }}</td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                            <i class="ph ph-inbox text-3xl block mb-2"></i>
+                            <p>No hay auditorías para los filtros seleccionados</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($filteredLogs->hasPages())
+        <div class="px-6 py-3 border-t border-slate-200 bg-slate-50">
+            {{ $filteredLogs->appends(request()->query())->links() }}
+        </div>
+        @endif
     </div>
 
     {{-- RESUMEN --}}
@@ -408,17 +475,18 @@
         showToast('Exportando ' + module + ' en formato ' + format.toUpperCase() + '...', 'info');
     }
 
-    function aplicarFiltros() {
-        showToast('Filtros aplicados. Use los botones de exportación.', 'success');
-    }
-
-    function limpiarFiltros() {
-        document.getElementById('dateFrom').value = '';
-        document.getElementById('dateTo').value = '';
-        document.getElementById('filterUser').value = '';
-        document.getElementById('filterAction').value = '';
-        showToast('Filtros limpiados', 'info');
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateFrom = document.getElementById('dateFrom');
+        const dateTo = document.getElementById('dateTo');
+        if (dateFrom && !dateFrom.value) {
+            const firstDay = new Date();
+            firstDay.setDate(1);
+            dateFrom.value = firstDay.toISOString().split('T')[0];
+        }
+        if (dateTo && !dateTo.value) {
+            dateTo.value = new Date().toISOString().split('T')[0];
+        }
+    });
 
     function showToast(message, type = 'info') {
         let container = document.getElementById('toast-container');
@@ -445,14 +513,6 @@
             setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const today = new Date().toISOString().split('T')[0];
-        const firstDay = new Date();
-        firstDay.setDate(1);
-        document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
-        document.getElementById('dateTo').value = today;
-    });
 </script>
 @endpush
 @endsection

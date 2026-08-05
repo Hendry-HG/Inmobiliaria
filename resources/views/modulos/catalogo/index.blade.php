@@ -114,7 +114,7 @@
         position: relative;
         overflow: hidden;
         flex-shrink: 0;
-        height: 200px;
+        height: 192px;
         background-color: #f1f5f9;
     }
     .property-card .image-container img {
@@ -129,32 +129,48 @@
 
     /* Badges */
     .badge-type {
-        font-size: 0.6rem !important;
-        padding: 0.15rem 0.5rem !important;
+        font-size: 0.5rem !important;
+        padding: 0.15rem 0.375rem !important;
     }
     .badge-category {
-        font-size: 0.55rem !important;
-        padding: 0.1rem 0.4rem !important;
+        font-size: 0.5rem !important;
+        padding: 0.1rem 0.375rem !important;
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
     }
     .badge-location {
-        font-size: 0.55rem !important;
-        padding: 0.1rem 0.4rem !important;
+        font-size: 0.5rem !important;
+        padding: 0.1rem 0.375rem !important;
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .badge-price {
-        font-size: 0.7rem !important;
-        padding: 0.15rem 0.5rem !important;
+        font-size: 0.625rem !important;
+        padding: 0.15rem 0.375rem !important;
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .badge-price span {
+        font-size: 0.5rem;
+        font-weight: 400;
     }
     .badge-asesor {
-        font-size: 0.6rem !important;
-        padding: 0.1rem 0.4rem !important;
+        font-size: 0.5rem !important;
+        padding: 0.1rem 0.375rem !important;
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     /* Cuerpo - ESTILO RECIENTES */
@@ -163,14 +179,14 @@
         flex-direction: column;
         padding: 0.75rem;
         flex: 1;
-        gap: 0.15rem;
+        gap: 0.25rem;
     }
 
     .property-card .card-title {
-        font-size: 0.9rem;
+        font-size: 0.875rem;
         font-weight: 700;
         color: #0f172a;
-        line-height: 1.2;
+        line-height: 1.25;
         display: -webkit-box;
         -webkit-line-clamp: 1;
         -webkit-box-orient: vertical;
@@ -187,16 +203,16 @@
     }
 
     .property-card .card-location {
-        font-size: 0.7rem;
+        font-size: 0.625rem;
         color: #64748b;
         display: flex;
         align-items: center;
-        gap: 0.2rem;
+        gap: 0.25rem;
         min-height: 1.1rem;
     }
     .property-card .card-location i {
         color: #c5a059;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         flex-shrink: 0;
     }
     .property-card .card-location span {
@@ -219,14 +235,14 @@
     .property-card .card-features .feature-tag {
         display: inline-flex;
         align-items: center;
-        gap: 0.2rem;
-        font-size: 0.7rem;
+        gap: 0.25rem;
+        font-size: 0.625rem;
         color: #475569;
         white-space: nowrap;
     }
     .property-card .card-features .feature-tag svg {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         color: #c5a059;
         flex-shrink: 0;
     }
@@ -236,16 +252,16 @@
     }
 
     .property-card .card-date {
-        font-size: 0.6rem;
+        font-size: 0.5rem;
         color: #94a3b8;
         display: flex;
         align-items: center;
-        gap: 0.2rem;
+        gap: 0.25rem;
         min-height: 0.9rem;
     }
     .property-card .card-date svg {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
         flex-shrink: 0;
     }
 
@@ -257,7 +273,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
-        font-size: 0.7rem;
+        font-size: 0.625rem;
         font-weight: 600;
         color: #c5a059;
         transition: color 0.2s;
@@ -267,8 +283,8 @@
         color: #0f172a;
     }
     .property-card .card-footer a svg {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         transition: transform 0.2s;
     }
     .property-card .card-footer a:hover svg {
@@ -276,61 +292,136 @@
     }
 
     /* =============================================
-       RESPONSIVE
+       RESPONSIVE - ESTILO RECIENTES
        ============================================= */
-    @media (max-width: 640px) {
+    @media (min-width: 480px) {
         .property-card .image-container {
-            height: 160px;
-        }
-        .property-card .card-body {
-            padding: 0.6rem;
+            height: 208px;
         }
         .property-card .card-title {
-            font-size: 0.8rem;
-            min-height: 1rem;
+            font-size: 1rem;
         }
         .property-card .card-location {
-            font-size: 0.6rem;
-            min-height: 0.9rem;
+            font-size: 0.75rem;
+        }
+        .property-card .card-location i {
+            font-size: 0.85rem;
         }
         .property-card .card-features .feature-tag {
-            font-size: 0.6rem;
+            font-size: 0.75rem;
         }
         .property-card .card-features .feature-tag svg {
-            width: 12px;
-            height: 12px;
+            width: 13px;
+            height: 13px;
         }
         .property-card .card-date {
-            font-size: 0.55rem;
+            font-size: 0.625rem;
+        }
+        .property-card .card-date svg {
+            width: 11px;
+            height: 11px;
         }
         .property-card .card-footer a {
-            font-size: 0.65rem;
+            font-size: 0.75rem;
         }
         .badge-type {
-            font-size: 0.55rem !important;
-            padding: 0.1rem 0.4rem !important;
+            font-size: 0.625rem !important;
+            padding: 0.2rem 0.5rem !important;
         }
         .badge-category {
-            font-size: 0.5rem !important;
-            padding: 0.1rem 0.3rem !important;
+            font-size: 0.6rem !important;
+            padding: 0.15rem 0.5rem !important;
         }
         .badge-location {
-            font-size: 0.5rem !important;
-            padding: 0.1rem 0.3rem !important;
+            font-size: 0.6rem !important;
+            padding: 0.15rem 0.5rem !important;
         }
         .badge-price {
-            font-size: 0.6rem !important;
-            padding: 0.1rem 0.4rem !important;
+            font-size: 0.75rem !important;
+            padding: 0.2rem 0.5rem !important;
+        }
+        .badge-price span {
+            font-size: 0.6rem;
         }
         .badge-asesor {
-            font-size: 0.5rem !important;
-            padding: 0.1rem 0.3rem !important;
+            font-size: 0.6rem !important;
+            padding: 0.15rem 0.5rem !important;
         }
     }
 
-    @media (min-width: 641px) and (max-width: 1024px) {
+    @media (min-width: 640px) {
         .property-card .image-container {
-            height: 180px;
+            height: 224px;
+        }
+        .property-card .card-body {
+            padding: 1rem;
+        }
+        .property-card .card-title {
+            font-size: 1.125rem;
+        }
+        .property-card .card-location {
+            font-size: 0.875rem;
+        }
+        .property-card .card-location i {
+            font-size: 0.95rem;
+        }
+        .property-card .card-features {
+            gap: 0.75rem;
+        }
+        .property-card .card-features .feature-tag {
+            font-size: 0.875rem;
+        }
+        .property-card .card-features .feature-tag svg {
+            width: 14px;
+            height: 14px;
+        }
+        .property-card .card-date {
+            font-size: 0.75rem;
+        }
+        .property-card .card-date svg {
+            width: 12px;
+            height: 12px;
+        }
+        .property-card .card-footer a {
+            font-size: 0.875rem;
+        }
+        .badge-type {
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.625rem !important;
+        }
+        .badge-category {
+            font-size: 0.7rem !important;
+            padding: 0.2rem 0.625rem !important;
+        }
+        .badge-location {
+            font-size: 0.7rem !important;
+            padding: 0.2rem 0.625rem !important;
+        }
+        .badge-price {
+            font-size: 0.875rem !important;
+            padding: 0.25rem 0.625rem !important;
+        }
+        .badge-price span {
+            font-size: 0.7rem;
+        }
+        .badge-asesor {
+            font-size: 0.7rem !important;
+            padding: 0.2rem 0.625rem !important;
+        }
+    }
+
+    @media (min-width: 768px) {
+        .property-card .image-container {
+            height: 240px;
+        }
+        .property-card .card-body {
+            padding: 1.25rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .property-card .image-container {
+            height: 256px;
         }
     }
 
@@ -477,10 +568,10 @@
 
                     <form action="{{ route('catalogo.index') }}" method="GET" id="filter-form" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label for="filter_type" class="block text-sm font-medium text-slate-700 mb-1.5">
                                 <i class="ph ph-tag mr-1 text-mso-gold"></i>Tipo de Operación
                             </label>
-                            <select name="type" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
+                            <select name="type" id="filter_type" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                                 <option value="">Todos los tipos</option>
                                 <option value="venta" {{ request('type') == 'venta' ? 'selected' : '' }}>Venta</option>
                                 <option value="alquiler" {{ request('type') == 'alquiler' ? 'selected' : '' }}>Alquiler</option>
@@ -489,10 +580,10 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label for="filter_category" class="block text-sm font-medium text-slate-700 mb-1.5">
                                 <i class="ph ph-folder mr-1 text-mso-gold"></i>Categoría
                             </label>
-                            <select name="category_id" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
+                            <select name="category_id" id="filter_category" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                                 <option value="">Todas las categorías</option>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
@@ -505,29 +596,29 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label for="filter_min_price" class="block text-sm font-medium text-slate-700 mb-1.5">
                                 <i class="ph ph-currency-dollar mr-1 text-mso-gold"></i>Rango de Precio
                             </label>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
-                                    <input type="number" name="min_price" value="{{ request('min_price') }}"
+                                    <input type="number" name="min_price" id="filter_min_price" autocomplete="off" value="{{ request('min_price') }}"
                                            placeholder="Mínimo" class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm">
                                 </div>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
-                                    <input type="number" name="max_price" value="{{ request('max_price') }}"
+                                    <input type="number" name="max_price" id="filter_max_price" autocomplete="off" value="{{ request('max_price') }}"
                                            placeholder="Máximo" class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm">
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label for="filter_state" class="block text-sm font-medium text-slate-700 mb-1.5">
                                 <i class="ph ph-map-pin mr-1 text-mso-gold"></i>Ubicación
                             </label>
                             <div class="space-y-2">
-                                <select name="state_id" id="filter_state" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
+                                <select name="state_id" id="filter_state" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                                     <option value="">Todos los estados</option>
                                     @foreach($states as $state)
                                         <option value="{{ $state->id }}" {{ request('state_id') == $state->id ? 'selected' : '' }}>
@@ -537,7 +628,7 @@
                                     @endforeach
                                 </select>
 
-                                <select name="municipality_id" id="filter_municipality" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('state_id') ? '' : 'disabled' }}>
+                                <select name="municipality_id" id="filter_municipality" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('state_id') ? '' : 'disabled' }}>
                                     <option value="">Todos los municipios</option>
                                     @foreach($municipalities as $municipality)
                                         <option value="{{ $municipality->id }}" {{ request('municipality_id') == $municipality->id ? 'selected' : '' }}>
@@ -547,7 +638,7 @@
                                     @endforeach
                                 </select>
 
-                                <select name="city_id" id="filter_city" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('municipality_id') ? '' : 'disabled' }}>
+                                <select name="city_id" id="filter_city" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('municipality_id') ? '' : 'disabled' }}>
                                     <option value="">Todas las ciudades</option>
                                     @foreach($cities as $city)
                                         <option value="{{ $city->id }}" {{ request('city_id') == $city->id ? 'selected' : '' }}>
@@ -560,23 +651,23 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-2">
+                            <label for="filter_bedrooms" class="block text-sm font-medium text-slate-700 mb-2">
                                 <i class="ph ph-house-line mr-1 text-mso-gold"></i>Características
                             </label>
                             <div class="space-y-2">
-                                <select name="bedrooms" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                                <select name="bedrooms" id="filter_bedrooms" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                                     <option value="">Cualquier nº de habitaciones</option>
                                     @for($i = 1; $i <= 6; $i++)
                                         <option value="{{ $i }}" {{ request('bedrooms') == $i ? 'selected' : '' }}>{{ $i }}+ habitaciones</option>
                                     @endfor
                                 </select>
-                                <select name="bathrooms" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                                <select name="bathrooms" id="filter_bathrooms" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                                     <option value="">Cualquier nº de baños</option>
                                     @for($i = 1; $i <= 5; $i++)
                                         <option value="{{ $i }}" {{ request('bathrooms') == $i ? 'selected' : '' }}>{{ $i }}+ baños</option>
                                     @endfor
                                 </select>
-                                <select name="parking_spaces" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                                <select name="parking_spaces" id="filter_parking_spaces" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                                     <option value="">Cualquier nº de estacionamientos</option>
                                     @for($i = 1; $i <= 5; $i++)
                                         <option value="{{ $i }}" {{ request('parking_spaces') == $i ? 'selected' : '' }}>{{ $i }}+ estacionamientos</option>
@@ -586,20 +677,20 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label for="filter_min_area" class="block text-sm font-medium text-slate-700 mb-1.5">
                                 <i class="ph ph-ruler mr-1 text-mso-gold"></i>Área (m²)
                             </label>
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="number" name="min_area" value="{{ request('min_area') }}" placeholder="Mínimo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                                <input type="number" name="max_area" value="{{ request('max_area') }}" placeholder="Máximo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                                <input type="number" name="min_area" id="filter_min_area" autocomplete="off" value="{{ request('min_area') }}" placeholder="Mínimo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                                <input type="number" name="max_area" id="filter_max_area" autocomplete="off" value="{{ request('max_area') }}" placeholder="Máximo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            <label for="filter_search" class="block text-sm font-medium text-slate-700 mb-1.5">
                                 <i class="ph ph-magnifying-glass mr-1 text-mso-gold"></i>Buscar
                             </label>
-                            <input type="text" name="search" value="{{ request('search') }}"
+                            <input type="text" name="search" id="filter_search" autocomplete="off" value="{{ request('search') }}"
                                    placeholder="Título, descripción o dirección..."
                                    class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                         </div>
@@ -630,7 +721,8 @@
                             @endif
                         </button>
 
-                        <select name="order_by" form="filter-form" class="px-3 sm:px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm flex-1 sm:flex-none min-w-[140px]">
+                        <select name="order_by" id="order_by" form="filter-form" autocomplete="off" aria-label="Ordenar resultados"
+                                class="px-3 sm:px-4 py-2 border border-slate-200 rounded-lg bg-white text-sm flex-1 sm:flex-none min-w-[140px]">
                             <option value="latest" {{ request('order_by', 'latest') == 'latest' ? 'selected' : '' }}>Más recientes</option>
                             <option value="oldest" {{ request('order_by') == 'oldest' ? 'selected' : '' }}>Más antiguas</option>
                             <option value="price_asc" {{ request('order_by') == 'price_asc' ? 'selected' : '' }}>Precio: Menor a Mayor</option>
@@ -855,8 +947,8 @@
         <div class="p-4 sm:p-5">
             <form action="{{ route('catalogo.index') }}" method="GET" id="filter-form-modal" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de Operación</label>
-                    <select name="type" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
+                    <label for="filter_type_modal" class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de Operación</label>
+                    <select name="type" id="filter_type_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                         <option value="">Todos los tipos</option>
                         <option value="venta" {{ request('type') == 'venta' ? 'selected' : '' }}>Venta</option>
                         <option value="alquiler" {{ request('type') == 'alquiler' ? 'selected' : '' }}>Alquiler</option>
@@ -865,8 +957,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Categoría</label>
-                    <select name="category_id" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
+                    <label for="filter_category_modal" class="block text-sm font-medium text-slate-700 mb-1.5">Categoría</label>
+                    <select name="category_id" id="filter_category_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                         <option value="">Todas las categorías</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
@@ -878,35 +970,35 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Rango de Precio</label>
+                    <label for="filter_min_price_modal" class="block text-sm font-medium text-slate-700 mb-1.5">Rango de Precio</label>
                     <div class="grid grid-cols-2 gap-2">
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
-                            <input type="number" name="min_price" value="{{ request('min_price') }}" placeholder="Mínimo" class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm">
+                            <input type="number" name="min_price" id="filter_min_price_modal" autocomplete="off" value="{{ request('min_price') }}" placeholder="Mínimo" class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm">
                         </div>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
-                            <input type="number" name="max_price" value="{{ request('max_price') }}" placeholder="Máximo" class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm">
+                            <input type="number" name="max_price" id="filter_max_price_modal" autocomplete="off" value="{{ request('max_price') }}" placeholder="Máximo" class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm">
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Ubicación</label>
+                    <label for="filter_state_modal" class="block text-sm font-medium text-slate-700 mb-1.5">Ubicación</label>
                     <div class="space-y-2">
-                        <select name="state_id" id="filter_state_modal" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
+                        <select name="state_id" id="filter_state_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm">
                             <option value="">Todos los estados</option>
                             @foreach($states as $state)
                                 <option value="{{ $state->id }}" {{ request('state_id') == $state->id ? 'selected' : '' }}>{{ $state->name }}</option>
                             @endforeach
                         </select>
-                        <select name="municipality_id" id="filter_municipality_modal" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('state_id') ? '' : 'disabled' }}>
+                        <select name="municipality_id" id="filter_municipality_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('state_id') ? '' : 'disabled' }}>
                             <option value="">Todos los municipios</option>
                             @foreach($municipalities as $municipality)
                                 <option value="{{ $municipality->id }}" {{ request('municipality_id') == $municipality->id ? 'selected' : '' }}>{{ $municipality->name }}</option>
                             @endforeach
                         </select>
-                        <select name="city_id" id="filter_city_modal" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('municipality_id') ? '' : 'disabled' }}>
+                        <select name="city_id" id="filter_city_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent bg-white text-sm" {{ request('municipality_id') ? '' : 'disabled' }}>
                             <option value="">Todas las ciudades</option>
                             @foreach($cities as $city)
                                 <option value="{{ $city->id }}" {{ request('city_id') == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
@@ -916,21 +1008,21 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Características</label>
+                    <label for="filter_bedrooms_modal" class="block text-sm font-medium text-slate-700 mb-2">Características</label>
                     <div class="space-y-2">
-                        <select name="bedrooms" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                        <select name="bedrooms" id="filter_bedrooms_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                             <option value="">Cualquier nº de habitaciones</option>
                             @for($i = 1; $i <= 6; $i++)
                                 <option value="{{ $i }}" {{ request('bedrooms') == $i ? 'selected' : '' }}>{{ $i }}+ habitaciones</option>
                             @endfor
                         </select>
-                        <select name="bathrooms" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                        <select name="bathrooms" id="filter_bathrooms_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                             <option value="">Cualquier nº de baños</option>
                             @for($i = 1; $i <= 5; $i++)
                                 <option value="{{ $i }}" {{ request('bathrooms') == $i ? 'selected' : '' }}>{{ $i }}+ baños</option>
                             @endfor
                         </select>
-                        <select name="parking_spaces" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                        <select name="parking_spaces" id="filter_parking_spaces_modal" autocomplete="off" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                             <option value="">Cualquier nº de estacionamientos</option>
                             @for($i = 1; $i <= 5; $i++)
                                 <option value="{{ $i }}" {{ request('parking_spaces') == $i ? 'selected' : '' }}>{{ $i }}+ estacionamientos</option>
@@ -940,16 +1032,16 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Área (m²)</label>
+                    <label for="filter_min_area_modal" class="block text-sm font-medium text-slate-700 mb-1.5">Área (m²)</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="number" name="min_area" value="{{ request('min_area') }}" placeholder="Mínimo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                        <input type="number" name="max_area" value="{{ request('max_area') }}" placeholder="Máximo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                        <input type="number" name="min_area" id="filter_min_area_modal" autocomplete="off" value="{{ request('min_area') }}" placeholder="Mínimo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                        <input type="number" name="max_area" id="filter_max_area_modal" autocomplete="off" value="{{ request('max_area') }}" placeholder="Máximo" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Buscar</label>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Título, descripción o dirección..." class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
+                    <label for="filter_search_modal" class="block text-sm font-medium text-slate-700 mb-1.5">Buscar</label>
+                    <input type="text" name="search" id="filter_search_modal" autocomplete="off" value="{{ request('search') }}" placeholder="Título, descripción o dirección..." class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm">
                 </div>
 
                 <button type="submit" class="w-full bg-mso-blue text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 text-sm">

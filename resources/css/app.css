@@ -10,24 +10,39 @@
     /* Fuentes */
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
 
     /* Colores personalizados de MSO Grupo Inmobiliario */
-    --color-mso-primary: #003366;      /* Azul marino */
-    --color-mso-secondary: #FFFFFF;     /* Blanco */
-    --color-mso-dark: #000000;          /* Negro */
-    --color-mso-gold: #FFD700;          /* Dorado */
-    --color-mso-accent: #F5F5F5;        /* Gris claro */
+    --color-mso-blue: #0f172a;      /* Azul oscuro noche */
+    --color-mso-gold: #c5a059;      /* Dorado */
+    --color-mso-light: #f8fafc;     /* Gris claro */
 
-    /* Extensiones de color para facilitar el uso */
-    --color-mso-primary-dark: #002244;
-    --color-mso-primary-light: #004488;
-    --color-mso-gold-dark: #CCB200;
-    --color-mso-gold-light: #FFE55C;
+    /* Animaciones */
+    --animate-fade-in-up: fade-in-up 0.8s ease-out forwards;
+
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 }
 
 @layer base {
     html {
         scroll-behavior: smooth;
+    }
+
+    /* Borde por defecto como Tailwind v3 (gris claro):
+       en Tailwind v4 la clase `border` usa currentColor y se ve oscuro */
+    *,
+    ::before,
+    ::after {
+        border-color: var(--color-slate-200);
     }
 
     body {
@@ -41,7 +56,7 @@
 @layer components {
     /* Botones */
     .btn-primary {
-        background-color: var(--color-mso-primary);
+        background-color: var(--color-mso-blue);
         color: white;
         padding: 0.5rem 1rem;
         border-radius: 0.375rem;
@@ -49,33 +64,33 @@
         transition: background-color 0.2s;
     }
     .btn-primary:hover {
-        background-color: var(--color-mso-primary-dark);
+        background-color: var(--color-slate-800);
     }
 
     .btn-secondary {
         background-color: transparent;
-        border: 2px solid var(--color-mso-primary);
-        color: var(--color-mso-primary);
+        border: 2px solid var(--color-mso-blue);
+        color: var(--color-mso-blue);
         padding: 0.5rem 1rem;
         border-radius: 0.375rem;
         font-weight: 500;
         transition: all 0.2s;
     }
     .btn-secondary:hover {
-        background-color: var(--color-mso-primary);
+        background-color: var(--color-mso-blue);
         color: white;
     }
 
     .btn-gold {
         background-color: var(--color-mso-gold);
-        color: var(--color-mso-dark);
+        color: var(--color-mso-blue);
         padding: 0.5rem 1rem;
         border-radius: 0.375rem;
         font-weight: 500;
         transition: background-color 0.2s;
     }
     .btn-gold:hover {
-        background-color: var(--color-mso-gold-dark);
+        background-color: #a8863c;
     }
 
     /* Cards */
@@ -100,12 +115,12 @@
         text-transform: uppercase;
     }
     .badge-primary {
-        background-color: var(--color-mso-primary);
+        background-color: var(--color-mso-blue);
         color: white;
     }
     .badge-gold {
         background-color: var(--color-mso-gold);
-        color: var(--color-mso-dark);
+        color: var(--color-mso-blue);
     }
 
     /* Inputs */
@@ -118,8 +133,8 @@
     }
     .input:focus {
         outline: none;
-        border-color: var(--color-mso-primary);
-        box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+        border-color: var(--color-mso-gold);
+        box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
     }
 
     /* Contenedores */
@@ -159,10 +174,10 @@
     }
 
     .gradient-mso {
-        background: linear-gradient(135deg, var(--color-mso-primary) 0%, var(--color-mso-primary-dark) 100%);
+        background: linear-gradient(135deg, var(--color-mso-blue) 0%, #020617 100%);
     }
 
     .gradient-gold {
-        background: linear-gradient(135deg, var(--color-mso-gold) 0%, var(--color-mso-gold-dark) 100%);
+        background: linear-gradient(135deg, var(--color-mso-gold) 0%, #a8863c 100%);
     }
 }

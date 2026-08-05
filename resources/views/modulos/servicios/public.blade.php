@@ -13,26 +13,6 @@
         <p class="text-slate-500 mt-3 max-w-2xl mx-auto">Ofrecemos un servicio integral para todas tus necesidades inmobiliarias</p>
     </div>
 
-    {{-- Galería de imágenes publicitarias --}}
-    @if(isset($galleryImages) && $galleryImages->isNotEmpty())
-        <div class="mb-12">
-            <div class="swiper service-gallery swiper-container rounded-2xl overflow-hidden shadow-xl">
-                <div class="swiper-wrapper">
-                    @foreach($galleryImages as $image)
-                        <div class="swiper-slide">
-                            <img src="{{ $image->image_url }}"
-                                 alt="{{ $image->alt_text ?? 'Servicio inmobiliario' }}"
-                                 class="w-full h-64 md:h-96 object-cover">
-                        </div>
-                    @endforeach
-                </div>
-                <div class="swiper-pagination"></div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-button-prev"></div>
-            </div>
-        </div>
-    @endif
-
     {{-- Grid de Servicios --}}
     {{-- ============================================= --}}
     {{-- Los servicios públicos solo se muestran si están activos --}}
@@ -181,6 +161,70 @@
         </div>
     @endif
 
+    {{-- Preguntas Frecuentes --}}
+    <div class="mt-20" id="faq">
+        <div class="text-center mb-10">
+            <span class="text-mso-gold font-bold tracking-widest uppercase text-xs mb-2 block">Resolvemos tus dudas</span>
+            <h2 class="text-2xl md:text-4xl font-serif text-slate-900">Preguntas Frecuentes</h2>
+            <p class="text-slate-500 mt-2 max-w-2xl mx-auto">Encuentra respuestas a las consultas más comunes sobre nuestros servicios inmobiliarios</p>
+        </div>
+
+        <div class="max-w-3xl mx-auto space-y-3">
+            @php
+                $faqs = [
+                    [
+                        'q' => '¿Cómo solicito una valoración de mi propiedad?',
+                        'a' => 'Completa el formulario de "Solicitar Valoración" disponible en el sitio indicando la dirección y características de tu propiedad. Un asesor inmobiliario se comunicará contigo para coordinar la visita y entregarte una estimación del valor de mercado.',
+                    ],
+                    [
+                        'q' => '¿El servicio de corretaje tiene algún costo para el cliente?',
+                        'a' => 'La publicación de propiedades y la asesoría inicial no tienen costo. La comisión por corretaje solo aplica al concretarse una venta o alquiler y se pacta previamente con nuestro equipo conforme a la normativa venezolana.',
+                    ],
+                    [
+                        'q' => '¿Cuánto tiempo tarda en venderse o alquilarse una propiedad?',
+                        'a' => 'El tiempo depende del precio, la ubicación y las condiciones del mercado. Como referencia general, nuestras propiedades publicadas se destacan en el sitio y se difunden entre nuestros asesores para acelerar el proceso.',
+                    ],
+                    [
+                        'q' => '¿Qué documentos necesito para publicar mi propiedad?',
+                        'a' => 'Generalmente se requieren el título de propiedad, cédula de identidad del titular y un certificado de solvencia al día. Un asesor te indicará la documentación exacta según el caso.',
+                    ],
+                    [
+                        'q' => '¿Cómo agendo una cita para ver una propiedad?',
+                        'a' => 'Puedes solicitar una cita desde la ficha de cada propiedad o contactándonos por WhatsApp, teléfono o correo. Coordinaremos contigo y con el asesor el mejor horario.',
+                    ],
+                    [
+                        'q' => '¿Las propiedades publicadas están verificadas?',
+                        'a' => 'Nuestros asesores verifican la información de los inmuebles antes de publicarlos. Aun así, te recomendamos confirmar siempre los detalles directamente con el asesor asignado.',
+                    ],
+                    [
+                        'q' => '¿Trabajan en todo Venezuela o solo en una zona?',
+                        'a' => 'Tenemos presencia principalmente en la región donde operamos, pero gestionamos solicitudes en todo el país. Escríbenos y verificaremos si podemos atender tu caso.',
+                    ],
+                    [
+                        'q' => '¿Cómo protegen mis datos personales?',
+                        'a' => 'Tratamos tus datos conforme a nuestra Política de Privacidad y a la normativa venezolana e internacional aplicable. Consulta la sección de Privacidad en el pie de página para más detalles.',
+                    ],
+                ];
+            @endphp
+
+            @foreach($faqs as $faq)
+                <div class="faq-item bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                    <button type="button"
+                            onclick="toggleFaq(this)"
+                            class="w-full flex items-center justify-between gap-4 text-left px-5 py-4 hover:bg-slate-50 transition-colors">
+                        <span class="font-semibold text-slate-800 text-sm sm:text-base">{{ $faq['q'] }}</span>
+                        <span class="faq-icon flex-shrink-0 w-7 h-7 rounded-full bg-mso-gold/15 text-mso-gold flex items-center justify-center transition-transform duration-300">
+                            <i class="ph ph-plus"></i>
+                        </span>
+                    </button>
+                    <div class="faq-answer hidden px-5 pb-5">
+                        <p class="text-sm text-slate-500 leading-relaxed">{{ $faq['a'] }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
     {{-- Contacto --}}
     <div class="mt-20 bg-mso-blue rounded-2xl p-8 md:p-12 text-center text-white">
         <h2 class="text-2xl md:text-4xl font-serif mb-4">¿Necesitas ayuda?</h2>
@@ -206,7 +250,6 @@
 </section>
 
 @push('css')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 <style>
     .line-clamp-3 {
         display: -webkit-box;
@@ -218,30 +261,37 @@
 @endpush
 
 @push('js')
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        @if(isset($galleryImages) && $galleryImages->isNotEmpty())
-        new Swiper('.service-gallery', {
-            slidesPerView: 1,
-            centeredSlides: true,
-            loop: true,
-            autoplay: {
-                delay: 4000,
-                disableOnInteraction: false,
-            },
-            pagination: {
-                el: '.service-gallery .swiper-pagination',
-                clickable: true,
-                dynamicBullets: true,
-            },
-            navigation: {
-                nextEl: '.service-gallery .swiper-button-next',
-                prevEl: '.service-gallery .swiper-button-prev',
-            },
+    // ============================================================
+    // ACORDEÓN DE PREGUNTAS FRECUENTES
+    // ============================================================
+    window.toggleFaq = function(button) {
+        const item = button.closest('.faq-item');
+        const answer = item.querySelector('.faq-answer');
+        const icon = item.querySelector('.faq-icon');
+        const isOpen = !answer.classList.contains('hidden');
+
+        // Cerrar los demás
+        document.querySelectorAll('.faq-item').forEach(function(el) {
+            const a = el.querySelector('.faq-answer');
+            const ic = el.querySelector('.faq-icon');
+            if (!a.classList.contains('hidden')) {
+                a.classList.add('hidden');
+            }
+            if (ic) {
+                ic.style.transform = 'rotate(0deg)';
+            }
         });
-        @endif
-    });
+
+        // Abrir/cerrar el seleccionado
+        if (isOpen) {
+            answer.classList.add('hidden');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            answer.classList.remove('hidden');
+            icon.style.transform = 'rotate(45deg)';
+        }
+    };
 </script>
 @endpush
 @endsection

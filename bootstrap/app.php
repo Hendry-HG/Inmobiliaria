@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\TokenMismatchException;
 use App\Http\Middleware\CheckAccountActive;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\RefreshUserPermissions;
@@ -31,5 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (Symfony\Component\HttpKernel\Exception\HttpException $e, Illuminate\Http\Request $request) {
+            if ($e->getPrevious() instanceof TokenMismatchException) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'Tu sesión ha expirado. Recarga la página e inténtalo de nuevo.'], 419);
+                }
+
+                return redirect()->route('login', ['session_expired' => 1]);
+            }
+        });
     })->create();

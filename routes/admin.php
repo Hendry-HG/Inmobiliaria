@@ -290,6 +290,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::get('/messages/{conversationId}', [ChatController::class, 'getMessages'])->name('messages');
         Route::post('/start', [ChatController::class, 'startConversation'])->name('start');
         Route::post('/start-cliente', [ChatController::class, 'startConversationWithCliente'])->name('start-cliente');
+        Route::post('/start-staff', [ChatController::class, 'startConversationInternal'])->name('start-staff');
         Route::post('/send/{conversationId}', [ChatController::class, 'sendMessage'])->name('send');
         Route::post('/read/{conversationId}', [ChatController::class, 'markAsRead'])->name('read');
         Route::get('/unread-count', [ChatController::class, 'getUnreadCount'])->name('unread-count');
@@ -436,6 +437,7 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:ver usuarios');
             Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:crear usuario');
             Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:crear usuario');
+            Route::get('/check-field', [UserController::class, 'checkUnique'])->name('check-field')->middleware('permission:ver usuarios');
             Route::get('/{user}', [UserController::class, 'show'])->name('show')->middleware('permission:ver usuarios');
             Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:editar usuario');
             Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:editar usuario');
@@ -494,8 +496,8 @@ Route::middleware(['auth', 'check.account.active'])->group(function () {
         Route::prefix('config')->name('config.')->group(function () {
             Route::get('/', [SiteConfigController::class, 'index'])->name('index')->middleware('permission:ver configuración');
             Route::put('/', [SiteConfigController::class, 'update'])->name('update')->middleware('permission:editar configuración');
-            Route::get('/reset', [SiteConfigController::class, 'reset'])->name('reset')->middleware('permission:editar configuración');
-            Route::delete('/delete-image/{index}', [SiteConfigController::class, 'deleteImage'])->name('delete-image')->middleware('permission:editar configuración');
+            Route::post('/reset', [SiteConfigController::class, 'reset'])->name('reset')->middleware('permission:editar configuración');
+            Route::delete('/delete-image', [SiteConfigController::class, 'deleteImage'])->name('delete-image')->middleware('permission:editar configuración');
         });
 
         // SERVICIOS

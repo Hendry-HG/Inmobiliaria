@@ -131,7 +131,7 @@ class SiteConfigController extends Controller
         // PROCESAR IMÁGENES DEL HERO
         // ==========================================
 
-        // 1. Eliminar imágenes marcadas por el usuario (recibe índices en JSON)
+        // 1. Eliminar imágenes marcadas por el usuario (recibe URLs en JSON)
         $deletedImages = json_decode($request->input('deleted_hero_images', '[]'), true);
         $currentImages = $config->hero_images ?? [];
 
@@ -139,10 +139,21 @@ class SiteConfigController extends Controller
             $currentImages = json_decode($currentImages, true) ?? [];
         }
 
+        // Normalizar URLs marcadas para eliminar
+        $deletedKeys = array_map(fn($url) => $this->imageKey($url), $deletedImages);
+
         // Filtrar: conservar solo las imágenes NO marcadas para eliminar
         $remainingImages = [];
-        foreach ($currentImages as $index => $image) {
-            if (!in_array($index, $deletedImages)) {
+        foreach ($currentImages as $image) {
+            if (in_array($this->imageKey($image), $deletedKeys)) {
+                // Eliminar el archivo físico si existe
+                if (strpos($image, '/storage/') !== false) {
+                    $path = str_replace('/storage/', '', $image);
+                    if (Storage::disk('public')->exists($path)) {
+                        Storage::disk('public')->delete($path);
+                    }
+                }
+            } else {
                 $remainingImages[] = $image;
             }
         }
@@ -253,13 +264,13 @@ class SiteConfigController extends Controller
     /**
      * Elimina una imagen específica del carrusel del hero (endpoint AJAX)
      *
-     * Elimina la imagen por su índice en el array, borra el archivo físico
-     * del storage y reindexa el array de imágenes.
+     * Recibe la URL de la imagen a eliminar en el cuerpo de la petición,
+     * borra el archivo físico del storage y actualiza el array de imágenes.
      *
-     * @param  int  $index  Índice de la imagen a eliminar (0-based)
+     * @param  \Illuminate\Http\Request  $request  Petición con el campo 'url'
      * @return \Illuminate\Http\JsonResponse  Respuesta JSON con resultado
      */
-    public function deleteImage($index)
+    public function deleteImage(Request $request)
     {
         try {
             $config = SiteConfiguration::getConfig();
@@ -269,28 +280,35 @@ class SiteConfigController extends Controller
                 $images = json_decode($images, true) ?? [];
             }
 
-            // Verificar que la imagen en el índice exista
-            if (!isset($images[$index])) {
+            $targetKey = $this->imageKey($request->input('url'));
+
+            // Buscar y eliminar la imagen por su URL
+            $found = false;
+            $remainingImages = [];
+            foreach ($images as $image) {
+                if ($this->imageKey($image) === $targetKey) {
+                    // Eliminar archivo físico del disco público
+                    if (strpos($image, '/storage/') !== false) {
+                        $path = str_replace('/storage/', '', $image);
+                        if (Storage::disk('public')->exists($path)) {
+                            Storage::disk('public')->delete($path);
+                        }
+                    }
+                    $found = true;
+                } else {
+                    $remainingImages[] = $image;
+                }
+            }
+
+            // Verificar que la imagen exista
+            if (!$found) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Imagen no encontrada'
                 ], 404);
             }
 
-            // Eliminar archivo físico del disco público
-            $imagePath = $images[$index];
-            if (strpos($imagePath, '/storage/') !== false) {
-                $path = str_replace('/storage/', '', $imagePath);
-                if (Storage::disk('public')->exists($path)) {
-                    Storage::disk('public')->delete($path);
-                }
-            }
-
-            // Remover del array y reindexar para mantener continuidad
-            unset($images[$index]);
-            $images = array_values($images);
-
-            $config->hero_images = $images;
+            $config->hero_images = array_values($remainingImages);
             $config->save();
 
             return response()->json([
@@ -304,6 +322,21 @@ class SiteConfigController extends Controller
                 'message' => 'Error al eliminar la imagen: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Obtiene una clave normalizada de la URL de una imagen para comparar
+     * correctamente aunque cambie el dominio (127.0.0.1, localhost, etc.).
+     */
+    private function imageKey($url)
+    {
+        $url = trim((string) $url);
+
+        if (strpos($url, '/storage/') !== false) {
+            return substr($url, strpos($url, '/storage/'));
+        }
+
+        return $url;
     }
 
     /**

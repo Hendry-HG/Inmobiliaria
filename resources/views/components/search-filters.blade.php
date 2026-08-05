@@ -10,7 +10,7 @@
 
                 {{-- Estado --}}
                 <div class="relative">
-                    <select name="state_id"
+                    <select name="state_id" id="quick_state_id" autocomplete="off" aria-label="Estado"
                             class="w-full pl-10 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none transition-all appearance-none">
                         <option value="">Todos los estados</option>
                         @if(count($states) > 0)

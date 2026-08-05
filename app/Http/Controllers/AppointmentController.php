@@ -225,54 +225,6 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Muestra el formulario publico de agendamiento de citas.
-     *
-     * Este es el unico metodo del controlador que NO requiere autenticacion
-     * (excluido del middleware 'auth' en el constructor). Sirve como punto
-     * de entrada desde las fichas de propiedades del catalogo publico.
-     *
-     * Flujo:
-     *   1. Si el usuario NO esta autenticado:
-     *      - Se guarda la URL actual en la sesion como url.intended.
-     *      - Se redirige al login con un mensaje informativo.
-     *   2. Si el usuario esta autenticado pero su cuenta esta desactivada:
-     *      - Se cierra sesion automaticamente y se redirige al login.
-     *   3. Si se proporciono un property_id:
-     *      - Se busca la propiedad en la base de datos.
-     *      - Si no existe, se redirige al catalogo con un error.
-     *   4. Se limpia la url.intended de la sesion y se renderiza la vista
-     *      modulos.citas.create pasando la propiedad y el usuario.
-     *
-     * @param  Request  $request  Peticion HTTP con parametro opcional property_id
-     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
-     */
-    public function createPublic(Request $request)
-    {
-        if (!Auth::check()) {
-            $currentUrl = route('citas.create', ['property_id' => $request->property_id]);
-            session(['url.intended' => $currentUrl]);
-            return redirect()->route('login')->with('info', 'Por favor inicia sesión para agendar una cita.');
-        }
-
-        $user = Auth::user();
-        if (!$user->is_active) {
-            Auth::logout();
-            return redirect()->route('login')->with('error', 'Tu cuenta está desactivada.');
-        }
-
-        $property = null;
-        if ($request->has('property_id')) {
-            $property = Property::find($request->property_id);
-            if (!$property) {
-                return redirect()->route('catalogo.index')->with('error', 'Propiedad no encontrada.');
-            }
-        }
-
-        session()->forget('url.intended');
-        return view('modulos.citas.create', compact('property', 'user'));
-    }
-
-    /**
      * Registra una nueva cita inmobiliaria en el sistema.
      *
      * Este metodo implementa la logica central del agendamiento, incluyendo
@@ -400,36 +352,42 @@ class AppointmentController extends Controller
             $dateStr = $dateTime->format('Y-m-d');
 
             // Bloqueo atómico para prevenir race condition
-            $appointment = DB::transaction(function () use ($settings, $dateStr, $time, $request, $user, $property) {
-                // Verificar disponibilidad dentro de la transacción con bloqueo
-                $existingCount = Appointment::where('asesor_id', $property->user_id)
-                    ->whereDate('scheduled_date', $dateStr)
-                    ->where('status', '!=', 'cancelled')
-                    ->lockForUpdate()
-                    ->count();
-
-                $maxPerDay = $settings->settings['max_appointments_per_day'] ?? 5;
-                if ($existingCount >= $maxPerDay) {
+            $rejectionReason = null;
+            $appointment = DB::transaction(function () use ($settings, $dateStr, $time, $request, $user, $property, &$rejectionReason) {
+                // Validar según la configuración real del asesor: día activo,
+                // horas disponibles, excepciones, límite diario y hora no ocupada.
+                $scheduleCheck = $settings->canSchedule($dateStr, $time);
+                if (!$scheduleCheck['available']) {
+                    $rejectionReason = $scheduleCheck['reason'];
                     return null;
                 }
 
-                $existingAtTime = Appointment::where('asesor_id', $property->user_id)
+                // Bloquear las filas de citas del asesor para esa fecha y verificar
+                // disponibilidad dentro de la transacción. En PostgreSQL, FOR UPDATE
+                // no está permitido sobre funciones de agregación (count/exists), por
+                // eso primero se traen las filas con el bloqueo exclusivo y luego se
+                // calculan los totales en PHP.
+                $existingAppointments = Appointment::where('asesor_id', $property->user_id)
                     ->whereDate('scheduled_date', $dateStr)
                     ->where('status', '!=', 'cancelled')
-                    ->exists();
+                    ->lockForUpdate()
+                    ->get();
 
-                if ($existingAtTime) {
-                    $existingSlots = Appointment::where('asesor_id', $property->user_id)
-                        ->whereDate('scheduled_date', $dateStr)
-                        ->where('status', '!=', 'cancelled')
-                        ->pluck('scheduled_date')
-                        ->map(fn($dt) => \Carbon\Carbon::parse($dt)->format('H:i'))
-                        ->toArray();
+                $dayName = strtolower(date('l', strtotime($dateStr)));
+                $maxPerDay = $settings->getMaxForDay($dayName);
 
-                    $configuredHours = $settings->settings['available_hours'] ?? [];
-                    if (in_array($time, $existingSlots) && count($configuredHours) <= 1) {
-                        return null;
-                    }
+                if ($existingAppointments->count() >= $maxPerDay) {
+                    $rejectionReason = 'Límite de citas diarias alcanzado (máximo ' . $maxPerDay . ').';
+                    return null;
+                }
+
+                $existingSlots = $existingAppointments
+                    ->map(fn($appt) => \Carbon\Carbon::parse($appt->scheduled_date)->format('H:i'))
+                    ->toArray();
+
+                if (in_array($time, $existingSlots)) {
+                    $rejectionReason = 'Este horario acaba de ser ocupado por otro usuario. Por favor, selecciona otro horario.';
+                    return null;
                 }
 
                 return Appointment::create([
@@ -449,7 +407,7 @@ class AppointmentController extends Controller
             if (!$appointment) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este horario acaba de ser ocupado por otro usuario. Por favor, selecciona otro horario.'
+                    'message' => $rejectionReason ?? 'Este horario no está disponible.'
                 ], 400);
             }
 

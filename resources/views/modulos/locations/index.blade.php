@@ -29,6 +29,8 @@
                 <div class="relative flex-1">
                     <input type="text"
                            name="name"
+                           id="new_country_name"
+                           autocomplete="off"
                            placeholder="Nuevo país..."
                            class="border rounded-lg px-3 py-1 flex-1 w-full focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none text-sm"
                            required

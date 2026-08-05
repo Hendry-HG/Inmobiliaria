@@ -5,7 +5,7 @@
     </div>
     <h3 class="text-xl font-bold text-gray-800 mb-2">¿Eliminar Usuario?</h3>
     <p class="text-gray-600 mb-6">
-        Estás a punto de eliminar a <strong>{{ $user->name }}</strong>. Esta acción no se puede deshacer.
+        Estás a punto de eliminar a <strong>{{ $user->full_name }}</strong>. Esta acción no se puede deshacer.
     </p>
 
     <form action="{{ route('admin.users.destroy', $user) }}" method="POST">

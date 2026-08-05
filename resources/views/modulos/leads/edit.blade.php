@@ -35,7 +35,7 @@
                 <option value="">Sin asignar</option>
                 @foreach($asesores as $asesor)
                     <option value="{{ $asesor->id }}" {{ old('asesor_id', $lead->asesor_id) == $asesor->id ? 'selected' : '' }}>
-                        {{ $asesor->name }}
+                        {{ $asesor->full_name }}
                     </option>
                 @endforeach
             </select>

@@ -30,6 +30,28 @@ class ChatController extends Controller
     private const MAX_MESSAGES_PER_MINUTE = 30;
 
     /**
+     * Matriz de comunicación interna.
+     *
+     * Define los roles con los que cada rol puede INICIAR una conversación.
+     * Los roles que no aparecen como objetivo (o cuyo objetivo no se lista)
+     * solo pueden responder una vez que el otro usuario les escribe primero.
+     *
+     * - Super Admin: inicia con Asesores, Administradores y Auditores.
+     * - Administrador: inicia con Super Admin y Asesores.
+     * - Auditor: inicia con Super Admin.
+     * - Asesor Inmobiliario: solo responde a Super Admin/Administrador/Auditor
+     *   (no los inicia); conserva el flujo con clientes vía citas.
+     * - Cliente: inicia con Asesores (flujo público).
+     */
+    private const COMMUNICATION_MATRIX = [
+        'Super Admin' => ['Asesor Inmobiliario', 'Administrador', 'Auditor'],
+        'Administrador' => ['Super Admin', 'Asesor Inmobiliario'],
+        'Auditor' => ['Super Admin'],
+        'Asesor Inmobiliario' => [],
+        'Cliente' => ['Asesor Inmobiliario'],
+    ];
+
+    /**
      * Constructor del controlador de chat en tiempo real.
      *
      * Configura los middleware para todas las rutas del controlador:
@@ -44,7 +66,7 @@ class ChatController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('throttle:60,1')->only(['sendMessage', 'startConversation', 'startConversationWithCliente']);
+        $this->middleware('throttle:60,1')->only(['sendMessage', 'startConversation', 'startConversationWithCliente', 'startConversationInternal']);
         $this->middleware('throttle:100,1')->only(['getMessages', 'getConversations']);
     }
 
@@ -176,7 +198,11 @@ class ChatController extends Controller
      */
     private function formatConversation(Conversation $conversation, User $user, bool $isCliente): array
     {
-        $otherUser = $isCliente ? $conversation->asesor : $conversation->client;
+        $otherUser = $user->id === $conversation->client_id
+            ? $conversation->asesor
+            : $conversation->client;
+
+        $otherRole = $otherUser->roles->first()->name ?? '';
 
         return [
             'id' => $conversation->id,
@@ -187,6 +213,7 @@ class ChatController extends Controller
                 'is_online' => $otherUser->is_online ?? false,
                 'email' => $otherUser->email,
                 'specialization' => $otherUser->specialization,
+                'role' => $otherRole,
                 'last_seen' => $otherUser->last_seen_at?->diffForHumans(),
             ],
             'unread_count' => Message::where('conversation_id', $conversation->id)
@@ -234,10 +261,14 @@ class ChatController extends Controller
 
         $isAsesor = in_array('Asesor Inmobiliario', $roles);
         $isCliente = in_array('Cliente', $roles);
+        $isStaff = array_intersect($roles, ['Super Admin', 'Administrador', 'Auditor']) !== [];
 
         $conversations = Conversation::query()
             ->with(['client', 'asesor', 'lastMessage'])
-            ->where($isCliente ? 'client_id' : 'asesor_id', $user->id)
+            ->where(function ($q) use ($user) {
+                $q->where('client_id', $user->id)
+                    ->orWhere('asesor_id', $user->id);
+            })
             ->orderBy('last_message_at', 'desc')
             ->get()
             ->map(fn($conv) => $this->formatConversation($conv, $user, $isCliente));
@@ -247,13 +278,16 @@ class ChatController extends Controller
         //  Pasar contactos con el nombre correcto para la vista
         $asesoresDisponibles = $isCliente ? $contactos : collect();
         $clientesDisponibles = $isAsesor ? $contactos : collect();
+        $usuariosDisponibles = $isStaff ? $this->getStaffContacts($user) : collect();
 
         return view('modulos.chat.index', compact(
             'conversations',
             'asesoresDisponibles',
             'clientesDisponibles',
+            'usuariosDisponibles',
             'isAsesor',
-            'isCliente'
+            'isCliente',
+            'isStaff'
         ));
     }
 
@@ -328,6 +362,34 @@ class ChatController extends Controller
     }
 
     /**
+     * Devuelve los asesores disponibles para el cliente autenticado en formato JSON.
+     *
+     * Ruta: GET /chat/asesores/disponibles
+     * Permiso requerido: "chat access" (aplicado por la ruta).
+     *
+     * @return \Illuminate\Http\JsonResponse Lista de asesores disponibles o error 403 si no es cliente.
+     */
+    public function getAvailableAsesores()
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'No autenticado.'], 401);
+        }
+
+        $roles = $this->getUserRoles($user->id);
+
+        if (!in_array('Cliente', $roles)) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->getAvailableAsesoresForClient($user),
+        ]);
+    }
+
+    /**
      * Obtiene los clientes disponibles para un asesor inmobiliario.
      *
      * La lista de clientes se deriva de las citas (Appointment) agendadas
@@ -367,6 +429,113 @@ class ChatController extends Controller
             ]);
     }
 
+    /**
+     * Obtiene los contactos internos disponibles para el usuario staff.
+     *
+     * Retorna los usuarios con los que el usuario autenticado puede iniciar
+     * una conversacion segun la matriz de comunicacion interna. Super Admin
+     * puede contactar asesores, administradores y auditores; Administrador
+     * puede contactar super admins y asesores; Auditor solo super admins.
+     *
+     * @param User $user Usuario staff autenticado.
+     * @return \Illuminate\Support\Collection Coleccion de contactos con role.
+     */
+    private function getStaffContacts(User $user): \Illuminate\Support\Collection
+    {
+        $userRoles = $this->getUserRoles($user->id);
+
+        $targetRoles = [];
+        foreach ($userRoles as $role) {
+            foreach (self::COMMUNICATION_MATRIX[$role] ?? [] as $targetRole) {
+                $targetRoles[] = $targetRole;
+            }
+        }
+        $targetRoles = array_values(array_unique($targetRoles));
+
+        if (empty($targetRoles)) {
+            return collect();
+        }
+
+        $targetIds = DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->whereIn('roles.name', $targetRoles)
+            ->where('model_has_roles.model_type', 'App\\Models\\User')
+            ->where('model_has_roles.model_id', '!=', $user->id)
+            ->pluck('model_has_roles.model_id')
+            ->unique()
+            ->toArray();
+
+        if (empty($targetIds)) {
+            return collect();
+        }
+
+        return User::whereIn('id', $targetIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn($target) => (object) [
+                'id' => $target->id,
+                'name' => $target->full_name ?? $target->name,
+                'email' => $target->email,
+                'avatar' => $target->profile_photo_url,
+                'specialization' => $target->specialization,
+                'role' => $target->roles->first()->name ?? '',
+            ]);
+    }
+
+    /**
+     * Emite un evento de broadcast de forma segura (best-effort).
+     *
+     * Envuelve la transmision en tiempo real en un try/catch para que un
+     * fallo del servidor de WebSockets (p. ej. Reverb/soketi apagado o
+     * inalcanzable) NO rompa la operacion principal en base de datos.
+     * La persistencia de los mensajes, ediciones y eliminaciones se
+     * garantiza aunque el canal en tiempo real este temporalmente fuera
+     * de servicio; la sincronizacion posterior via polling (fetchConversations)
+     * y la reconexion de Echo mantienen la interfaz consistente.
+     *
+     * @param mixed $event Evento de broadcast a emitir.
+     * @return void
+     */
+    private function safeBroadcast($event): void
+    {
+        try {
+            broadcast($event)->toOthers();
+        } catch (\Throwable $e) {
+            Log::warning('Broadcast no enviado (servidor de tiempo real no disponible): ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Verifica si el usuario puede iniciar una conversacion con otro usuario.
+     *
+     * Consulta la matriz de comunicacion interna (COMMUNICATION_MATRIX)
+     * comparando los roles del iniciador con los roles del objetivo. Si el
+     * rol del objetivo aparece en la lista de roles permitidos para el rol
+     * del iniciador, retorna true. Los asesores no pueden iniciar con staff
+     * (solo responden); solo los clientes pueden iniciar con asesores y los
+     * roles staff con los roles definidos en la matriz.
+     *
+     * @param User $initiator Usuario que intenta iniciar la conversacion.
+     * @param User $target Usuario al que se desea contactar.
+     * @return bool true si puede iniciar, false en caso contrario.
+     */
+    private function canUserStartConversation(User $initiator, User $target): bool
+    {
+        $initiatorRoles = $this->getUserRoles($initiator->id);
+        $targetRoles = $this->getUserRoles($target->id);
+
+        foreach ($initiatorRoles as $initiatorRole) {
+            foreach (self::COMMUNICATION_MATRIX[$initiatorRole] ?? [] as $allowedRole) {
+                if (in_array($allowedRole, $targetRoles)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     // ==========================================
     // API: CONVERSACIONES
     // ==========================================
@@ -397,7 +566,10 @@ class ChatController extends Controller
 
             $conversations = Conversation::query()
                 ->with(['client', 'asesor', 'lastMessage'])
-                ->where($isCliente ? 'client_id' : 'asesor_id', $user->id)
+                ->where(function ($q) use ($user) {
+                    $q->where('client_id', $user->id)
+                        ->orWhere('asesor_id', $user->id);
+                })
                 ->orderBy('last_message_at', 'desc')
                 ->get()
                 ->map(fn($conv) => $this->formatConversation($conv, $user, $isCliente));
@@ -462,6 +634,7 @@ class ChatController extends Controller
             $roles = $this->getUserRoles($user->id);
             $isCliente = in_array('Cliente', $roles);
             $otherUser = $user->id === $conversation->client_id ? $conversation->asesor : $conversation->client;
+            $otherRole = $otherUser->roles->first()->name ?? '';
 
             return response()->json([
                 'success' => true,
@@ -473,6 +646,7 @@ class ChatController extends Controller
                         'name' => $otherUser->full_name ?? $otherUser->name,
                         'avatar' => $otherUser->profile_photo_url,
                         'specialization' => $otherUser->specialization,
+                        'role' => $otherRole,
                         'is_online' => $otherUser->is_online ?? false,
                         'email' => $otherUser->email,
                     ]
@@ -503,6 +677,21 @@ class ChatController extends Controller
      */
     public function startConversation(Request $request)
     {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'asesor_id' => ['required', 'exists:users,id', Rule::notIn([$user->id])]
+        ]);
+
+        $target = User::findOrFail($validated['asesor_id']);
+
+        if (!$this->canUserStartConversation($user, $target)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No puedes iniciar una conversación con este usuario'
+            ], 403);
+        }
+
         return $this->startConversationBase($request, 'asesor_id', 'Asesor Inmobiliario');
     }
 
@@ -529,6 +718,63 @@ class ChatController extends Controller
         }
 
         return $this->startConversationBase($request, 'cliente_id', null);
+    }
+
+    /**
+     * API JSON: inicia o reabre una conversacion entre usuarios internos.
+     *
+     * Endpoint utilizado por el personal (Super Admin, Administrador, Auditor)
+     * para iniciar conversaciones con otros usuarios internos segun la matriz
+     * de comunicacion (COMMUNICATION_MATRIX). Valida que el usuario autenticado
+     * pueda iniciar con el usuario objetivo; si ya existe una conversacion entre
+     * ambos (en cualquier direccion), retorna la existente para evitar duplicados.
+     *
+     * @param Request $request Solicitud HTTP con el campo user_id (required).
+     * @return \Illuminate\Http\JsonResponse JSON con success=true y
+     *         conversation_id, o error de validacion/autorizacion.
+     */
+    public function startConversationInternal(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            $validated = $request->validate([
+                'user_id' => ['required', 'exists:users,id', Rule::notIn([$user->id])]
+            ]);
+
+            $target = User::findOrFail($validated['user_id']);
+
+            if (!$this->canUserStartConversation($user, $target)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No puedes iniciar una conversación con este usuario'
+                ], 403);
+            }
+
+            $conversation = Conversation::where(function ($q) use ($user, $target) {
+                $q->where('client_id', $user->id)->where('asesor_id', $target->id);
+            })->orWhere(function ($q) use ($user, $target) {
+                $q->where('client_id', $target->id)->where('asesor_id', $user->id);
+            })->first();
+
+            if (!$conversation) {
+                $conversation = Conversation::create([
+                    'client_id' => $user->id,
+                    'asesor_id' => $target->id,
+                    'subject' => 'Chat con ' . ($target->full_name ?? $target->name),
+                    'last_message_at' => now(),
+                    'is_active' => true
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'conversation_id' => $conversation->id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al iniciar conversación interna', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Error al iniciar conversación'], 500);
+        }
     }
 
     /**
@@ -668,7 +914,7 @@ class ChatController extends Controller
             $message->load('user');
 
             $receiverId = $this->getReceiverId($conversation, $user->id);
-            broadcast(new NewMessage($message, $conversationId, $receiverId))->toOthers();
+            $this->safeBroadcast(new NewMessage($message, $conversationId, $receiverId));
 
             // NOTIFICACIÓN AL RECEPTOR
             $receiver = User::find($receiverId);
@@ -712,7 +958,7 @@ class ChatController extends Controller
      * 1. Busca el mensaje y carga su conversacion.
      * 2. Verifica que el usuario autenticado sea el autor del mensaje.
      * 3. Valida y sanitiza el nuevo contenido.
-     * 4. Actualiza directamente en la tabla messages via Query Builder.
+     * 4. Actualiza el contenido del mensaje en la base de datos.
      * 5. Emite evento MessageEdited via broadcast al otro participante.
      *
      * @param Request $request Solicitud HTTP con el campo content (required,
@@ -741,12 +987,10 @@ class ChatController extends Controller
                 return response()->json(['success' => false, 'error' => 'El mensaje no puede estar vacío'], 422);
             }
 
-            DB::table('messages')
-                ->where('id', $messageId)
-                ->update(['content' => $content]);
+            $message->update(['content' => $content]);
 
             $receiverId = $this->getReceiverId($message->conversation, $user->id);
-            broadcast(new MessageEdited($messageId, $message->conversation_id, $content, $receiverId))->toOthers();
+            $this->safeBroadcast(new MessageEdited($messageId, $message->conversation_id, $content, $receiverId));
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
@@ -774,9 +1018,9 @@ class ChatController extends Controller
      * Flujo:
      * 1. Busca el mensaje y carga su conversacion.
      * 2. Verifica que el usuario autenticado sea el autor.
-     * 3. Emite evento MessageDeleted via broadcast al otro participante.
-     * 4. Elimina el mensaje de la base de datos.
-     * 5. Si la conversacion queda sin mensajes, la elimina tambien.
+     * 3. Elimina el mensaje de la base de datos.
+     * 4. Si la conversacion queda sin mensajes, la elimina tambien.
+     * 5. Emite evento MessageDeleted via broadcast al otro participante.
      *
      * @param int $messageId Identificador del mensaje a eliminar.
      * @return \Illuminate\Http\JsonResponse JSON con success=true, o error
@@ -795,12 +1039,13 @@ class ChatController extends Controller
             $conversationId = $message->conversation_id;
             $receiverId = $this->getReceiverId($message->conversation, $user->id);
 
-            broadcast(new MessageDeleted($messageId, $conversationId, $receiverId))->toOthers();
             $message->delete();
 
             if (Message::where('conversation_id', $conversationId)->count() === 0) {
                 Conversation::find($conversationId)?->delete();
             }
+
+            $this->safeBroadcast(new MessageDeleted($messageId, $conversationId, $receiverId));
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
@@ -925,11 +1170,12 @@ class ChatController extends Controller
     {
         try {
             $user = Auth::user();
-            $roles = $this->getUserRoles($user->id);
-            $isCliente = in_array('Cliente', $roles);
 
             $totalUnread = Conversation::query()
-                ->where($isCliente ? 'client_id' : 'asesor_id', $user->id)
+                ->where(function ($q) use ($user) {
+                    $q->where('client_id', $user->id)
+                        ->orWhere('asesor_id', $user->id);
+                })
                 ->withCount(['messages as unread_count' => function ($q) use ($user) {
                     $q->where('user_id', '!=', $user->id)->where('is_read', false);
                 }])
@@ -1053,7 +1299,7 @@ class ChatController extends Controller
             }
 
             // Broadcast SOLO si cambia el estado o después del throttle
-            broadcast(new UserTyping($user, $conversationId, $isTyping, $receiverId))->toOthers();
+            $this->safeBroadcast(new UserTyping($user, $conversationId, $isTyping, $receiverId));
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {

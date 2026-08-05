@@ -29,7 +29,7 @@
                     <label class="block text-sm font-medium text-slate-700 mb-1">Título del Servicio <span class="text-red-500">*</span></label>
                     <input type="text" name="title" value="{{ old('title', $service->title) }}"
                            class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold @error('title') border-red-500 @enderror"
-                           placeholder="Ej: Tasación de Inmuebles" required>
+                           placeholder="Ej: Tasación de Inmuebles" data-label="Título del Servicio" required>
                     @error('title')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -144,32 +144,6 @@
                     @enderror
                 </div>
 
-                {{-- Galería de Imágenes --}}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Galería de Imágenes</label>
-                    @if($service->gallery->isNotEmpty())
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3" id="current-gallery">
-                            @foreach($service->gallery as $image)
-                                <div class="relative group rounded-lg overflow-hidden border border-slate-200 aspect-square" data-id="{{ $image->id }}">
-                                    <img src="{{ asset('storage/' . $image->image_path) }}" class="w-full h-full object-cover" alt="Imagen del servicio">
-                                    <button type="button" onclick="removeGalleryImage({{ $image->id }})"
-                                            class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100">
-                                        <i class="ph ph-x text-sm"></i>
-                                    </button>
-                                </div>
-                            @endforeach
-                        </div>
-                        <input type="hidden" name="deleted_images" id="deleted_images" value="[]">
-                    @endif
-                    <input type="file" name="gallery_images[]" accept="image/*" multiple
-                           class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-mso-gold file:text-mso-blue hover:file:bg-mso-blue hover:file:text-white cursor-pointer @error('gallery_images.*') border-red-500 @enderror">
-                    <p class="text-xs text-slate-400 mt-1">Puedes seleccionar múltiples imágenes. Máximo 2MB por imagen.</p>
-                    @error('gallery_images.*')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                    <div id="gallery-preview" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3"></div>
-                </div>
-
                 {{-- Estado --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -240,48 +214,6 @@
             alert('Debe haber al menos una característica.');
         }
     }
-
-    // ============================================================
-    // ELIMINAR IMAGEN DE GALERÍA
-    // ============================================================
-    function removeGalleryImage(imageId) {
-        if (!confirm('¿Eliminar esta imagen?')) return;
-
-        const deletedInput = document.getElementById('deleted_images');
-        let deleted = JSON.parse(deletedInput.value || '[]');
-        deleted.push(imageId);
-        deletedInput.value = JSON.stringify(deleted);
-
-        const element = document.querySelector(`.group[data-id="${imageId}"]`);
-        if (element) {
-            element.style.opacity = '0.3';
-            element.style.pointerEvents = 'none';
-            element.querySelector('button').remove();
-        }
-    }
-
-    // ============================================================
-    // PREVIEW DE NUEVAS IMÁGENES
-    // ============================================================
-    document.querySelector('input[name="gallery_images[]"]')?.addEventListener('change', function(e) {
-        const preview = document.getElementById('gallery-preview');
-        preview.innerHTML = '';
-        const files = Array.from(this.files);
-
-        files.forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const div = document.createElement('div');
-                div.className = 'relative group rounded-lg overflow-hidden border border-slate-200 aspect-square';
-                div.innerHTML = `
-                    <img src="${event.target.result}" class="w-full h-full object-cover">
-                    <span class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">${index + 1}</span>
-                `;
-                preview.appendChild(div);
-            };
-            reader.readAsDataURL(file);
-        });
-    });
 </script>
 @endpush
 @endsection

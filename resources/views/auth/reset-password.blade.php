@@ -117,7 +117,6 @@
                     if (metaTag) {
                         metaTag.content = data.csrf_token;
                     }
-                    console.log('Token CSRF actualizado (reset password)');
                 }
             })
             .catch(() => {
@@ -194,7 +193,6 @@
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'wait';
 
-                console.log(' Enviando formulario de restablecimiento...');
                 return true;
             });
         }

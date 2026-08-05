@@ -13,7 +13,6 @@ class SiteConfiguration extends Model
         'hero_title_line2',
         'hero_subtitle',
         'hero_images',
-        'hero_image_paths',
         'featured_badge',
         'featured_title',
         'featured_properties',
@@ -26,7 +25,6 @@ class SiteConfiguration extends Model
 
     protected $casts = [
         'hero_images' => 'array',
-        'hero_image_paths' => 'array',
         'featured_properties' => 'array',
     ];
 
@@ -60,7 +58,6 @@ class SiteConfiguration extends Model
             'hero_title_line2' => 'Vivir Bien',
             'hero_subtitle' => 'Descubre una curaduría exclusiva de propiedades de lujo en las mejores zonas de Venezuela.',
             'hero_images' => [],
-            'hero_image_paths' => null,
             'featured_badge' => 'Colección Exclusiva',
             'featured_title' => 'Propiedades Destacadas',
             'featured_properties' => [],
@@ -90,10 +87,10 @@ class SiteConfiguration extends Model
                         ->where('status', 'publicada')
                         ->update(['is_featured' => true]);
                 }
-
-                // Limpiar caché
-                self::clearCache();
             }
+
+            // Limpiar caché en CADA guardado para reflejar cambios al instante
+            self::clearCache();
         });
 
         static::deleted(function () {
@@ -139,20 +136,5 @@ class SiteConfiguration extends Model
                 ->limit(6)
                 ->get();
         });
-    }
-
-    /**
-     * Obtener todas las imágenes del hero (combinando URLs y subidas)
-     */
-    public function getHeroImagesAttribute($value)
-    {
-        $images = json_decode($value, true) ?? [];
-
-        if ($this->hero_image_paths) {
-            $uploadedImages = json_decode($this->hero_image_paths, true) ?? [];
-            $images = array_merge($images, $uploadedImages);
-        }
-
-        return $images;
     }
 }

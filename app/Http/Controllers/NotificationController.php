@@ -50,7 +50,7 @@ class NotificationController extends Controller
                 return response()->json($notifications);
             }
 
-            return view('profile.notifications', compact('notifications'));
+            return redirect()->route('dashboard');
         } catch (\Exception $e) {
             Log::error('Error en index: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);

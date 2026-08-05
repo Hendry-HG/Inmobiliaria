@@ -120,10 +120,9 @@ class SecurityHeaders
             // - 'self': scripts desde el dominio de la aplicacion.
             // - 'unsafe-inline': permite scripts inline en HTML (necesario para algunos componentes Blade).
             // - 'unsafe-eval': permite eval() y new Function() (requerido por algunas librerias JS).
-            // - cdn.tailwindcss.com: CDN de Tailwind CSS (solo en desarrollo/demo).
             // - unpkg.com: CDN para paquetes npm (usado para cargar librerias en el navegador).
             // - cdn.jsdelivr.net: CDN espejo de npm/GitHub (alternativa a unpkg).
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net",
 
             // style-src 'self' 'unsafe-inline' [CDNs de estilos y fuentes]
             // Controla que hojas de estilo CSS pueden cargarse.
@@ -131,7 +130,8 @@ class SecurityHeaders
             // - 'unsafe-inline': permite estilos inline en HTML (necesario para estilos dinamicos).
             // - fonts.googleapis.com: servicio de Google Fonts para cargar hojas de estilo CSS.
             // - cdn.jsdelivr/unpkg:CDNs para librerias CSS externas.
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
+            // - www.gstatic.com: hoja de estilos del traductor de Google en el navegador.
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://www.gstatic.com",
 
             // font-src 'self' data: [CDNs de fuentes]
             // Controla desde donde se pueden cargar fuentes web (woff, woff2, ttf, etc.).
@@ -139,7 +139,7 @@ class SecurityHeaders
             // - data: permite fuentes incrustadas como data URIs (comun en iconos).
             // - fonts.gstatic.com: servidor de archivos de fuentes de Google Fonts.
             // - cdn.jsdelivr/unpkg: fuentes desdeCDNs externos.
-            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://unpkg.com",
+            "font-src 'self' data: https://fonts.gstatic.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com",
 
             // img-src 'self' data: https: blob:
             // Controla desde donde se pueden cargar imagenes.

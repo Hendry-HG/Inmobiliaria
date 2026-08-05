@@ -203,11 +203,25 @@
 @section('content')
 <div class="chat-wrapper" x-data="chatApp()" x-init="init()">
 
+    {{-- CARGANDO: evita el parpadeo de vistas por rol antes de que Alpine inicialice --}}
+    <div x-show="loading" x-cloak class="flex items-center justify-center h-full">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-mso-gold border-t-transparent mx-auto mb-3"></div>
+            <p class="text-slate-500 text-sm">Cargando conversaciones...</p>
+        </div>
+    </div>
+
+    {{-- CONTENIDO REAL DEL CHAT (oculto hasta que termine la carga inicial) --}}
+    <div x-show="!loading" x-cloak class="h-full">
+
     {{-- SIDEBAR (Desktop) --}}
     <div x-show="!isMobile" class="sidebar-container float-left">
         <div class="p-4 border-b">
             <h3 class="font-bold text-xl mb-3">Chats</h3>
             <div class="flex gap-2">
+                <button x-show="isStaff" @click="showUsuariosModal = true" class="btn-nuevo-chat w-full">
+                    <i class="ph-bold ph-plus"></i> Nuevo Chat
+                </button>
                 <button x-show="isCliente" @click="showAsesoresModal = true" class="btn-nuevo-chat w-full">
                     <i class="ph-bold ph-plus"></i> Nuevo Chat con Asesor
                 </button>
@@ -231,6 +245,9 @@
                 </button>
             </div>
             <div class="flex gap-2">
+                <button x-show="isStaff" @click="showUsuariosModal = true" class="btn-nuevo-chat flex-1">
+                    <i class="ph-bold ph-plus"></i> Nuevo Chat
+                </button>
                 <button x-show="isCliente" @click="showAsesoresModal = true" class="btn-nuevo-chat flex-1">
                     <i class="ph-bold ph-plus"></i> Nuevo Chat
                 </button>
@@ -263,6 +280,9 @@
                 <h3 class="text-xl font-bold text-slate-700">Selecciona un chat</h3>
                 <p class="text-slate-500 text-sm mt-1">o inicia una nueva conversación</p>
                 <div class="flex gap-2 mt-4 justify-center flex-wrap">
+                    <button x-show="isStaff" @click="showUsuariosModal = true" class="btn-nuevo-chat px-4 py-2 rounded-lg text-sm">
+                        <i class="ph-bold ph-plus"></i> Nuevo Chat
+                    </button>
                     <button x-show="isCliente" @click="showAsesoresModal = true" class="btn-nuevo-chat px-4 py-2 rounded-lg text-sm">
                         <i class="ph-bold ph-plus"></i> Nuevo Chat con Asesor
                     </button>
@@ -306,8 +326,9 @@
                 <!-- Input -->
                 <form @submit.prevent="sendOrUpdateMessage" class="p-3 bg-white border-t flex-shrink-0">
                     <div class="flex gap-2">
-                        <input type="text" x-model="editingMessage" @input="handleTyping"
+                        <input type="text" id="chat_message" name="chat_message" x-model="editingMessage" @input="handleTyping"
                                placeholder="Escribe un mensaje..."
+                               aria-label="Escribe un mensaje"
                                class="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-mso-gold">
                         <button type="submit" :disabled="!editingMessage.trim() || sending"
                                 class="bg-mso-gold text-white px-4 py-2 rounded-full hover:bg-mso-blue transition disabled:opacity-50">
@@ -325,6 +346,34 @@
     </div>
 
     {{-- MODALES --}}
+    <!-- Modal Usuarios (staff) -->
+    <div x-show="showUsuariosModal" x-cloak class="modal-overlay" @click.away="showUsuariosModal = false">
+        <div class="modal-container">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Seleccionar Contacto</h3>
+                <button @click="showUsuariosModal = false"><i class="ph-bold ph-x text-xl"></i></button>
+            </div>
+            <div class="max-h-96 overflow-y-auto">
+                <template x-for="usuario in usuariosDisponibles" :key="usuario.id">
+                    <div @click="startConversationWithUser(usuario.id)" class="p-3 border-b hover:bg-slate-50 cursor-pointer flex items-center gap-3">
+                        <img :src="usuario.avatar" class="w-12 h-12 rounded-full object-cover" alt="Contacto">
+                        <div class="flex-1">
+                            <p class="font-bold" x-text="usuario.name"></p>
+                            <p class="text-xs text-slate-500" x-text="usuario.role || (usuario.specialization || 'Usuario interno')"></p>
+                        </div>
+                        <i class="ph-bold ph-chat-circle text-mso-gold"></i>
+                    </div>
+                </template>
+                <div x-show="usuariosDisponibles.length === 0" class="text-center py-6">
+                    <p class="text-slate-500">No hay contactos disponibles</p>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button @click="showUsuariosModal = false" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Asesores -->
     <div x-show="showAsesoresModal" x-cloak class="modal-overlay" @click.away="showAsesoresModal = false">
         <div class="modal-container">
@@ -404,6 +453,8 @@
             </div>
         </div>
     </div>
+
+    </div>{{-- /contenido real del chat --}}
 </div>
 @endsection
 
@@ -421,10 +472,13 @@
             userId: {{ Auth::id() }},
             isAsesor: {{ $isAsesor ? 'true' : 'false' }},
             isCliente: {{ $isCliente ? 'true' : 'false' }},
+            isStaff: {{ isset($isStaff) && $isStaff ? 'true' : 'false' }},
             asesoresDisponibles: @json($asesoresDisponibles ?? []),
             clientesDisponibles: @json($clientesDisponibles ?? []),
+            usuariosDisponibles: @json($usuariosDisponibles ?? []),
             showAsesoresModal: false,
             showClientesModal: false,
+            showUsuariosModal: false,
             showDeleteConversationModal: false,
             showDeleteMessageModal: false,
             messageToDelete: null,
@@ -441,6 +495,9 @@
 
             async init() {
                 window.chatApp = this;
+
+                // Seguridad: mostrar el contenido aunque la red tarde (máx. 3s)
+                setTimeout(() => { this.loading = false; }, 3000);
 
                 window.addEventListener('resize', () => {
                     this.isMobile = window.innerWidth < 768;
@@ -543,12 +600,13 @@
 
                 this.messages.forEach(msg => {
                     const isSent = msg.user_id === this.userId;
+                    const canManage = isSent && !msg.is_temp;
                     const div = document.createElement('div');
                     div.className = `msg-wrapper ${isSent ? 'msg-sent' : 'msg-received'} message-enter`;
                     div.innerHTML = `
-                        ${isSent ? `
+                        ${canManage ? `
                             <div class="msg-actions">
-                                <button onclick="window.chatApp.editMessagePrompt(${msg.id}, '${this.escapeHtml(msg.content).replace(/'/g, "\\'")}')">
+                                <button onclick="window.chatApp.editMessagePrompt(${msg.id})">
                                     <i class="ph-bold ph-pencil-simple"></i> Editar
                                 </button>
                                 <button onclick="window.chatApp.showDeleteMessagePrompt(${msg.id})">
@@ -599,7 +657,7 @@
 
                 this.sending = true;
                 const content = this.editingMessage.trim();
-                const tempId = Date.now();
+                const tempId = -Date.now();
 
                 const tempMessage = {
                     id: tempId,
@@ -648,9 +706,11 @@
                 }
             },
 
-            editMessagePrompt(messageId, content) {
+            editMessagePrompt(messageId) {
+                const msg = this.messages.find(m => m.id === messageId);
+                if (!msg || msg.is_temp) return;
                 this.editingMessageId = messageId;
-                this.editingMessage = content;
+                this.editingMessage = msg.content;
                 document.querySelector('input[type="text"]')?.focus();
             },
 
@@ -694,6 +754,8 @@
             },
 
             showDeleteMessagePrompt(messageId) {
+                const msg = this.messages.find(m => m.id === messageId);
+                if (!msg || msg.is_temp) return;
                 this.messageToDelete = messageId;
                 this.showDeleteMessageModal = true;
             },
@@ -803,13 +865,11 @@
                         });
 
                         this.echoInitialized = true;
-                        console.log(" Echo conectado correctamente");
                     } catch (error) {
                         console.error('Error initializing Echo:', error);
                         this.reconnectEcho();
                     }
                 } else {
-                    console.log('⏳ Esperando Echo...');
                     setTimeout(() => this.initEcho(), 1000);
                 }
             },
@@ -817,7 +877,6 @@
             reconnectEcho() {
                 if (this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.reconnectAttempts++;
-                    console.log(`🔄 Reintentando conectar Echo (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
                     setTimeout(() => this.initEcho(), 3000);
                 } else {
                     console.error('❌ No se pudo conectar Echo después de varios intentos');
@@ -896,6 +955,30 @@
                     const data = await res.json();
                     if (data.success) {
                         this.showClientesModal = false;
+                        await this.fetchConversations();
+                        this.selectConversation(data.conversation_id);
+                    } else {
+                        alert(data.error || 'Error al iniciar conversación');
+                    }
+                } catch (e) {
+                    console.error('Error starting conversation:', e);
+                    alert('Error al iniciar conversación');
+                }
+            },
+
+            async startConversationWithUser(userId) {
+                try {
+                    const res = await fetch('/chat/start-staff', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({ user_id: userId })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        this.showUsuariosModal = false;
                         await this.fetchConversations();
                         this.selectConversation(data.conversation_id);
                     } else {

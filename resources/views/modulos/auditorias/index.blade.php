@@ -134,7 +134,7 @@
     // Top usuarios
     $topUsers = $logsCollection->whereNotNull('user_id')
         ->groupBy('user_id')->map(fn($l) => [
-            'name'  => $l->first()->user->name ?? 'Desconocido',
+            'name'  => $l->first()->user->full_name ?? $l->first()->user->name ?? 'Desconocido',
             'count' => $l->count(),
         ])->sortByDesc('count')->take(5);
 
@@ -215,7 +215,7 @@
                                         {{ $log->user ? strtoupper(substr($log->user->name,0,1)) : 'S' }}
                                     </div>
                                     <div>
-                                        <div class="font-semibold text-sm" style="color:var(--navy-900)">{{ $log->user ? $log->user->name : 'Sistema' }}</div>
+                                        <div class="font-semibold text-sm" style="color:var(--navy-900)">{{ $log->user ? $log->user->full_name : 'Sistema' }}</div>
                                         <div class="text-[11px]" style="color:var(--slate-400)">{{ $log->user ? $log->user->email : 'Proceso automático' }}</div>
                                     </div>
                                 </div>

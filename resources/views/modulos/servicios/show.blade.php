@@ -119,22 +119,6 @@
                     </div>
                 @endif
 
-                {{-- Galería --}}
-                @if($service->gallery->isNotEmpty())
-                    <div>
-                        <label class="block text-sm font-medium text-slate-500 mb-2">Galería de Imágenes</label>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            @foreach($service->gallery as $image)
-                                <div class="rounded-lg overflow-hidden border border-slate-200 aspect-square">
-                                    <img src="{{ asset('storage/' . $image->image_path) }}"
-                                         class="w-full h-full object-cover"
-                                         alt="Imagen del servicio">
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
                 {{-- URL Externa --}}
                 @if($service->external_url)
                     <div>

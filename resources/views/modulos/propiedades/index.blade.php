@@ -31,100 +31,122 @@
                 @endcan
             </div>
 
-            <form action="{{ request()->url() }}" method="GET" class="space-y-3">
+            <form action="{{ request()->url() }}" method="GET" class="space-y-3 sm:space-y-4">
                 <!-- Búsqueda -->
-                <div class="flex flex-wrap gap-3">
-                    <input type="text" name="search" value="{{ request('search') }}"
-                           placeholder="Buscar por título, descripción o dirección..."
-                           class="flex-1 min-w-[200px] border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-mso-gold outline-none">
-
-                    <select name="type" class="border rounded-lg px-4 py-2 text-sm bg-white">
-                        <option value="">Todos los Tipos</option>
-                        <option value="venta" {{ request('type') == 'venta' ? 'selected' : '' }}>Venta</option>
-                        <option value="alquiler" {{ request('type') == 'alquiler' ? 'selected' : '' }}>Alquiler</option>
-                        <option value="venta/alquiler" {{ request('type') == 'venta/alquiler' ? 'selected' : '' }}>Venta/Alquiler</option>
-                    </select>
-
-                    <select name="status" class="border rounded-lg px-4 py-2 text-sm bg-white">
-                        <option value="">Todos los Estados</option>
-                        <option value="borrador" {{ request('status') == 'borrador' ? 'selected' : '' }}>Borrador</option>
-                        <option value="pendiente" {{ request('status') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                        <option value="publicada" {{ request('status') == 'publicada' ? 'selected' : '' }}>Publicada</option>
-                        <option value="vendida" {{ request('status') == 'vendida' ? 'selected' : '' }}>Vendida</option>
-                        <option value="alquilada" {{ request('status') == 'alquilada' ? 'selected' : '' }}>Alquilada</option>
-                    </select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-end">
+                    <div class="sm:col-span-2 lg:col-span-1">
+                        <label for="property_search" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Buscar</label>
+                        <input type="text" name="search" id="property_search" value="{{ request('search') }}"
+                               placeholder="Buscar por título, descripción o dirección..."
+                               class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                    </div>
+                    <div>
+                        <label for="property_type" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Tipo</label>
+                        <select name="type" id="property_type" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                            <option value="">Todos los Tipos</option>
+                            <option value="venta" {{ request('type') == 'venta' ? 'selected' : '' }}>Venta</option>
+                            <option value="alquiler" {{ request('type') == 'alquiler' ? 'selected' : '' }}>Alquiler</option>
+                            <option value="venta/alquiler" {{ request('type') == 'venta/alquiler' ? 'selected' : '' }}>Venta/Alquiler</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="property_status" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
+                        <select name="status" id="property_status" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                            <option value="">Todos los Estados</option>
+                            <option value="borrador" {{ request('status') == 'borrador' ? 'selected' : '' }}>Borrador</option>
+                            <option value="pendiente" {{ request('status') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                            <option value="publicada" {{ request('status') == 'publicada' ? 'selected' : '' }}>Publicada</option>
+                            <option value="vendida" {{ request('status') == 'vendida' ? 'selected' : '' }}>Vendida</option>
+                            <option value="alquilada" {{ request('status') == 'alquilada' ? 'selected' : '' }}>Alquilada</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Filtros de Ubicación -->
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                    <select name="country_id" id="filter_country" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white">
-                        <option value="">Todos los Países</option>
-                        @foreach($countries as $country)
-                            <option value="{{ $country->id }}" {{ request('country_id') == $country->id ? 'selected' : '' }}>
-                                {{ $country->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                    <div>
+                        <label for="filter_country" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">País</label>
+                        <select name="country_id" id="filter_country" autocomplete="off" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                            <option value="">Todos los Países</option>
+                            @foreach($countries as $country)
+                                <option value="{{ $country->id }}" {{ request('country_id') == $country->id ? 'selected' : '' }}>
+                                    {{ $country->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select name="state_id" id="filter_state" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('country_id') ? '' : 'disabled' }}>
-                        <option value="">Todos los Estados</option>
-                        @foreach($states as $state)
-                            <option value="{{ $state->id }}" {{ request('state_id') == $state->id ? 'selected' : '' }}>
-                                {{ $state->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div>
+                        <label for="filter_state" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
+                        <select name="state_id" id="filter_state" autocomplete="off" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all" {{ request('country_id') ? '' : 'disabled' }}>
+                            <option value="">Todos los Estados</option>
+                            @foreach($states as $state)
+                                <option value="{{ $state->id }}" {{ request('state_id') == $state->id ? 'selected' : '' }}>
+                                    {{ $state->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select name="municipality_id" id="filter_municipality" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('state_id') ? '' : 'disabled' }}>
-                        <option value="">Todos los Municipios</option>
-                        @foreach($municipalities as $municipality)
-                            <option value="{{ $municipality->id }}" {{ request('municipality_id') == $municipality->id ? 'selected' : '' }}>
-                                {{ $municipality->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div>
+                        <label for="filter_municipality" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Municipio</label>
+                        <select name="municipality_id" id="filter_municipality" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all" {{ request('state_id') ? '' : 'disabled' }}>
+                            <option value="">Todos los Municipios</option>
+                            @foreach($municipalities as $municipality)
+                                <option value="{{ $municipality->id }}" {{ request('municipality_id') == $municipality->id ? 'selected' : '' }}>
+                                    {{ $municipality->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select name="parish_id" id="filter_parish" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('municipality_id') ? '' : 'disabled' }}>
-                        <option value="">Todas las Parroquias</option>
-                        @foreach($parishes as $parish)
-                            <option value="{{ $parish->id }}" {{ request('parish_id') == $parish->id ? 'selected' : '' }}>
-                                {{ $parish->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div>
+                        <label for="filter_parish" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Parroquia</label>
+                        <select name="parish_id" id="filter_parish" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all" {{ request('municipality_id') ? '' : 'disabled' }}>
+                            <option value="">Todas las Parroquias</option>
+                            @foreach($parishes as $parish)
+                                <option value="{{ $parish->id }}" {{ request('parish_id') == $parish->id ? 'selected' : '' }}>
+                                    {{ $parish->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select name="city_id" id="filter_city" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold bg-white" {{ request('parish_id') ? '' : 'disabled' }}>
-                        <option value="">Todas las Ciudades</option>
-                        @foreach($cities as $city)
-                            <option value="{{ $city->id }}" {{ request('city_id') == $city->id ? 'selected' : '' }}>
-                                {{ $city->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div>
+                        <label for="filter_city" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Ciudad</label>
+                        <select name="city_id" id="filter_city" autocomplete="off" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all" {{ request('parish_id') ? '' : 'disabled' }}>
+                            <option value="">Todas las Ciudades</option>
+                            @foreach($cities as $city)
+                                <option value="{{ $city->id }}" {{ request('city_id') == $city->id ? 'selected' : '' }}>
+                                    {{ $city->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Filtros adicionales -->
-                <div class="flex flex-wrap gap-3 items-end">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 items-end">
                     <div>
-                        <label class="block text-xs text-slate-500 mb-1">Precio Mínimo</label>
-                        <input type="number" name="min_price" value="{{ request('min_price') }}"
-                               placeholder="$ Min" class="border rounded-lg px-4 py-2 text-sm w-32">
+                        <label for="filter_min_price" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Precio Mínimo</label>
+                        <input type="number" name="min_price" id="filter_min_price" autocomplete="off" value="{{ request('min_price') }}"
+                               placeholder="$ Min" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-500 mb-1">Precio Máximo</label>
-                        <input type="number" name="max_price" value="{{ request('max_price') }}"
-                               placeholder="$ Max" class="border rounded-lg px-4 py-2 text-sm w-32">
+                        <label for="filter_max_price" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Precio Máximo</label>
+                        <input type="number" name="max_price" id="filter_max_price" autocomplete="off" value="{{ request('max_price') }}"
+                               placeholder="$ Max" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     </div>
 
                     @can('ver usuarios')
                         @if(isset($isAdmin) && $isAdmin && isset($asesores) && $asesores->count() > 0)
                             <div>
-                                <label class="block text-xs text-slate-500 mb-1">Asesor</label>
-                                <select name="user_id" class="border rounded-lg px-4 py-2 text-sm bg-white">
+                                <label for="filter_user_id" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Asesor</label>
+                                <select name="user_id" id="filter_user_id" autocomplete="off" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                                     <option value="">Todos los Asesores</option>
                                     @foreach($asesores as $asesor)
                                         <option value="{{ $asesor->id }}" {{ request('user_id') == $asesor->id ? 'selected' : '' }}>
-                                            {{ $asesor->name }}
+                                            {{ $asesor->full_name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -132,12 +154,14 @@
                         @endif
                     @endcan
 
-                    <button type="submit" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-700">
-                        <i class="ph ph-funnel mr-1"></i> Filtrar
-                    </button>
-                    <a href="{{ request()->url() }}" class="border border-slate-300 text-slate-600 px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-50">
-                        Limpiar
-                    </a>
+                    <div class="sm:col-span-2 lg:col-span-2 flex gap-2">
+                        <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                            <i class="ph ph-magnifying-glass"></i> Buscar
+                        </button>
+                        <a href="{{ request()->url() }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                            <i class="ph ph-x"></i> Limpiar
+                        </a>
+                    </div>
                 </div>
             </form>
         </div>

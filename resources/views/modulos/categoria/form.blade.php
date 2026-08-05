@@ -32,7 +32,7 @@
                     </label>
                     <input type="text" name="name" value="{{ old('name', $category->name ?? '') }}"
                            class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition"
-                           placeholder="Ej: Casa, Apartamento, Oficina..." required>
+                           placeholder="Ej: Casa, Apartamento, Oficina..." data-label="Nombre de la Categoría" required>
                     @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     <p class="text-xs text-slate-400 mt-1">El slug se generará automáticamente a partir del nombre.</p>
                 </div>

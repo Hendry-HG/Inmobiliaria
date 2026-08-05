@@ -65,7 +65,6 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
                 const data = await response.json();
-                console.log('Favorite toggled:', data);
             } catch (error) {
                 console.error('Error toggling favorite:', error);
                 this.isFavorite = !this.isFavorite;
@@ -78,5 +77,3 @@ document.addEventListener('alpine:init', () => {
  * Iniciar Alpine
  */
 Alpine.start();
-
-console.log(' Alpine.js iniciado correctamente');

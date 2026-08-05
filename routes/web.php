@@ -16,6 +16,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LegalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +66,19 @@ Route::prefix('propiedad')->name('propiedad.')->group(function () {
 });
 
 Route::get('/servicios', [App\Http\Controllers\Admin\ServiceController::class, 'publicIndex'])->name('servicios.public');
+
+/**
+ * -----------------------------------------------------------------------
+ * PÁGINAS LEGALES (PÚBLICAS)
+ * -----------------------------------------------------------------------
+ * Documentos legales del sitio: términos y condiciones, política de
+ * privacidad y política de cookies. No requieren autenticación.
+ */
+Route::prefix('legal')->name('legal.')->group(function () {
+    Route::get('/terminos-y-condiciones', [LegalController::class, 'terms'])->name('terms');
+    Route::get('/politica-de-privacidad', [LegalController::class, 'privacy'])->name('privacy');
+    Route::get('/politica-de-cookies', [LegalController::class, 'cookies'])->name('cookies');
+});
 Route::post('/solicitar-valoracion', [App\Http\Controllers\LeadController::class, 'storePublic'])
     ->name('lead.store.public')
     ->middleware('throttle:5,1');
@@ -107,6 +121,7 @@ Route::prefix('api')->name('api.')->middleware('throttle:60,1')->group(function 
         Route::get('/municipalities/{stateId}', [App\Http\Controllers\Admin\LocationController::class, 'getMunicipalitiesForRegister'])->name('municipalities');
         Route::get('/parishes/{municipalityId}', [App\Http\Controllers\Admin\LocationController::class, 'getParishesForRegister'])->name('parishes');
         Route::get('/cities/{parishId}', [App\Http\Controllers\Admin\LocationController::class, 'getCitiesForRegister'])->name('cities');
+        Route::get('/check-field', [App\Http\Controllers\Auth\RegisterController::class, 'checkUnique'])->name('check-field');
     });
 
     // Teléfonos
@@ -127,7 +142,6 @@ Route::prefix('api')->name('api.')->middleware('throttle:60,1')->group(function 
  */
 Route::get('/refresh-csrf', function () {
     if (request()->ajax()) {
-        session()->regenerateToken();
         return response()->json(['csrf_token' => csrf_token()]);
     }
     return response()->json(['error' => 'Invalid request'], 400);

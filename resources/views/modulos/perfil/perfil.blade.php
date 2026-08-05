@@ -148,15 +148,15 @@
                         {{-- NOMBRE Y APELLIDO --}}
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
-                                <input type="text" name="name" value="{{ old('name', $user->name) }}"
+                                <label for="profile_name" class="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+                                <input type="text" name="name" id="profile_name" autocomplete="given-name" value="{{ old('name', $user->name) }}"
                                        class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" required>
                                 @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Apellido</label>
-                                <input type="text" name="last_name" value="{{ old('last_name', $user->last_name) }}"
+                                <label for="profile_last_name" class="block text-sm font-medium text-slate-700 mb-1">Apellido</label>
+                                <input type="text" name="last_name" id="profile_last_name" autocomplete="family-name" value="{{ old('last_name', $user->last_name) }}"
                                        class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 @error('last_name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -164,8 +164,8 @@
 
                         {{-- EMAIL (solo lectura) --}}
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                            <input type="email" value="{{ $user->email }}" readonly
+                            <label for="profile_email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                            <input type="email" id="profile_email" autocomplete="email" value="{{ $user->email }}" readonly
                                    class="w-full border rounded-lg p-2.5 bg-slate-50 text-slate-500 cursor-not-allowed">
                             <p class="text-xs text-slate-400 mt-1">El email no se puede modificar</p>
                         </div>
@@ -173,15 +173,15 @@
                         {{-- TELÉFONO Y CÉDULA --}}
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
-                                <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
+                                <label for="profile_phone" class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
+                                <input type="text" name="phone" id="profile_phone" autocomplete="tel" value="{{ old('phone', $user->phone) }}"
                                        class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Cédula</label>
-                                <select name="id_type" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
+                                <label for="profile_id_type" class="block text-sm font-medium text-slate-700 mb-1">Tipo de Cédula</label>
+                                <select name="id_type" id="profile_id_type" autocomplete="off" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                     <option value="">Seleccionar</option>
                                     <option value="V" {{ old('id_type', $user->id_type) == 'V' ? 'selected' : '' }}>Venezolano (V)</option>
                                     <option value="E" {{ old('id_type', $user->id_type) == 'E' ? 'selected' : '' }}>Extranjero (E)</option>
@@ -191,16 +191,16 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Número de Cédula</label>
-                                <input type="text" name="id_number" value="{{ old('id_number', $user->id_number) }}"
+                                <label for="profile_id_number" class="block text-sm font-medium text-slate-700 mb-1">Número de Cédula</label>
+                                <input type="text" name="id_number" id="profile_id_number" autocomplete="off" value="{{ old('id_number', $user->id_number) }}"
                                        class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 @error('id_number') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
-                            <textarea name="address" rows="2" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none"
+                            <label for="profile_address" class="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
+                            <textarea name="address" id="profile_address" autocomplete="street-address" rows="2" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none"
                                       placeholder="Tu dirección completa">{{ old('address', $user->address) }}</textarea>
                             @error('address') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
@@ -210,8 +210,8 @@
                         {{-- ============================================ --}}
                         @if($mainRole == 'Asesor Inmobiliario')
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Especialización</label>
-                            <input type="text" name="specialization" value="{{ old('specialization', $user->specialization) }}"
+                            <label for="profile_specialization" class="block text-sm font-medium text-slate-700 mb-1">Especialización</label>
+                            <input type="text" name="specialization" id="profile_specialization" autocomplete="off" value="{{ old('specialization', $user->specialization) }}"
                                    placeholder="Ej: Propiedades de Lujo, Alquileres Comerciales..."
                                    class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                         </div>
@@ -222,8 +222,8 @@
                         {{-- ============================================ --}}
                         @if($mainRole == 'Asesor Inmobiliario')
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Biografía</label>
-                            <textarea name="bio" rows="3" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none"
+                            <label for="profile_bio" class="block text-sm font-medium text-slate-700 mb-1">Biografía</label>
+                            <textarea name="bio" id="profile_bio" autocomplete="off" rows="3" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none"
                                       placeholder="Cuéntanos sobre ti, tu experiencia y lo que te apasiona...">{{ old('bio', $user->bio) }}</textarea>
                             <p class="text-xs text-slate-400 mt-1">Máximo 500 caracteres</p>
                             @error('bio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -238,58 +238,58 @@
                             <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b">Redes Sociales</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_whatsapp" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-whatsapp-logo text-green-500 mr-1"></i>WhatsApp
                                     </label>
-                                    <input type="text" name="whatsapp" value="{{ old('whatsapp', $socialLinks['whatsapp'] ?? '') }}"
+                                    <input type="text" name="whatsapp" id="profile_whatsapp" autocomplete="off" value="{{ old('whatsapp', $socialLinks['whatsapp'] ?? '') }}"
                                            placeholder="Ej: 584121234567 (solo números)"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_instagram" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-instagram-logo text-pink-500 mr-1"></i>Instagram
                                     </label>
-                                    <input type="text" name="instagram" value="{{ old('instagram', $socialLinks['instagram'] ?? '') }}"
+                                    <input type="text" name="instagram" id="profile_instagram" autocomplete="off" value="{{ old('instagram', $socialLinks['instagram'] ?? '') }}"
                                            placeholder="Ej: mso.inmobiliaria (sin @)"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_facebook" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-facebook-logo text-blue-600 mr-1"></i>Facebook
                                     </label>
-                                    <input type="text" name="facebook" value="{{ old('facebook', $socialLinks['facebook'] ?? '') }}"
+                                    <input type="text" name="facebook" id="profile_facebook" autocomplete="off" value="{{ old('facebook', $socialLinks['facebook'] ?? '') }}"
                                            placeholder="URL completa de tu perfil"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_tiktok" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-tiktok-logo text-black mr-1"></i>TikTok
                                     </label>
-                                    <input type="text" name="tiktok" value="{{ old('tiktok', $socialLinks['tiktok'] ?? '') }}"
+                                    <input type="text" name="tiktok" id="profile_tiktok" autocomplete="off" value="{{ old('tiktok', $socialLinks['tiktok'] ?? '') }}"
                                            placeholder="Ej: mso.inmobiliaria (sin @)"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_telegram" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-telegram-logo text-sky-500 mr-1"></i>Telegram
                                     </label>
-                                    <input type="text" name="telegram" value="{{ old('telegram', $socialLinks['telegram'] ?? '') }}"
+                                    <input type="text" name="telegram" id="profile_telegram" autocomplete="off" value="{{ old('telegram', $socialLinks['telegram'] ?? '') }}"
                                            placeholder="Ej: mso_inmobiliaria (sin @)"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_linkedin" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-linkedin-logo text-blue-700 mr-1"></i>LinkedIn
                                     </label>
-                                    <input type="text" name="linkedin" value="{{ old('linkedin', $socialLinks['linkedin'] ?? '') }}"
+                                    <input type="text" name="linkedin" id="profile_linkedin" autocomplete="off" value="{{ old('linkedin', $socialLinks['linkedin'] ?? '') }}"
                                            placeholder="URL completa de tu perfil"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    <label for="profile_twitter" class="block text-sm font-medium text-slate-700 mb-1">
                                         <i class="ph ph-twitter-logo text-sky-400 mr-1"></i>Twitter / X
                                     </label>
-                                    <input type="text" name="twitter" value="{{ old('twitter', $socialLinks['twitter'] ?? '') }}"
+                                    <input type="text" name="twitter" id="profile_twitter" autocomplete="off" value="{{ old('twitter', $socialLinks['twitter'] ?? '') }}"
                                            placeholder="Ej: mso_inmobiliaria (sin @)"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
@@ -305,8 +305,8 @@
                             <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b">Ubicación</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">País</label>
-                                    <select name="country_id" id="profile_country_id" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
+                                    <label for="profile_country_id" class="block text-sm font-medium text-slate-700 mb-1">País</label>
+                                    <select name="country_id" id="profile_country_id" autocomplete="off" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                         <option value="">Seleccionar país</option>
                                         @foreach($countries as $country)
                                             <option value="{{ $country->id }}" {{ old('country_id', $user->country_id) == $country->id ? 'selected' : '' }}>
@@ -317,8 +317,8 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
-                                    <select name="state_id" id="profile_state_id" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->country_id ? '' : 'disabled' }}>
+                                    <label for="profile_state_id" class="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+                                    <select name="state_id" id="profile_state_id" autocomplete="off" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->country_id ? '' : 'disabled' }}>
                                         <option value="">Seleccionar estado</option>
                                         @foreach($states as $state)
                                             <option value="{{ $state->id }}" {{ old('state_id', $user->state_id) == $state->id ? 'selected' : '' }}>
@@ -329,8 +329,8 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Municipio</label>
-                                    <select name="municipality_id" id="profile_municipality_id" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->state_id ? '' : 'disabled' }}>
+                                    <label for="profile_municipality_id" class="block text-sm font-medium text-slate-700 mb-1">Municipio</label>
+                                    <select name="municipality_id" id="profile_municipality_id" autocomplete="off" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->state_id ? '' : 'disabled' }}>
                                         <option value="">Seleccionar municipio</option>
                                         @foreach($municipalities as $municipality)
                                             <option value="{{ $municipality->id }}" {{ old('municipality_id', $user->municipality_id) == $municipality->id ? 'selected' : '' }}>
@@ -341,8 +341,8 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Parroquia</label>
-                                    <select name="parish_id" id="profile_parish_id" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->municipality_id ? '' : 'disabled' }}>
+                                    <label for="profile_parish_id" class="block text-sm font-medium text-slate-700 mb-1">Parroquia</label>
+                                    <select name="parish_id" id="profile_parish_id" autocomplete="off" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->municipality_id ? '' : 'disabled' }}>
                                         <option value="">Seleccionar parroquia</option>
                                         @foreach($parishes as $parish)
                                             <option value="{{ $parish->id }}" {{ old('parish_id', $user->parish_id) == $parish->id ? 'selected' : '' }}>
@@ -353,8 +353,8 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Ciudad</label>
-                                    <select name="city_id" id="profile_city_id" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->parish_id ? '' : 'disabled' }}>
+                                    <label for="profile_city_id" class="block text-sm font-medium text-slate-700 mb-1">Ciudad</label>
+                                    <select name="city_id" id="profile_city_id" autocomplete="off" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none" {{ $user->parish_id ? '' : 'disabled' }}>
                                         <option value="">Seleccionar ciudad</option>
                                         @foreach($cities as $city)
                                             <option value="{{ $city->id }}" {{ old('city_id', $user->city_id) == $city->id ? 'selected' : '' }}>
@@ -371,8 +371,8 @@
                         {{-- FOTO DE PERFIL - TODOS                       --}}
                         {{-- ============================================ --}}
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Foto de Perfil</label>
-                            <input type="file" name="profile_photo" accept="image/*"
+                            <label for="profile_photo" class="block text-sm font-medium text-slate-700 mb-1">Foto de Perfil</label>
+                            <input type="file" name="profile_photo" id="profile_photo" autocomplete="off" accept="image/*"
                                    class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-mso-gold file:text-mso-blue hover:file:bg-mso-blue hover:file:text-white cursor-pointer">
                             <p class="text-xs text-slate-400 mt-1">Formatos: JPG, PNG. Máximo 2MB</p>
                             @error('profile_photo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -385,21 +385,21 @@
                             <h4 class="font-bold text-slate-700 mb-3 pb-2 border-b">Cambiar Contraseña</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña Actual</label>
-                                    <input type="password" name="current_password" placeholder="••••••••"
+                                    <label for="profile_current_password" class="block text-sm font-medium text-slate-700 mb-1">Contraseña Actual</label>
+                                    <input type="password" name="current_password" id="profile_current_password" autocomplete="current-password" placeholder="••••••••"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                     @error('current_password') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div></div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Nueva Contraseña</label>
-                                    <input type="password" name="password" placeholder="Mínimo 8 caracteres"
+                                    <label for="profile_password" class="block text-sm font-medium text-slate-700 mb-1">Nueva Contraseña</label>
+                                    <input type="password" name="password" id="profile_password" autocomplete="new-password" placeholder="Mínimo 8 caracteres"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                     @error('password') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Confirmar Contraseña</label>
-                                    <input type="password" name="password_confirmation" placeholder="Repite la contraseña"
+                                    <label for="profile_password_confirmation" class="block text-sm font-medium text-slate-700 mb-1">Confirmar Contraseña</label>
+                                    <input type="password" name="password_confirmation" id="profile_password_confirmation" autocomplete="new-password" placeholder="Repite la contraseña"
                                            class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold outline-none">
                                 </div>
                             </div>

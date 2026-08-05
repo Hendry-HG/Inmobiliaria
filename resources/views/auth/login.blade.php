@@ -300,17 +300,17 @@
                     @enderror
                 </div>
 
-                {{-- Recordarme y Olvidé contraseña --}}
-                <div class="flex">
-                    <div class="flex">
-                        <input id="remember" name="remember" type="checkbox" class="checkbox-custom" {{ old('remember') ? 'checked' : '' }}>
+                {{-- Recordarme (opcional) y Olvidé contraseña --}}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember" name="remember" type="checkbox" autocomplete="off" class="checkbox-custom">
                         <label for="remember" class="text-xs text-slate-600 select-none" style="margin-left: 0.5rem;">Recordarme</label>
                     </div>
                     <a href="{{ route('password.request') }}" class="link-forgot">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 {{-- Botón --}}
-                <button type="submit" id="login-submit" class="btn-login">
+                <button type="submit" id="login-submit" formnovalidate class="btn-login">
                     INICIAR SESIÓN
                 </button>
 
@@ -368,7 +368,6 @@
                 submitBtn.style.opacity = '0.7';
                 submitBtn.style.cursor = 'wait';
 
-                console.log(' Enviando formulario de login...');
                 return true;
             });
         }
@@ -409,7 +408,6 @@
                     if (metaTag) {
                         metaTag.content = data.csrf_token;
                     }
-                    console.log(' Token CSRF actualizado (página login)');
                 }
             })
             .catch(() => {

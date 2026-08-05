@@ -65,8 +65,9 @@
         <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
             <p>&copy; {{ date('Y') }} MSO Grupo Inmobiliario. Todos los derechos reservados.</p>
             <div class="flex gap-6 mt-4 md:mt-0">
-                <a href="#" class="hover:text-white transition-colors">Privacidad</a>
-                <a href="#" class="hover:text-white transition-colors">Términos</a>
+                <a href="{{ route('legal.privacy') }}" class="hover:text-white transition-colors">Privacidad</a>
+                <a href="{{ route('legal.terms') }}" class="hover:text-white transition-colors">Términos</a>
+                <a href="{{ route('legal.cookies') }}" class="hover:text-white transition-colors">Cookies</a>
             </div>
         </div>
     </div>

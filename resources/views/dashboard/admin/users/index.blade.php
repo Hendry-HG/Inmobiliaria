@@ -11,8 +11,11 @@
     {{-- BARRA SUPERIOR - Solo visible para Super Admin y Administrador --}}
     {{-- ============================================= --}}
     @hasanyrole(['Super Admin', 'Administrador'])
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex flex-wrap justify-between items-center gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 sm:p-4">
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="ph ph-funnel text-mso-gold"></i> Filtrar Usuarios
+                </h2>
                 {{-- Botón Nuevo Usuario - Solo Super Admin y Administrador --}}
                 @hasanyrole(['Super Admin', 'Administrador'])
                     <a href="{{ route('admin.users.create') }}"
@@ -20,18 +23,25 @@
                         <i class="ph ph-user-plus"></i> Nuevo Usuario
                     </a>
                 @endhasanyrole
+            </div>
 
-                <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-wrap gap-2" autocomplete="off">
+            <form method="GET" action="{{ route('admin.users.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 items-end" autocomplete="off">
+                <div class="sm:col-span-2">
+                    <label for="users_search" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Buscar</label>
                     <input type="text"
                            name="search"
+                           id="users_search"
                            value="{{ request('search') }}"
                            placeholder="Buscar usuario..."
                            autocomplete="off"
-                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-transparent outline-none w-full sm:w-auto">
+                           class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                </div>
 
-                    {{-- Filtro por rol - Solo Super Admin y Administrador --}}
-                    @hasanyrole(['Super Admin', 'Administrador'])
-                        <select name="role" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold outline-none" autocomplete="off">
+                {{-- Filtro por rol - Solo Super Admin y Administrador --}}
+                @hasanyrole(['Super Admin', 'Administrador'])
+                    <div>
+                        <label for="users_role" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Rol</label>
+                        <select name="role" id="users_role" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all" autocomplete="off">
                             <option value="">Todos los roles</option>
                             @foreach($roles ?? [] as $role)
                                 <option value="{{ $role->name }}" {{ request('role') == $role->name ? 'selected' : '' }}>
@@ -39,23 +49,27 @@
                                 </option>
                             @endforeach
                         </select>
-                    @endhasanyrole
+                    </div>
+                @endhasanyrole
 
-                    <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mso-gold outline-none" autocomplete="off">
+                <div>
+                    <label for="users_status" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
+                    <select name="status" id="users_status" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all" autocomplete="off">
                         <option value="">Todos los estados</option>
                         <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Activos</option>
                         <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactivos</option>
                     </select>
+                </div>
 
-                    <button type="submit" class="bg-mso-blue text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
-                        <i class="ph ph-magnifying-glass"></i> Filtrar
+                <div class="sm:col-span-2 lg:col-span-2 flex gap-2">
+                    <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                        <i class="ph ph-magnifying-glass"></i> Buscar
                     </button>
-
-                    @if(request()->anyFilled(['search', 'role', 'status']))
-                        <a href="{{ route('admin.users.index') }}" class="text-gray-500 hover:text-red-500 underline text-sm">Limpiar</a>
-                    @endif
-                </form>
-            </div>
+                    <a href="{{ route('admin.users.index') }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                        <i class="ph ph-x"></i> Limpiar
+                    </a>
+                </div>
+            </form>
         </div>
     @else
         {{-- Mensaje de acceso denegado para otros roles --}}
@@ -269,7 +283,10 @@ function openModal(url) {
     }, 10);
     fetch(url)
         .then(response => response.text())
-        .then(html => { wrapper.innerHTML = html; })
+        .then(html => {
+            wrapper.innerHTML = html;
+            initModalEditValidation();
+        })
         .catch(error => { console.error('Error:', error); closeModal(); alert('Error al cargar la vista.'); });
 }
 
@@ -282,6 +299,147 @@ function closeModal() {
         container.classList.add('hidden');
         wrapper.innerHTML = '';
     }, 300);
+}
+
+function initModalEditValidation() {
+    const password = document.getElementById('edit_password');
+    const confirmation = document.getElementById('edit_password_confirmation');
+    const passError = document.getElementById('edit-pass-error');
+    const form = document.querySelector('#modal-content-wrapper form');
+
+    if (!form) return;
+
+    const checkUrl = '{{ route('admin.users.check-field') }}';
+    const userId = form.getAttribute('data-user-id') || '';
+    const fieldChecks = {};
+
+    function attachUniqueCheck(input, errorDiv, field) {
+        if (!input || !errorDiv) return;
+
+        let timeout = null;
+        const pattern = field === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/ : /^[0-9]{4,20}$/;
+
+        const check = function() {
+            const value = input.value.trim();
+
+            if (!value || !pattern.test(value)) {
+                errorDiv.classList.add('hidden');
+                input.style.borderColor = '';
+                fieldChecks[field] = true;
+                return;
+            }
+
+            fetch(checkUrl + '?field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value) + '&ignore_id=' + encodeURIComponent(userId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                fieldChecks[field] = data.available;
+                if (!data.available) {
+                    errorDiv.classList.remove('hidden');
+                    input.style.borderColor = '#ef4444';
+                } else {
+                    errorDiv.classList.add('hidden');
+                    input.style.borderColor = '';
+                }
+            })
+            .catch(() => {
+                fieldChecks[field] = true;
+            });
+        };
+
+        input.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(check, 500);
+        });
+        input.addEventListener('blur', check);
+    }
+
+    attachUniqueCheck(document.getElementById('edit_email'), document.getElementById('edit-email-error'), 'email');
+    attachUniqueCheck(document.getElementById('edit_id_number'), document.getElementById('edit-id_number-error'), 'id_number');
+    attachUniqueCheck(document.getElementById('edit_phone'), document.getElementById('edit-phone-error'), 'phone');
+
+    if (confirmation) {
+        confirmation.addEventListener('input', function() {
+            if (password && this.value && this.value !== password.value) {
+                this.style.borderColor = '#ef4444';
+                if (passError) passError.classList.remove('hidden');
+            } else {
+                this.style.borderColor = '';
+                if (passError) passError.classList.add('hidden');
+            }
+        });
+    }
+
+    if (password) {
+        password.addEventListener('input', function() {
+            const strengthDiv = document.getElementById('edit-password-strength');
+            if (strengthDiv) {
+                const value = this.value;
+                if (value.length === 0) {
+                    strengthDiv.textContent = 'Mínimo 10 caracteres, con mayúscula, minúscula, número y carácter especial.';
+                    strengthDiv.className = 'text-xs text-gray-500 mt-1';
+                    return;
+                }
+                const requirements = [];
+                if (value.length < 10) requirements.push('mínimo 10 caracteres');
+                if (!/[A-Z]/.test(value)) requirements.push('mayúscula');
+                if (!/[a-z]/.test(value)) requirements.push('minúscula');
+                if (!/\d/.test(value)) requirements.push('número');
+                if (!/[@$!%*?&]/.test(value)) requirements.push('carácter especial (@$!%*?&)');
+
+                if (requirements.length === 0) {
+                    strengthDiv.textContent = ' Contraseña segura';
+                    strengthDiv.className = 'text-xs text-green-600 font-medium mt-1';
+                } else {
+                    strengthDiv.textContent = ' Falta: ' + requirements.join(', ');
+                    strengthDiv.className = 'text-xs text-red-500 mt-1';
+                }
+            }
+        });
+    }
+
+    form.addEventListener('submit', function(e) {
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const problems = [];
+
+        const emailInput = document.getElementById('edit_email');
+
+        if (emailInput && (!emailInput.value || !emailPattern.test(emailInput.value))) {
+            problems.push('un correo electrónico válido');
+        }
+        if (fieldChecks.email === false) {
+            problems.push('un correo que no esté en uso');
+        }
+        if (fieldChecks.id_number === false) {
+            problems.push('un número de identificación que no esté en uso');
+        }
+        if (fieldChecks.phone === false) {
+            problems.push('un teléfono que no esté en uso');
+        }
+        if (password && password.value.length > 0) {
+            const hasUpper = /[A-Z]/.test(password.value);
+            const hasLower = /[a-z]/.test(password.value);
+            const hasNumber = /\d/.test(password.value);
+            const hasSpecial = /[@$!%*?&]/.test(password.value);
+
+            const requirements = [];
+            if (password.value.length < 10) requirements.push('mínimo 10 caracteres');
+            if (!hasUpper) requirements.push('mayúscula');
+            if (!hasLower) requirements.push('minúscula');
+            if (!hasNumber) requirements.push('número');
+            if (!hasSpecial) requirements.push('carácter especial');
+
+            if (requirements.length > 0) problems.push('una contraseña segura (' + requirements.join(', ') + ')');
+            if (confirmation && password.value !== confirmation.value) problems.push('que las contraseñas coincidan');
+        }
+
+        if (problems.length > 0) {
+            e.preventDefault();
+            showMissingFieldsModal(problems.filter((v, i, a) => a.indexOf(v) === i));
+            return false;
+        }
+    });
 }
 
 document.getElementById('modal-container')?.addEventListener('click', function(e) {

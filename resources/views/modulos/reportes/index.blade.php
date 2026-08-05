@@ -15,7 +15,7 @@
     .stat-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 20px 40px -12px rgba(0,0,0,0.08);
-        border-color: rgba(197, 160, 89, 0.3);
+        border-color: rgba(197, 160, 89, 0.45);
     }
     .chart-card {
         transition: all 0.3s ease;
@@ -34,7 +34,7 @@
     }
     .period-btn.active {
         background: white;
-        color: #2563eb;
+        color: #0f172a;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     .custom-scrollbar::-webkit-scrollbar {
@@ -58,7 +58,7 @@
     }
     .export-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px -8px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 8px 25px -8px rgba(0, 51, 102, 0.35);
     }
     .export-btn:disabled {
         opacity: 0.7;
@@ -366,12 +366,12 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-1.5 md:gap-2">
-                <button id="exportPdfBtn" class="inline-flex items-center gap-1 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-white bg-mso-blue rounded-lg md:rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200 export-btn">
+                <button id="exportPdfBtn" class="inline-flex items-center gap-1 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-white bg-mso-blue rounded-lg md:rounded-xl hover:bg-slate-900 transition-colors shadow-sm export-btn">
                     <i class="ph ph-file-pdf text-sm md:text-base"></i>
                     <span class="hidden xs:inline">Exportar PDF</span>
                     <span class="xs:hidden">PDF</span>
                 </button>
-                <button id="exportCsvBtn" class="inline-flex items-center gap-1 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-white bg-emerald-600 rounded-lg md:rounded-xl hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200 export-btn">
+                <button id="exportCsvBtn" class="inline-flex items-center gap-1 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-mso-blue bg-mso-gold rounded-lg md:rounded-xl hover:bg-amber-500 hover:text-white transition-colors shadow-sm export-btn">
                     <i class="ph ph-file-csv text-sm md:text-base"></i>
                     <span class="hidden xs:inline">Exportar CSV</span>
                     <span class="xs:hidden">CSV</span>
@@ -392,13 +392,13 @@
                     <p class="text-[9px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Propiedades</p>
                     <p class="text-lg md:text-3xl font-extrabold text-slate-800 mt-0.5 md:mt-2 tabular-nums truncate">{{ number_format($totalProperties ?? 0) }}</p>
                     <div class="flex items-center gap-1 mt-1 md:mt-2">
-                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1 md:px-2 py-0.5 rounded-full">
-                            <i class="ph ph-trend-up text-[7px] md:text-[10px]"></i> 12%
+                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold {{ $trendProperties >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50' }} px-1 md:px-2 py-0.5 rounded-full">
+                            <i class="ph {{ $trendProperties >= 0 ? 'ph-trend-up' : 'ph-trend-down' }} text-[7px] md:text-[10px]"></i> {{ number_format(abs($trendProperties), 1) }}%
                         </span>
                         <span class="text-[7px] md:text-[11px] text-slate-400 truncate">vs mes ant.</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200/50 flex-shrink-0">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-mso-blue to-slate-900 flex items-center justify-center shadow-lg flex-shrink-0">
                     <i class="ph ph-buildings text-white text-sm md:text-xl"></i>
                 </div>
             </div>
@@ -415,14 +415,14 @@
                     <p class="text-[9px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Leads</p>
                     <p class="text-lg md:text-3xl font-extrabold text-slate-800 mt-0.5 md:mt-2 tabular-nums truncate">{{ number_format($totalLeads ?? 0) }}</p>
                     <div class="flex items-center gap-1 mt-1 md:mt-2">
-                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1 md:px-2 py-0.5 rounded-full">
-                            <i class="ph ph-trend-up text-[7px] md:text-[10px]"></i> 8%
+                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold {{ $trendLeads >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50' }} px-1 md:px-2 py-0.5 rounded-full">
+                            <i class="ph {{ $trendLeads >= 0 ? 'ph-trend-up' : 'ph-trend-down' }} text-[7px] md:text-[10px]"></i> {{ number_format(abs($trendLeads), 1) }}%
                         </span>
                         <span class="text-[7px] md:text-[11px] text-slate-400 truncate">vs mes ant.</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-mso-gold to-amber-600 flex items-center justify-center shadow-lg shadow-amber-200/50 flex-shrink-0">
-                    <i class="ph ph-user-plus text-white text-sm md:text-xl"></i>
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-mso-gold to-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <i class="ph ph-user-plus text-mso-blue text-sm md:text-xl"></i>
                 </div>
             </div>
             <div class="mt-2 md:mt-4 pt-1.5 md:pt-3 border-t border-slate-100 flex justify-between text-[8px] md:text-[11px]">
@@ -438,13 +438,13 @@
                     <p class="text-[9px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Citas</p>
                     <p class="text-lg md:text-3xl font-extrabold text-slate-800 mt-0.5 md:mt-2 tabular-nums truncate">{{ number_format($totalAppointments ?? 0) }}</p>
                     <div class="flex items-center gap-1 mt-1 md:mt-2">
-                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1 md:px-2 py-0.5 rounded-full">
-                            <i class="ph ph-trend-up text-[7px] md:text-[10px]"></i> 5%
+                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold {{ $trendAppointments >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50' }} px-1 md:px-2 py-0.5 rounded-full">
+                            <i class="ph {{ $trendAppointments >= 0 ? 'ph-trend-up' : 'ph-trend-down' }} text-[7px] md:text-[10px]"></i> {{ number_format(abs($trendAppointments), 1) }}%
                         </span>
                         <span class="text-[7px] md:text-[11px] text-slate-400 truncate">vs mes ant.</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-200/50 flex-shrink-0">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-slate-800 to-mso-blue flex items-center justify-center shadow-lg flex-shrink-0">
                     <i class="ph ph-calendar-check text-white text-sm md:text-xl"></i>
                 </div>
             </div>
@@ -468,14 +468,14 @@
                         {{ $conversionRate }}%
                     </p>
                     <div class="flex items-center gap-1 mt-1 md:mt-2">
-                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1 md:px-2 py-0.5 rounded-full">
-                            <i class="ph ph-trend-up text-[7px] md:text-[10px]"></i> 2.1%
+                        <span class="inline-flex items-center gap-0.5 text-[8px] md:text-[11px] font-bold {{ $trendConversion >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50' }} px-1 md:px-2 py-0.5 rounded-full">
+                            <i class="ph {{ $trendConversion >= 0 ? 'ph-trend-up' : 'ph-trend-down' }} text-[7px] md:text-[10px]"></i> {{ number_format(abs($trendConversion), 1) }}%
                         </span>
                         <span class="text-[7px] md:text-[11px] text-slate-400 truncate">vs mes ant.</span>
                     </div>
                 </div>
-                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200/50 flex-shrink-0">
-                    <i class="ph ph-target text-white text-sm md:text-xl"></i>
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-gradient-to-br from-amber-500 to-mso-gold flex items-center justify-center shadow-lg flex-shrink-0">
+                    <i class="ph ph-target text-mso-blue text-sm md:text-xl"></i>
                 </div>
             </div>
             <div class="mt-2 md:mt-4 pt-1.5 md:pt-3 border-t border-slate-100 flex justify-between text-[8px] md:text-[11px]">
@@ -492,8 +492,8 @@
         <div class="chart-card bg-white rounded-xl md:rounded-2xl border border-slate-200/80 p-3 md:p-5 shadow-sm">
             <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-1.5 md:gap-2.5">
-                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                        <i class="ph ph-pie-chart text-blue-500 text-xs md:text-sm"></i>
+                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-mso-blue/10 flex items-center justify-center">
+                        <i class="ph ph-pie-chart text-mso-blue text-xs md:text-sm"></i>
                     </div>
                     <div>
                         <h3 class="text-[10px] md:text-sm font-bold text-slate-800">Propiedades por Categoría</h3>
@@ -512,8 +512,8 @@
         <div class="chart-card bg-white rounded-xl md:rounded-2xl border border-slate-200/80 p-3 md:p-5 shadow-sm">
             <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-1.5 md:gap-2.5">
-                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-violet-50 flex items-center justify-center">
-                        <i class="ph ph-calendar text-violet-500 text-xs md:text-sm"></i>
+                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-mso-gold/20 flex items-center justify-center">
+                        <i class="ph ph-calendar text-mso-gold text-xs md:text-sm"></i>
                     </div>
                     <div>
                         <h3 class="text-[10px] md:text-sm font-bold text-slate-800">Estado de Citas</h3>
@@ -532,8 +532,8 @@
         <div class="chart-card bg-white rounded-xl md:rounded-2xl border border-slate-200/80 p-3 md:p-5 shadow-sm">
             <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-1.5 md:gap-2.5">
-                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                        <i class="ph ph-funnel text-amber-500 text-xs md:text-sm"></i>
+                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-mso-blue/10 flex items-center justify-center">
+                        <i class="ph ph-funnel text-mso-blue text-xs md:text-sm"></i>
                     </div>
                     <div>
                         <h3 class="text-[10px] md:text-sm font-bold text-slate-800">Pipeline de Leads</h3>
@@ -551,126 +551,25 @@
     </div>
 
     {{-- ============================================ --}}
-    {{-- TOP ASESORES Y ACTIVIDAD RECIENTE --}}
+    {{-- TOP ASESORES - RENDIMIENTO EN TIEMPO REAL --}}
     {{-- ============================================ --}}
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-5">
-
-        <div class="lg:col-span-2 bg-white rounded-xl md:rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div class="px-3 md:px-5 py-3 md:py-4 border-b border-slate-100">
-                <div class="flex items-center gap-2 md:gap-2.5">
-                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-mso-gold to-amber-600 flex items-center justify-center shadow-sm shadow-amber-200/50">
-                        <i class="ph ph-trophy text-white text-xs md:text-sm"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-[10px] md:text-sm font-bold text-slate-800">Top Asesores</h3>
-                        <p class="text-[8px] md:text-[11px] text-slate-400 hidden xs:block">Mayor captación de leads</p>
-                    </div>
+    <div class="bg-white rounded-xl md:rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-3 md:px-5 py-3 md:py-4 border-b border-slate-100">
+            <div class="flex items-center gap-2 md:gap-2.5">
+                <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-mso-gold to-amber-500 flex items-center justify-center shadow-sm">
+                    <i class="ph ph-trophy text-mso-blue text-xs md:text-sm"></i>
                 </div>
-            </div>
-            <div class="p-2 md:p-4 space-y-1.5 md:space-y-2.5 max-h-[320px] md:max-h-[380px] overflow-y-auto custom-scrollbar">
-                @forelse($topAsesores ?? [] as $index => $asesor)
-                @php
-                    $maxLeads = $topAsesores->max('leads') ?? 1;
-                    $percentage = $maxLeads > 0 ? ($asesor['leads'] / $maxLeads) * 100 : 0;
-                    $medalColors = ['from-amber-400 to-yellow-500', 'from-slate-300 to-slate-400', 'from-orange-300 to-amber-500'];
-                    $medalClass = $index < 3 ? $medalColors[$index] : 'from-slate-100 to-slate-200';
-                @endphp
-                <div class="flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg md:rounded-xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200/60">
-                    <div class="flex-shrink-0 w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-gradient-to-br {{ $medalClass }} flex items-center justify-center text-[8px] md:text-xs font-extrabold text-white shadow-sm">
-                        {{ $index < 3 ? ['🥇','🥈','🥉'][$index] : $index + 1 }}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between gap-1 mb-1 md:mb-1.5">
-                            <p class="text-[10px] md:text-sm font-semibold text-slate-800 truncate">{{ $asesor['name_display'] ?? $asesor['name'] ?? 'Sin nombre' }}</p>
-                            <span class="flex-shrink-0 text-[10px] md:text-sm font-extrabold text-mso-blue tabular-nums">{{ $asesor['leads'] ?? 0 }}</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 md:h-2 overflow-hidden">
-                            <div class="h-1.5 md:h-2 rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-mso-gold to-amber-500" style="width: {{ $percentage }}%"></div>
-                        </div>
-                    </div>
+                <div>
+                    <h3 class="text-[10px] md:text-sm font-bold text-slate-800">Top Asesores</h3>
+                    <p class="text-[8px] md:text-[11px] text-slate-400 hidden xs:block">Rendimiento en tiempo real según captación de leads</p>
                 </div>
-                @empty
-                <div class="text-center py-8 md:py-12 text-slate-400">
-                    <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-2 md:mb-3">
-                        <i class="ph ph-users text-xl md:text-2xl text-slate-300"></i>
-                    </div>
-                    <p class="text-xs md:text-sm font-medium">Sin datos de asesores</p>
-                    <p class="text-[10px] md:text-xs text-slate-300 mt-1">Los datos aparecerán cuando se registren leads</p>
-                </div>
-                @endforelse
+                <span id="asesoresLiveBadge" class="ml-auto inline-flex items-center gap-1 text-[8px] md:text-[10px] font-semibold text-mso-gold bg-mso-gold/15 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    En vivo
+                </span>
             </div>
         </div>
-
-        <div class="lg:col-span-3 bg-white rounded-xl md:rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div class="px-3 md:px-5 py-3 md:py-4 border-b border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-1.5 md:gap-2.5">
-                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                        <i class="ph ph-clock-countdown text-emerald-500 text-xs md:text-sm"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-[10px] md:text-sm font-bold text-slate-800">Actividad Reciente</h3>
-                        <p class="text-[8px] md:text-[11px] text-slate-400 hidden xs:block">Últimas acciones en la plataforma</p>
-                    </div>
-                </div>
-                <a href="{{ route('audit-logs.index') }}" class="inline-flex items-center gap-1 text-[9px] md:text-xs font-semibold text-mso-blue hover:text-blue-700 transition-colors">
-                    <span class="hidden xs:inline">Ver historial</span>
-                    <span class="xs:hidden">Ver</span>
-                    <i class="ph ph-arrow-right text-[8px] md:text-[10px]"></i>
-                </a>
-            </div>
-            <div class="divide-y divide-slate-50">
-                @forelse($recentLogs ?? [] as $log)
-                @php
-                    $localDate = $log->created_at ? $log->created_at->setTimezone('America/Caracas') : null;
-                    $actionStr = $log->action ?? $log->event ?? 'desconocido';
-                    $isCreate = str_contains($actionStr, 'create');
-                    $isUpdate = str_contains($actionStr, 'update');
-                    $isDelete = str_contains($actionStr, 'delete');
-                    $isLogin = str_contains($actionStr, 'login');
-
-                    $actionConfig = match(true) {
-                        $isCreate  => ['bg-emerald-50 text-emerald-600', 'ph-plus-circle'],
-                        $isUpdate  => ['bg-blue-50 text-blue-600', 'ph-pencil-simple'],
-                        $isDelete  => ['bg-red-50 text-red-600', 'ph-trash'],
-                        $isLogin   => ['bg-violet-50 text-violet-600', 'ph-sign-in'],
-                        default    => ['bg-slate-50 text-slate-500', 'ph-dots-three']
-                    };
-
-                    $initial = $log->user ? strtoupper(substr($log->user->name, 0, 2)) : 'SY';
-                    $avatarGradients = ['from-blue-500 to-indigo-600', 'from-emerald-500 to-teal-600', 'from-violet-500 to-purple-600', 'from-rose-500 to-pink-600', 'from-amber-500 to-orange-600', 'from-cyan-500 to-sky-600'];
-                    $gradientIndex = $log->user ? ($log->user->id % count($avatarGradients)) : 0;
-                @endphp
-                <div class="flex items-center gap-2 md:gap-3.5 px-3 md:px-5 py-2 md:py-3.5 hover:bg-slate-50/80 transition-colors">
-                    <div class="flex-shrink-0 w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-gradient-to-br {{ $avatarGradients[$gradientIndex] }} flex items-center justify-center text-[8px] md:text-[10px] font-bold text-white shadow-sm">
-                        {{ $initial }}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1 md:gap-2 flex-wrap">
-                            <span class="text-[10px] md:text-sm font-semibold text-slate-800 truncate max-w-[80px] md:max-w-none">{{ $log->user ? $log->user->name : 'Sistema' }}</span>
-                            <span class="inline-flex items-center gap-0.5 md:gap-1 px-1 md:px-2 py-0.5 rounded-md text-[7px] md:text-[10px] font-bold uppercase {{ $actionConfig[0] }}">
-                                <i class="ph {{ $actionConfig[1] }} text-[6px] md:text-[9px]"></i>
-                                <span class="hidden xs:inline">{{ ucfirst(str_replace('_', ' ', $actionStr)) }}</span>
-                                <span class="xs:hidden">{{ substr(ucfirst(str_replace('_', ' ', $actionStr)), 0, 8) }}</span>
-                            </span>
-                        </div>
-                        <p class="text-[8px] md:text-xs text-slate-400 truncate mt-0.5">{{ $log->description ?? 'Sin descripción' }}</p>
-                    </div>
-                    <div class="flex-shrink-0 text-right">
-                        <span class="text-[8px] md:text-[11px] text-slate-400 font-mono tabular-nums">{{ $localDate ? $localDate->format('H:i') : '-' }}</span>
-                        <span class="block text-[7px] md:text-[10px] text-slate-300 tabular-nums">{{ $localDate ? $localDate->format('d/m/y') : '-' }}</span>
-                    </div>
-                </div>
-                @empty
-                <div class="text-center py-10 md:py-14 text-slate-400">
-                    <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-2 md:mb-3">
-                        <i class="ph ph-clock text-xl md:text-2xl text-slate-300"></i>
-                    </div>
-                    <p class="text-xs md:text-sm font-medium">Sin actividad registrada</p>
-                    <p class="text-[10px] md:text-xs text-slate-300 mt-1">Las acciones aparecerán aquí automáticamente</p>
-                </div>
-                @endforelse
-            </div>
-        </div>
+        <div id="topAsesoresList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-3 p-2 md:p-4"></div>
     </div>
 
 </div>
@@ -729,18 +628,18 @@ document.addEventListener('DOMContentLoaded', function() {
     Chart.defaults.color = '#94a3b8';
 
     const palette = {
+        blue: '#0f172a',
+        blueLight: '#1e293b',
         gold: '#c5a059',
-        blue: '#2563eb',
+        goldDark: '#a8873f',
         emerald: '#10b981',
-        violet: '#8b5cf6',
         rose: '#f43f5e',
-        amber: '#f59e0b',
-        cyan: '#06b6d4',
-        orange: '#f97316',
+        violet: '#8b5cf6',
+        amber: '#D97706',
         slate: '#64748b',
     };
 
-    const chartColors = [palette.blue, palette.gold, palette.violet, palette.emerald, palette.amber, palette.rose, palette.cyan, palette.orange, palette.slate];
+    const chartColors = [palette.blue, palette.gold, palette.goldDark, palette.blueLight, palette.slate, palette.emerald, palette.violet, palette.amber, palette.rose];
 
     // ============================================
     // GRÁFICO 1: Propiedades por Categoría
@@ -791,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (ctx2 && appointmentsData.length > 0) {
         const statusColors = {
-            'Pendientes': palette.amber,
+            'Pendientes': palette.goldDark,
             'Confirmadas': palette.blue,
             'Completadas': palette.emerald,
             'Canceladas': palette.rose,
@@ -841,8 +740,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ctx3 && leadsData.length > 0) {
         const leadColors = {
             'Nuevos': palette.blue,
-            'Contactados': 'rgba(37, 99, 235, 0.6)',
-            'En Negociación': palette.gold,
+            'Contactados': palette.blueLight,
+            'En Negociación': palette.goldDark,
             'Cerrados': palette.emerald,
             'Perdidos': palette.rose,
             'Inactivos': palette.slate
@@ -882,6 +781,77 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    // ============================================
+    // TOP ASESORES - RENDER + RENDIMIENTO EN TIEMPO REAL
+    // ============================================
+    const asesoresContainer = document.getElementById('topAsesoresList');
+
+    function initialsFromName(fullName) {
+        const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return (parts[0] ? parts[0].slice(0, 2) : '??').toUpperCase();
+    }
+
+    function renderAsesores(list) {
+        if (!asesoresContainer) return;
+        if (!list || list.length === 0) {
+            asesoresContainer.innerHTML = `
+                <div class="text-center py-8 md:py-12 text-slate-400 md:col-span-2 xl:col-span-3">
+                    <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-2 md:mb-3">
+                        <i class="ph ph-users text-xl md:text-2xl text-slate-300"></i>
+                    </div>
+                    <p class="text-xs md:text-sm font-medium">Sin datos de asesores</p>
+                    <p class="text-[10px] md:text-xs text-slate-300 mt-1">Los datos aparecerán cuando se registren leads</p>
+                </div>`;
+            return;
+        }
+        asesoresContainer.innerHTML = list.map(a => `
+            <div class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 rounded-lg md:rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                <div class="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full bg-mso-blue/10 border border-mso-blue/20 flex items-center justify-center text-[10px] md:text-xs font-extrabold text-mso-blue">
+                    ${initialsFromName(a.full_name || a.name)}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-1">
+                        <p class="text-[10px] md:text-sm font-semibold text-slate-800 truncate">${a.full_name || a.name || 'Sin nombre'}</p>
+                        <span class="flex-shrink-0 text-[10px] md:text-sm font-extrabold text-mso-blue tabular-nums">${a.total} leads</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-1 mt-0.5 md:mt-1">
+                        <span class="text-[8px] md:text-[10px] text-slate-400 font-medium">Rendimiento</span>
+                        <span class="text-[9px] md:text-[11px] font-bold text-mso-gold tabular-nums">${a.rendimiento}%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 md:h-2 overflow-hidden mt-0.5 md:mt-1">
+                        <div class="h-1.5 md:h-2 rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-mso-blue to-mso-gold" style="width: ${a.rendimiento}%"></div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    const initialAsesores = @json($topAsesoresJson ?? []);
+    renderAsesores(initialAsesores);
+
+    async function refreshAsesores() {
+        try {
+            const res = await fetch('{{ route("reports.data") }}?type=leads', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            renderAsesores(Array.isArray(data) ? data.map(d => ({
+                full_name: d.asesor,
+                total: d.total,
+                rendimiento: d.rendimiento
+            })) : []);
+        } catch (e) {
+            // Mantener los datos actuales si falla la actualización
+        }
+    }
+
+    setInterval(refreshAsesores, 30000);
 });
 </script>
 @endpush

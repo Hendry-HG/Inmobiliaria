@@ -132,7 +132,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">País *</label>
-                            <select name="country_id" id="country_id" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition bg-white" required>
+                            <select name="country_id" id="country_id" data-label="País" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition bg-white" required>
                                 <option value="">Seleccionar país</option>
                                 @foreach($countries as $country)
                                     <option value="{{ $country->id }}" {{ old('country_id', $property->country_id ?? '') == $country->id ? 'selected' : '' }}>
@@ -145,7 +145,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Estado *</label>
-                            <select name="state_id" id="state_id" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition bg-white" {{ isset($property) && $property->country_id ? '' : 'disabled' }} required>
+                            <select name="state_id" id="state_id" data-label="Estado" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition bg-white" {{ isset($property) && $property->country_id ? '' : 'disabled' }} required>
                                 <option value="">Seleccionar estado</option>
                                 @if(isset($states) && count($states) > 0)
                                     @foreach($states as $state)
@@ -160,7 +160,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Municipio *</label>
-                            <select name="municipality_id" id="municipality_id" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition bg-white" {{ isset($property) && $property->state_id ? '' : 'disabled' }} required>
+                            <select name="municipality_id" id="municipality_id" data-label="Municipio" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-mso-gold focus:border-mso-gold outline-none transition bg-white" {{ isset($property) && $property->state_id ? '' : 'disabled' }} required>
                                 <option value="">Seleccionar municipio</option>
                                 @if(isset($municipalities) && count($municipalities) > 0)
                                     @foreach($municipalities as $municipality)
@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (totalImages < 1) {
             e.preventDefault();
-            alert('Debes subir al menos 1 imagen de la propiedad.');
+            showMissingFieldsModal(['Al menos 1 imagen de la propiedad']);
             return false;
         }
 

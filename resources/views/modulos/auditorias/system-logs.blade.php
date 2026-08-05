@@ -33,7 +33,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-slate-800">
-                        {{ $configStats['last_config_change']->user ? $configStats['last_config_change']->user->name : 'Sistema' }}
+                        {{ $configStats['last_config_change']->user ? $configStats['last_config_change']->user->full_name : 'Sistema' }}
                     </p>
                     <p class="text-xs text-slate-400">
                         <i class="ph ph-clock"></i>
@@ -60,11 +60,11 @@
     {{-- ============================================ --}}
     {{-- FILTROS --}}
     {{-- ============================================ --}}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <form action="{{ route('audit-logs.system-logs') }}" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
+        <form action="{{ route('audit-logs.system-logs') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-                <select name="type" class="w-full border rounded-lg p-2.5">
+                <label for="system_type" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Tipo</label>
+                <select name="type" id="system_type" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     <option value="all" {{ request('type') == 'all' || !request('type') ? 'selected' : '' }}>Todos</option>
                     <option value="config" {{ request('type') == 'config' ? 'selected' : '' }}>Configuraciones del Sitio</option>
                     <option value="auth" {{ request('type') == 'auth' ? 'selected' : '' }}>Autenticación (Login/Logout)</option>
@@ -73,19 +73,19 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border rounded-lg p-2.5">
+                <label for="system_date_from" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Desde</label>
+                <input type="date" name="date_from" id="system_date_from" value="{{ request('date_from') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-                <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border rounded-lg p-2.5">
+                <label for="system_date_to" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Hasta</label>
+                <input type="date" name="date_to" id="system_date_to" value="{{ request('date_to') }}" class="w-full min-w-0 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="bg-mso-blue text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors">
-                    <i class="ph ph-funnel"></i> Filtrar
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-magnifying-glass"></i> Buscar
                 </button>
-                <a href="{{ route('audit-logs.system-logs') }}" class="px-6 py-2 border rounded-lg hover:bg-slate-50 transition-colors">
-                    Limpiar
+                <a href="{{ route('audit-logs.system-logs') }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-x"></i> Limpiar
                 </a>
             </div>
         </form>
@@ -114,7 +114,7 @@
                                 <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold">
                                     {{ $log->user ? strtoupper(substr($log->user->name, 0, 1)) : 'S' }}
                                 </div>
-                                <span class="font-medium">{{ $log->user ? $log->user->name : 'Sistema' }}</span>
+                                <span class="font-medium">{{ $log->user ? $log->user->full_name : 'Sistema' }}</span>
                             </div>
                         </td>
                         <td class="px-6 py-3">

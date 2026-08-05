@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="bg-white rounded-lg shadow p-6">
-    <form action="{{ route('admin.users.store') }}" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
+    <form action="{{ route('admin.users.store') }}" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate id="create-user-form" data-no-missing-modal>
         @csrf
 
         <!-- Campos falsos para engañar al autocompletado -->
@@ -21,9 +21,10 @@
             <div class="space-y-4">
                 {{-- NOMBRE --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
                     <input type="text"
                            name="name"
+                           id="name"
                            value="{{ old('name') }}"
                            autocomplete="off"
                            spellcheck="false"
@@ -37,9 +38,10 @@
 
                 {{-- APELLIDO --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
                     <input type="text"
                            name="last_name"
+                           id="last_name"
                            value="{{ old('last_name') }}"
                            autocomplete="off"
                            spellcheck="false"
@@ -52,15 +54,17 @@
 
                 {{-- EMAIL --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                     <input type="email"
                            name="email"
+                           id="email"
                            value="{{ old('email') }}"
                            autocomplete="off"
                            spellcheck="false"
                            data-lpignore="true"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold @error('email') border-red-500 @enderror"
                            required>
+                    <div id="email-error" class="text-red-500 text-xs mt-1 hidden">Este correo ya está en uso por otro usuario.</div>
                     @error('email')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -68,13 +72,18 @@
 
                 {{-- CONTRASEÑA --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
                     <input type="password"
                            name="password"
+                           id="password"
                            autocomplete="new-password"
                            data-lpignore="true"
+                           minlength="10"
+                           pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$"
+                           oninput="validatePassword(this)"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold @error('password') border-red-500 @enderror"
                            required>
+                    <div id="password-strength" class="text-xs mt-1 text-slate-500">Mínimo 10 caracteres, con mayúscula, minúscula, número y carácter especial</div>
                     @error('password')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -82,13 +91,15 @@
 
                 {{-- CONFIRMAR CONTRASEÑA --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña *</label>
+                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña *</label>
                     <input type="password"
                            name="password_confirmation"
+                           id="password_confirmation"
                            autocomplete="new-password"
                            data-lpignore="true"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold"
                            required>
+                    <div id="pass-error" class="text-red-500 text-xs mt-1 hidden">Las contraseñas no coinciden</div>
                 </div>
 
                 {{-- PREGUNTAS DE SEGURIDAD --}}
@@ -98,11 +109,14 @@
                         Preguntas de Seguridad
                     </h4>
                     <p class="text-xs text-gray-500 mb-3">El usuario podrá recuperar su contraseña respondiendo estas preguntas.</p>
+                    @error('security_question')
+                        <p class="text-red-500 text-xs mb-2">{{ $message }}</p>
+                    @enderror
 
                     {{-- Pregunta 1 --}}
                     <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Pregunta 1 *</label>
-                        <select name="security_question_1" required
+                        <label for="security_question_1" class="block text-xs font-medium text-gray-600 mb-1">Pregunta 1 *</label>
+                        <select name="security_question_1" id="security_question_1" required autocomplete="off"
                                 class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold text-sm @error('security_question_1') border-red-500 @enderror">
                             <option value="">Selecciona una pregunta</option>
                             <option value="¿Cuál es el nombre de tu primera mascota?" {{ old('security_question_1') == '¿Cuál es el nombre de tu primera mascota?' ? 'selected' : '' }}>¿Cuál es el nombre de tu primera mascota?</option>
@@ -126,7 +140,8 @@
                             <option value="¿Cuál es tu lugar favorito para vacacionar?" {{ old('security_question_1') == '¿Cuál es tu lugar favorito para vacacionar?' ? 'selected' : '' }}>¿Cuál es tu lugar favorito para vacacionar?</option>
                             <option value="¿Cuál es el nombre de tu tío favorito?" {{ old('security_question_1') == '¿Cuál es el nombre de tu tío favorito?' ? 'selected' : '' }}>¿Cuál es el nombre de tu tío favorito?</option>
                         </select>
-                        <input type="text" name="security_answer_1" placeholder="Respuesta" required
+                        <input type="text" name="security_answer_1" id="security_answer_1" placeholder="Respuesta" required
+                               aria-label="Respuesta a la pregunta 1"
                                class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold text-sm mt-1 @error('security_answer_1') border-red-500 @enderror"
                                value="{{ old('security_answer_1') }}" maxlength="255" autocomplete="off">
                         @error('security_question_1')
@@ -139,8 +154,8 @@
 
                     {{-- Pregunta 2 --}}
                     <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Pregunta 2 *</label>
-                        <select name="security_question_2" required
+                        <label for="security_question_2" class="block text-xs font-medium text-gray-600 mb-1">Pregunta 2 *</label>
+                        <select name="security_question_2" id="security_question_2" required autocomplete="off"
                                 class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold text-sm @error('security_question_2') border-red-500 @enderror">
                             <option value="">Selecciona una pregunta</option>
                             <option value="¿Cuál es el nombre de tu primera mascota?" {{ old('security_question_2') == '¿Cuál es el nombre de tu primera mascota?' ? 'selected' : '' }}>¿Cuál es el nombre de tu primera mascota?</option>
@@ -164,7 +179,8 @@
                             <option value="¿Cuál es tu lugar favorito para vacacionar?" {{ old('security_question_2') == '¿Cuál es tu lugar favorito para vacacionar?' ? 'selected' : '' }}>¿Cuál es tu lugar favorito para vacacionar?</option>
                             <option value="¿Cuál es el nombre de tu tío favorito?" {{ old('security_question_2') == '¿Cuál es el nombre de tu tío favorito?' ? 'selected' : '' }}>¿Cuál es el nombre de tu tío favorito?</option>
                         </select>
-                        <input type="text" name="security_answer_2" placeholder="Respuesta" required
+                        <input type="text" name="security_answer_2" id="security_answer_2" placeholder="Respuesta" required
+                               aria-label="Respuesta a la pregunta 2"
                                class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold text-sm mt-1 @error('security_answer_2') border-red-500 @enderror"
                                value="{{ old('security_answer_2') }}" maxlength="255" autocomplete="off">
                         @error('security_question_2')
@@ -177,8 +193,8 @@
 
                     {{-- Pregunta 3 --}}
                     <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Pregunta 3 *</label>
-                        <select name="security_question_3" required
+                        <label for="security_question_3" class="block text-xs font-medium text-gray-600 mb-1">Pregunta 3 *</label>
+                        <select name="security_question_3" id="security_question_3" required autocomplete="off"
                                 class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold text-sm @error('security_question_3') border-red-500 @enderror">
                             <option value="">Selecciona una pregunta</option>
                             <option value="¿Cuál es el nombre de tu primera mascota?" {{ old('security_question_3') == '¿Cuál es el nombre de tu primera mascota?' ? 'selected' : '' }}>¿Cuál es el nombre de tu primera mascota?</option>
@@ -202,7 +218,8 @@
                             <option value="¿Cuál es tu lugar favorito para vacacionar?" {{ old('security_question_3') == '¿Cuál es tu lugar favorito para vacacionar?' ? 'selected' : '' }}>¿Cuál es tu lugar favorito para vacacionar?</option>
                             <option value="¿Cuál es el nombre de tu tío favorito?" {{ old('security_question_3') == '¿Cuál es el nombre de tu tío favorito?' ? 'selected' : '' }}>¿Cuál es el nombre de tu tío favorito?</option>
                         </select>
-                        <input type="text" name="security_answer_3" placeholder="Respuesta" required
+                        <input type="text" name="security_answer_3" id="security_answer_3" placeholder="Respuesta" required
+                               aria-label="Respuesta a la pregunta 3"
                                class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold text-sm mt-1 @error('security_answer_3') border-red-500 @enderror"
                                value="{{ old('security_answer_3') }}" maxlength="255" autocomplete="off">
                         @error('security_question_3')
@@ -216,14 +233,19 @@
 
                 {{-- TELÉFONO --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                     <input type="text"
                            name="phone"
+                           id="phone"
                            value="{{ old('phone') }}"
                            autocomplete="off"
                            spellcheck="false"
                            data-lpignore="true"
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold @error('phone') border-red-500 @enderror">
+                    <div id="phone-error" class="text-red-500 text-xs mt-1 hidden">Este teléfono ya está en uso por otro usuario.</div>
+                    @error('phone')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -231,8 +253,8 @@
             <div class="space-y-4">
                 {{-- TIPO DE IDENTIFICACIÓN --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
-                    <select name="id_type" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">
+                    <label for="id_type" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
+                    <select name="id_type" id="id_type" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">
                         <option value="">Seleccionar</option>
                         <option value="V" {{ old('id_type') == 'V' ? 'selected' : '' }}>Venezolano (V)</option>
                         <option value="E" {{ old('id_type') == 'E' ? 'selected' : '' }}>Extranjero (E)</option>
@@ -243,14 +265,16 @@
 
                 {{-- NÚMERO DE IDENTIFICACIÓN --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+                    <label for="id_number" class="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
                     <input type="text"
                            name="id_number"
+                           id="id_number"
                            value="{{ old('id_number') }}"
                            autocomplete="off"
                            spellcheck="false"
                            data-lpignore="true"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold @error('id_number') border-red-500 @enderror">
+                    <div id="id_number-error" class="text-red-500 text-xs mt-1 hidden">Este número de identificación ya está en uso por otro usuario.</div>
                     @error('id_number')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -258,8 +282,8 @@
 
                 {{-- ROL --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
-                    <select name="role" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" required>
+                    <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+                    <select name="role" id="role" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" required>
                         <option value="">Seleccionar rol</option>
                         @foreach($roles as $role)
                             <option value="{{ $role->name }}" {{ old('role') == $role->name ? 'selected' : '' }}>
@@ -274,8 +298,8 @@
 
                 {{-- PAÍS --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">País</label>
-                    <select name="country_id" id="country_id" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">
+                    <label for="country_id" class="block text-sm font-medium text-gray-700 mb-1">País</label>
+                    <select name="country_id" id="country_id" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">
                         <option value="">Seleccionar país</option>
                         @foreach($countries ?? [] as $country)
                             <option value="{{ $country->id }}" {{ old('country_id') == $country->id ? 'selected' : '' }}>{{ $country->name }}</option>
@@ -285,49 +309,50 @@
 
                 {{-- ESTADO --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select name="state_id" id="state_id" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
+                    <label for="state_id" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select name="state_id" id="state_id" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
                         <option value="">Primero seleccione un país</option>
                     </select>
                 </div>
 
                 {{-- MUNICIPIO --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Municipio</label>
-                    <select name="municipality_id" id="municipality_id" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
+                    <label for="municipality_id" class="block text-sm font-medium text-gray-700 mb-1">Municipio</label>
+                    <select name="municipality_id" id="municipality_id" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
                         <option value="">Primero seleccione un estado</option>
                     </select>
                 </div>
 
                 {{-- PARROQUIA --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Parroquia</label>
-                    <select name="parish_id" id="parish_id" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
+                    <label for="parish_id" class="block text-sm font-medium text-gray-700 mb-1">Parroquia</label>
+                    <select name="parish_id" id="parish_id" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
                         <option value="">Primero seleccione un municipio</option>
                     </select>
                 </div>
 
                 {{-- CIUDAD --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
-                    <select name="city_id" id="city_id" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
+                    <label for="city_id" class="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                    <select name="city_id" id="city_id" autocomplete="off" class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold" disabled>
                         <option value="">Primero seleccione una parroquia</option>
                     </select>
                 </div>
 
                 {{-- DIRECCIÓN --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                    <textarea name="address"
+                    <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                    <textarea name="address" id="address" autocomplete="street-address"
                               rows="2"
                               class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">{{ old('address') }}</textarea>
                 </div>
 
                 {{-- FOTO DE PERFIL --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Foto de Perfil</label>
+                    <label for="profile_photo" class="block text-sm font-medium text-gray-700 mb-1">Foto de Perfil</label>
                     <input type="file"
                            name="profile_photo"
+                           id="profile_photo"
                            accept="image/*"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-mso-gold focus:border-mso-gold">
                     <p class="text-xs text-gray-500 mt-1">Formatos: JPG, PNG. Máximo 2MB</p>
@@ -360,7 +385,87 @@
 
 @push('js')
 <script>
+let fieldChecks = {};
+
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('#create-user-form');
+    const pass = document.getElementById('password');
+    const passConfirm = document.getElementById('password_confirmation');
+    const passError = document.getElementById('pass-error');
+    const checkUrl = '{{ route('admin.users.check-field') }}';
+
+    function attachUniqueCheck(input, errorDiv, field) {
+        let timeout = null;
+        const pattern = field === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/ : /^[0-9]{4,20}$/;
+
+        const check = function() {
+            const value = input.value.trim();
+
+            if (!value) {
+                errorDiv.classList.add('hidden');
+                input.style.borderColor = '';
+                fieldChecks[field] = true;
+                return;
+            }
+
+            if (!pattern.test(value)) {
+                errorDiv.classList.add('hidden');
+                input.style.borderColor = '';
+                fieldChecks[field] = true;
+                return;
+            }
+
+            fetch(checkUrl + '?field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                fieldChecks[field] = data.available;
+                if (!data.available) {
+                    errorDiv.classList.remove('hidden');
+                    input.style.borderColor = '#ef4444';
+                } else {
+                    errorDiv.classList.add('hidden');
+                    input.style.borderColor = '';
+                }
+            })
+            .catch(() => {
+                fieldChecks[field] = true;
+            });
+        };
+
+        input.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(check, 500);
+        });
+        input.addEventListener('blur', check);
+    }
+
+    attachUniqueCheck(document.getElementById('email'), document.getElementById('email-error'), 'email');
+    attachUniqueCheck(document.getElementById('id_number'), document.getElementById('id_number-error'), 'id_number');
+    attachUniqueCheck(document.getElementById('phone'), document.getElementById('phone-error'), 'phone');
+
+    if (passConfirm) {
+        passConfirm.addEventListener('input', function() {
+            if (this.value && this.value !== pass.value) {
+                this.style.borderColor = '#ef4444';
+                passError.classList.remove('hidden');
+            } else {
+                this.style.borderColor = '';
+                passError.classList.add('hidden');
+            }
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validateUserForm()) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+
     const countrySelect = document.getElementById('country_id');
     const stateSelect = document.getElementById('state_id');
     const municipalitySelect = document.getElementById('municipality_id');
@@ -471,6 +576,116 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('input[name="id_number"]').value = '';
     }, 100);
 });
+
+// ============================================
+//  VALIDACIÓN DE CONTRASEÑA EN TIEMPO REAL
+// ============================================
+function validatePassword(input) {
+    const password = input.value;
+    const strengthDiv = document.getElementById('password-strength');
+
+    if (password.length === 0) {
+        strengthDiv.textContent = 'Mínimo 10 caracteres, con mayúscula, minúscula, número y carácter especial';
+        strengthDiv.className = 'text-xs mt-1 text-slate-500';
+        return;
+    }
+
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[@$!%*?&]/.test(password);
+    const isValidLength = password.length >= 10;
+
+    const requirements = [];
+    if (!isValidLength) requirements.push('mínimo 10 caracteres');
+    if (!hasUpper) requirements.push('mayúscula');
+    if (!hasLower) requirements.push('minúscula');
+    if (!hasNumber) requirements.push('número');
+    if (!hasSpecial) requirements.push('carácter especial (@$!%*?&)');
+
+    if (requirements.length === 0) {
+        strengthDiv.textContent = ' Contraseña segura';
+        strengthDiv.className = 'text-xs mt-1 text-green-600 font-medium';
+    } else {
+        strengthDiv.textContent = ' Falta: ' + requirements.join(', ');
+        strengthDiv.className = 'text-xs mt-1 text-red-500';
+    }
+}
+
+// ============================================
+//  VALIDACIÓN DEL FORMULARIO AL ENVIAR
+// ============================================
+function validateUserForm() {
+    const name = document.querySelector('input[name="name"]');
+    const email = document.querySelector('input[name="email"]');
+    const password = document.getElementById('password');
+    const passwordConfirmation = document.getElementById('password_confirmation');
+    const role = document.querySelector('select[name="role"]');
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const missing = [];
+
+    if (!name.value || name.value.trim().length < 2) missing.push('el nombre completo');
+    if (!email.value || !emailPattern.test(email.value)) missing.push('un correo electrónico válido');
+    if (fieldChecks.email === false) missing.push('un correo que no esté en uso');
+    if (fieldChecks.id_number === false) missing.push('un número de identificación que no esté en uso');
+    if (fieldChecks.phone === false) missing.push('un teléfono que no esté en uso');
+
+    const strength = getPasswordStrength(password.value);
+    if (strength.length > 0) missing.push('una contraseña segura (' + strength.join(', ') + ')');
+    if (password.value !== passwordConfirmation.value) missing.push('que las contraseñas coincidan');
+
+    if (!role.value) missing.push('seleccionar un rol');
+
+    const idType = document.querySelector('select[name="id_type"]');
+    const idNumber = document.querySelector('input[name="id_number"]');
+    const country = document.querySelector('select[name="country_id"]');
+    const state = document.querySelector('select[name="state_id"]');
+    const municipality = document.querySelector('select[name="municipality_id"]');
+    const parish = document.querySelector('select[name="parish_id"]');
+    const city = document.querySelector('select[name="city_id"]');
+    const address = document.querySelector('textarea[name="address"]');
+
+    if (!idType.value) missing.push('el tipo de identificación');
+    if (!idNumber.value || !idNumber.value.trim()) missing.push('el número de identificación (cédula)');
+    if (!country.value) missing.push('el país');
+    if (!state.value) missing.push('el estado');
+    if (!municipality.value) missing.push('el municipio');
+    if (!parish.value) missing.push('la parroquia');
+    if (!city.value) missing.push('la ciudad');
+    if (!address.value || !address.value.trim()) missing.push('la dirección');
+
+    const securityQuestions = ['security_question_1', 'security_question_2', 'security_question_3'];
+    const selectedQuestions = [];
+    securityQuestions.forEach(function(selName) {
+        const select = document.querySelector('select[name="' + selName + '"]');
+        const answer = document.querySelector('input[name="' + selName.replace('question', 'answer') + '"]');
+        if (!select.value || (answer && answer.value.trim().length < 2)) missing.push('las preguntas de seguridad y sus respuestas');
+        if (select.value) selectedQuestions.push(select.value);
+    });
+
+    if (new Set(selectedQuestions).size < 3) missing.push('3 preguntas de seguridad diferentes');
+
+    if (missing.length > 0) {
+        showMissingFieldsModal(missing.filter((v, i, a) => a.indexOf(v) === i));
+        return false;
+    }
+    return true;
+}
+
+function getPasswordStrength(password) {
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[@$!%*?&]/.test(password);
+
+    const requirements = [];
+    if (password.length < 10) requirements.push('mínimo 10 caracteres');
+    if (!hasUpper) requirements.push('mayúscula');
+    if (!hasLower) requirements.push('minúscula');
+    if (!hasNumber) requirements.push('número');
+    if (!hasSpecial) requirements.push('carácter especial');
+    return requirements;
+}
 </script>
 @endpush
 @endsection

@@ -6,7 +6,6 @@ use App\Models\Property;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Models\Lead;
-use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -41,8 +40,8 @@ class ReportController extends Controller
      * Flujo de datos:
      * 1. Consulta contadores globales de cada modelo
      * 2. Agrega datos para graficos usando agrupaciones SQL
-     * 3. Obtiene los 5 asesores con mas leads captados
-     * 4. Recupera los 6 ultimos registros de auditoria
+     * 3. Calcula tendencias reales vs el mes anterior
+     * 4. Obtiene los 5 asesores con mas leads captados y su rendimiento
      * 5. Retorna la vista con todas las variables compactadas
      *
      * @return \Illuminate\View\View
@@ -61,6 +60,31 @@ class ReportController extends Controller
 
         $closedDeals = Lead::where('status', 'cerrado_ganado')->count();
         $conversionRate = $totalLeads > 0 ? round(($closedDeals / $totalLeads) * 100, 1) : 0;
+
+        // Tendencias reales vs mes anterior
+        $propsThisMonth = Property::where('created_at', '>=', now()->startOfMonth())->count();
+        $propsLastMonth = Property::where('created_at', '>=', now()->subMonth()->startOfMonth())
+            ->where('created_at', '<', now()->startOfMonth())->count();
+        $trendProperties = $propsLastMonth > 0 ? round((($propsThisMonth - $propsLastMonth) / $propsLastMonth) * 100, 1) : 0;
+
+        $leadsThisMonth = Lead::where('created_at', '>=', now()->startOfMonth())->count();
+        $leadsLastMonth = Lead::where('created_at', '>=', now()->subMonth()->startOfMonth())
+            ->where('created_at', '<', now()->startOfMonth())->count();
+        $trendLeads = $leadsLastMonth > 0 ? round((($leadsThisMonth - $leadsLastMonth) / $leadsLastMonth) * 100, 1) : 0;
+
+        $apptsThisMonth = Appointment::where('created_at', '>=', now()->startOfMonth())->count();
+        $apptsLastMonth = Appointment::where('created_at', '>=', now()->subMonth()->startOfMonth())
+            ->where('created_at', '<', now()->startOfMonth())->count();
+        $trendAppointments = $apptsLastMonth > 0 ? round((($apptsThisMonth - $apptsLastMonth) / $apptsLastMonth) * 100, 1) : 0;
+
+        $closedThisMonth = Lead::where('status', 'cerrado_ganado')
+            ->where('created_at', '>=', now()->startOfMonth())->count();
+        $convThisMonth = $leadsThisMonth > 0 ? round(($closedThisMonth / $leadsThisMonth) * 100, 1) : 0;
+        $closedLastMonth = Lead::where('status', 'cerrado_ganado')
+            ->where('created_at', '>=', now()->subMonth()->startOfMonth())
+            ->where('created_at', '<', now()->startOfMonth())->count();
+        $convLastMonth = $leadsLastMonth > 0 ? round(($closedLastMonth / $leadsLastMonth) * 100, 1) : 0;
+        $trendConversion = round($convThisMonth - $convLastMonth, 1);
 
         // Gráficos
         $propertiesByCategory = Property::select('category_id', DB::raw('count(*) as total'))
@@ -109,23 +133,44 @@ class ReportController extends Controller
                 ];
             });
 
-        $topAsesores = User::role('Asesor Inmobiliario')
-            ->withCount('leads')
+        $topAsesoresUsers = User::role('Asesor Inmobiliario')
+            ->withCount([
+                'leads',
+                'leads as closed_leads_count' => fn ($q) => $q->where('status', 'cerrado_ganado'),
+                'appointmentsAsAsesor as appointments_count',
+                'properties as properties_count',
+            ])
             ->orderBy('leads_count', 'desc')
             ->limit(5)
-            ->get()
-            ->map(function($user) {
-                return [
-                    'name' => $user->name,
-                    'leads' => $user->leads_count,
-                    'avatar' => $user->profile_photo_url ?? null
-                ];
-            });
-
-        $recentLogs = AuditLog::with('user')
-            ->orderBy('created_at', 'desc')
-            ->limit(6)
             ->get();
+
+        $maxLeads = $topAsesoresUsers->max('leads_count') ?? 1;
+
+        $topAsesores = $topAsesoresUsers->map(function($user) use ($maxLeads) {
+            $conversion = $user->leads_count > 0
+                ? round(($user->closed_leads_count / $user->leads_count) * 100, 1)
+                : 0;
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'last_name' => $user->last_name,
+                'full_name' => $user->full_name,
+                'leads' => $user->leads_count,
+                'closed_leads' => $user->closed_leads_count,
+                'appointments' => $user->appointments_count,
+                'properties' => $user->properties_count,
+                'conversion' => $conversion,
+                'rendimiento' => $maxLeads > 0 ? round(($user->leads_count / $maxLeads) * 100, 1) : 0,
+            ];
+        });
+
+        $topAsesoresJson = $topAsesores->map(function($a) {
+            return [
+                'full_name' => $a['full_name'] ?? ($a['name'] ?? ''),
+                'total' => $a['leads'] ?? 0,
+                'rendimiento' => $a['rendimiento'] ?? 0,
+            ];
+        })->values();
 
         return view('modulos.reportes.index', compact(
             'totalProperties',
@@ -138,11 +183,15 @@ class ReportController extends Controller
             'todayAppointments',
             'conversionRate',
             'closedDeals',
+            'trendProperties',
+            'trendLeads',
+            'trendAppointments',
+            'trendConversion',
             'propertiesByCategory',
             'appointmentsByStatus',
             'leadsByStatus',
             'topAsesores',
-            'recentLogs'
+            'topAsesoresJson'
         ));
     }
 
@@ -490,17 +539,20 @@ class ReportController extends Controller
                 break;
 
             case 'leads':
-                $data = User::role('Asesor Inmobiliario')
+                $asesores = User::role('Asesor Inmobiliario')
                     ->withCount('leads')
                     ->orderBy('leads_count', 'desc')
                     ->limit(5)
-                    ->get(['name', 'leads_count'])
-                    ->map(function ($asesor) {
-                        return [
-                            'asesor' => $asesor->name,
-                            'total' => $asesor->leads_count
-                        ];
-                    });
+                    ->get();
+                $max = $asesores->max('leads_count') ?? 1;
+                $data = $asesores->map(function ($asesor) use ($max) {
+                    return [
+                        'id' => $asesor->id,
+                        'asesor' => $asesor->full_name,
+                        'total' => $asesor->leads_count,
+                        'rendimiento' => $max > 0 ? round(($asesor->leads_count / $max) * 100, 1) : 0,
+                    ];
+                });
                 break;
 
             default:

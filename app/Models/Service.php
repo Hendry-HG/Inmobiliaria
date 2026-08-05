@@ -31,24 +31,6 @@ class Service extends Model
         'is_featured' => 'boolean',
     ];
 
-    /**
-     * Relación con la galería de imágenes
-     */
-    public function gallery()
-    {
-        return $this->hasMany(ServiceGallery::class)->orderBy('order');
-    }
-
-    
-    public function getPrimaryImageAttribute()
-    {
-        if ($this->relationLoaded('gallery')) {
-            return $this->gallery->first() ?? null;
-        }
-        return $this->gallery()->first() ?? null;
-    }
-
-    
     protected static function boot()
     {
         parent::boot();

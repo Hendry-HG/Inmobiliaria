@@ -55,7 +55,7 @@
     // ── Top usuarios ──
     $topUsers = $recentLogs->whereNotNull('user_id')
         ->groupBy('user_id')->map(fn($logs) => [
-            'name'  => $logs->first()->user->name ?? 'Desconocido',
+            'name'  => $logs->first()->user->full_name ?? $logs->first()->user->name ?? 'Desconocido',
             'count' => $logs->count(),
         ])->sortByDesc('count')->take(5);
 
@@ -183,7 +183,7 @@
                                         {{ $log->user ? strtoupper(substr($log->user->name,0,1)) : 'S' }}
                                     </div>
                                     <div>
-                                        <div class="font-semibold text-sm" style="color:var(--navy-900)">{{ $log->user ? $log->user->name : 'Sistema' }}</div>
+                                        <div class="font-semibold text-sm" style="color:var(--navy-900)">{{ $log->user ? $log->user->full_name : 'Sistema' }}</div>
                                         <div class="text-[11px]" style="color:var(--slate-400)">{{ $log->user ? $log->user->email : 'Automático' }}</div>
                                     </div>
                                 </div>

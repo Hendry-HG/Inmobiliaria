@@ -47,27 +47,40 @@
 
                 {{-- Nombre y Apellido --}}
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="text" name="name" value="{{ old('name') }}"
-                        placeholder="Nombre" required
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
-                    <input type="text" name="last_name" value="{{ old('last_name') }}"
-                        placeholder="Apellido"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                    <div>
+                        <label for="sell_name" class="sr-only">Nombre</label>
+                        <input type="text" id="sell_name" name="name" value="{{ old('name') }}"
+                            placeholder="Nombre" required autocomplete="given-name"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                    </div>
+                    <div>
+                        <label for="sell_last_name" class="sr-only">Apellido</label>
+                        <input type="text" id="sell_last_name" name="last_name" value="{{ old('last_name') }}"
+                            placeholder="Apellido" autocomplete="family-name"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                    </div>
                 </div>
 
                 {{-- Email y Teléfono --}}
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="email" name="email" value="{{ old('email') }}"
-                        placeholder="Correo electrónico" required
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
-                    <input type="tel" name="phone" value="{{ old('phone') }}"
-                        placeholder="Teléfono" required
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                    <div>
+                        <label for="sell_email" class="sr-only">Correo electrónico</label>
+                        <input type="email" id="sell_email" name="email" value="{{ old('email') }}"
+                            placeholder="Correo electrónico" required autocomplete="email"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                    </div>
+                    <div>
+                        <label for="sell_phone" class="sr-only">Teléfono</label>
+                        <input type="tel" id="sell_phone" name="phone" value="{{ old('phone') }}"
+                            placeholder="Teléfono" required autocomplete="tel"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                    </div>
                 </div>
 
                 {{--  Selección de Asesor --}}
                 <div>
-                    <select name="asesor_id"
+                    <label for="sell_asesor_id" class="sr-only">Asesor</label>
+                    <select name="asesor_id" id="sell_asesor_id" autocomplete="off"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
                         <option value="">Selecciona un asesor </option>
                         @php
@@ -85,30 +98,40 @@
                 </div>
 
                 {{-- Dirección de la propiedad --}}
-                <input type="text" name="property_address" value="{{ old('property_address') }}"
-                    placeholder="Dirección de la propiedad"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                <div>
+                    <label for="sell_property_address" class="sr-only">Dirección de la propiedad</label>
+                    <input type="text" id="sell_property_address" name="property_address" value="{{ old('property_address') }}"
+                        placeholder="Dirección de la propiedad" autocomplete="street-address"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                </div>
 
                 {{-- Tipo de propiedad --}}
-                <select name="property_type"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
-                    <option value="">Tipo de propiedad</option>
-                    <option value="casa">Casa</option>
-                    <option value="apartamento">Apartamento</option>
-                    <option value="oficina">Oficina</option>
-                    <option value="terreno">Terreno</option>
-                    <option value="local_comercial">Local Comercial</option>
-                    <option value="galpon">Galpón</option>
-                    <option value="otro">Otro</option>
-                </select>
+                <div>
+                    <label for="sell_property_type" class="sr-only">Tipo de propiedad</label>
+                    <select name="property_type" id="sell_property_type" autocomplete="off"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors">
+                        <option value="">Tipo de propiedad</option>
+                        @php
+                            $categorias = App\Models\Category::active()->ordered()->get();
+                        @endphp
+                        @foreach($categorias as $categoria)
+                            <option value="{{ $categoria->name }}" {{ old('property_type') == $categoria->name ? 'selected' : '' }}>
+                                {{ $categoria->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
                 {{-- Detalles adicionales --}}
-                <textarea name="property_details" rows="3" placeholder="Detalles adicionales de la propiedad (habitaciones, baños, área, etc.)"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors resize-none">{{ old('property_details') }}</textarea>
+                <div>
+                    <label for="sell_property_details" class="sr-only">Detalles adicionales de la propiedad</label>
+                    <textarea id="sell_property_details" name="property_details" rows="3" placeholder="Detalles adicionales de la propiedad (habitaciones, baños, área, etc.)" autocomplete="off"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mso-gold/50 transition-colors resize-none">{{ old('property_details') }}</textarea>
+                </div>
 
                 {{-- Campos ocultos --}}
-                <input type="hidden" name="source" value="website_valoracion">
-                <input type="hidden" name="interest_type" value="venta">
+                <input type="hidden" name="source" value="website_valoracion" autocomplete="off">
+                <input type="hidden" name="interest_type" value="venta" autocomplete="off">
 
                 <button type="submit" class="w-full bg-mso-gold text-slate-900 font-bold py-4 rounded-xl hover:bg-yellow-600 transition-colors duration-300 shadow-lg hover:shadow-yellow-500/30">
                     Enviar Solicitud

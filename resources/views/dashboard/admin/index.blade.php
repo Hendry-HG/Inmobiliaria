@@ -85,7 +85,7 @@
                             </div>
                             <div class="min-w-0">
                                 <p class="text-[10px] sm:text-xs md:text-sm font-bold text-slate-800 truncate">{{ $appointment->property->title ?? 'Sin Propiedad' }}</p>
-                                <p class="text-[8px] sm:text-[10px] md:text-xs text-slate-500 truncate">{{ $appointment->user->name ?? 'Cliente' }}</p>
+                                <p class="text-[8px] sm:text-[10px] md:text-xs text-slate-500 truncate">{{ $appointment->user->full_name ?? 'Cliente' }}</p>
                             </div>
                         </div>
                         <span class="text-[7px] sm:text-[8px] md:text-xs font-medium px-1 sm:px-2 py-0.5 sm:py-1 rounded bg-slate-100 text-slate-600 flex-shrink-0 whitespace-nowrap ml-1 sm:ml-2">

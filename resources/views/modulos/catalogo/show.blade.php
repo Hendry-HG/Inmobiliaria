@@ -407,23 +407,31 @@
                     <input type="hidden" name="asesor_id" value="{{ $property->user_id }}">
                     <input type="hidden" name="date" id="fullDateTimeInput">
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Completo *</label>
-                        <input type="text" name="name" id="formName" required placeholder="Tu nombre completo"
-                               value="{{ auth()->user()->full_name ?? '' }}"
-                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Nombre *</label>
+                            <input type="text" name="name" id="formName" required data-label="Nombre" placeholder="Nombre"
+                                   value="{{ auth()->user()->name ?? '' }}"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Apellido *</label>
+                            <input type="text" name="last_name" id="formLastName" required data-label="Apellido" placeholder="Apellido"
+                                   value="{{ auth()->user()->last_name ?? '' }}"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
+                        </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico *</label>
-                        <input type="email" name="email" id="formEmail" required placeholder="ejemplo@correo.com"
+                        <input type="email" name="email" id="formEmail" required data-label="Correo Electrónico" placeholder="ejemplo@correo.com"
                                value="{{ auth()->user()->email ?? '' }}"
                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono *</label>
-                        <input type="tel" name="phone" id="formPhone" required placeholder="Tu número de contacto"
+                        <input type="tel" name="phone" id="formPhone" required data-label="Teléfono" placeholder="Tu número de contacto"
                                value="{{ auth()->user()->phone ?? '' }}"
                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
                     </div>
@@ -453,13 +461,13 @@
                                 <span class="flex items-center gap-1"><span class="w-3 h-3 bg-slate-300 rounded-full"></span> Fecha pasada</span>
                             </div>
                         </div>
-                        <input type="hidden" name="date_picker" id="datePicker" required>
+                        <input type="hidden" name="date_picker" id="datePicker" required data-label="Fecha de la visita">
                     </div>
 
                     {{-- Selector de horas --}}
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Hora disponible *</label>
-                        <select name="time_picker" id="timePicker" required
+                        <select name="time_picker" id="timePicker" required data-label="Hora disponible"
                                 class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-mso-gold/50 outline-none text-sm">
                             <option value="">Primero selecciona una fecha</option>
                         </select>
@@ -567,6 +575,7 @@
 </div>
 
 @push('js')
+@include('components.appointment-success-modal')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.changeMainImage = function(element, src) {
@@ -811,7 +820,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const data = {
-            name: document.getElementById('formName').value,
+            name: (document.getElementById('formName').value + ' ' + document.getElementById('formLastName').value).trim(),
             email: document.getElementById('formEmail').value,
             phone: document.getElementById('formPhone').value,
             date: fullDateTimeInput.value,
@@ -836,6 +845,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setLoading(false);
             if (result.success) {
                 showFormMessage(result.message, false);
+                window.showAppointmentSuccessModal && window.showAppointmentSuccessModal(result.message);
                 document.getElementById('appointmentForm').reset();
                 document.getElementById('timePicker').innerHTML = '<option value="">Primero selecciona una fecha</option>';
                 document.getElementById('timePicker').disabled = true;

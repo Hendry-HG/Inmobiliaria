@@ -331,19 +331,31 @@ class AuditLogController extends Controller
             $selectedProperty = Property::with('primaryImage')->find($request->property_id);
 
             if ($selectedProperty) {
-                $propertyHistory = AuditLog::with('user')
+                $historyQuery = AuditLog::with('user')
                     ->where('subject_type', 'like', '%Property%')
                     ->where('subject_id', $selectedProperty->id)
-                    ->orderBy('created_at', 'desc')
-                    ->paginate(10)
-                    ->withQueryString();
+                    ->orderBy('created_at', 'desc');
+
+                if ($request->filled('action')) {
+                    $historyQuery->where(function($q) use ($request) {
+                        $q->where('action', 'like', '%' . $request->action . '%')
+                          ->orWhere('event', 'like', '%' . $request->action . '%');
+                    });
+                }
+
+                if ($request->filled('date_from')) {
+                    $historyQuery->whereDate('created_at', '>=', $request->date_from);
+                }
+                if ($request->filled('date_to')) {
+                    $historyQuery->whereDate('created_at', '<=', $request->date_to);
+                }
+
+                $propertyHistory = $historyQuery->paginate(10)->withQueryString();
             }
         }
 
-        // Acciones disponibles para filtrar
-        $actions = AuditLog::where('subject_type', 'like', '%Property%')
-            ->distinct()
-            ->pluck('action');
+        // Acciones disponibles para filtrar (todas las posibles, no solo las registradas)
+        $actions = ['created', 'updated', 'deleted', 'published', 'unpublished', 'sold', 'restored'];
 
         // Todas las propiedades para el filtro
         $properties = Property::where('status', 'publicada')
@@ -672,6 +684,27 @@ class AuditLogController extends Controller
         //  EXPORTACIONES RECIENTES 
         $recentExports = [];
 
+        //  AUDITORÍAS FILTRADAS (mostradas en la página por fecha, usuario y acción)
+        $filteredLogsQuery = AuditLog::with('user');
+
+        if ($request->filled('date_from')) {
+            $filteredLogsQuery->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $filteredLogsQuery->whereDate('created_at', '<=', $request->date_to);
+        }
+        if ($request->filled('user_id')) {
+            $filteredLogsQuery->where('user_id', $request->user_id);
+        }
+        if ($request->filled('action')) {
+            $filteredLogsQuery->where(function($q) use ($request) {
+                $q->where('action', 'like', '%' . $request->action . '%')
+                  ->orWhere('event', 'like', '%' . $request->action . '%');
+            });
+        }
+
+        $filteredLogs = $filteredLogsQuery->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+
         return view('modulos.auditorias.reports', compact(
             'totalLogs',
             'totalUsers',
@@ -692,7 +725,8 @@ class AuditLogController extends Controller
             'thisMonthLogs',
             'currentConfig',
             'users',
-            'recentExports'
+            'recentExports',
+            'filteredLogs'
         ));
     }
 

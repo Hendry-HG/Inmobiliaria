@@ -5,8 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Crea las tablas de servicios y galerías de imágenes para
- * gestionar el catálogo de servicios inmobiliarios del sitio.
+ * Crea la tabla de servicios para gestionar el catalogo de
+ * servicios inmobiliarios del sitio.
  */
 return new class extends Migration
 {
@@ -42,23 +42,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-
-        // Tabla para imágenes publicitarias de servicios
-        Schema::create('service_galleries', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('service_id')->constrained()->onDelete('cascade');
-            $table->string('image_path');
-            $table->string('title')->nullable();
-            $table->string('alt_text')->nullable();
-            $table->integer('order')->default(0);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('service_galleries');
         Schema::dropIfExists('services');
     }
 };

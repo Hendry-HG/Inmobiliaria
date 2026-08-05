@@ -68,9 +68,11 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
-        //  REGENERAR TOKEN AL MOSTRAR EL FORMULARIO DE LOGIN
-        session()->regenerateToken();
-        return view('auth.login');
+        return response()
+            ->view('auth.login')
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     /**

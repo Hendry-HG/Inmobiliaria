@@ -45,6 +45,42 @@ class UserController extends Controller
     use AuditTrait;
 
     /**
+     * Patrón para contraseñas seguras: mínimo 10 caracteres, al menos una
+     * mayúscula, una minúscula, un número y un carácter especial.
+     */
+    public const PASSWORD_REGEX = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/';
+
+    /**
+     * Lista de preguntas de seguridad disponibles para crear usuarios.
+     *
+     * Debe coincidir con las opciones del formulario de creación.
+     *
+     * @var array<string>
+     */
+    private $securityQuestions = [
+        '¿Cuál es el nombre de tu primera mascota?',
+        '¿Cuál es el apellido de soltera de tu madre?',
+        '¿En qué ciudad naciste?',
+        '¿Cuál es tu comida favorita?',
+        '¿Cuál es el nombre de tu mejor amigo de la infancia?',
+        '¿Cuál es el título de tu libro favorito?',
+        '¿Cuál es el nombre de tu profesor favorito?',
+        '¿En qué año te graduaste de la escuela?',
+        '¿Cuál es el nombre de tu primer amor?',
+        '¿Cuál es el nombre de tu abuelo favorito?',
+        '¿Cuál es el nombre de tu hijo/a?',
+        '¿Cuál es el nombre de tu padre?',
+        '¿Cuál es el modelo de tu primer auto?',
+        '¿Cuál es el nombre de tu mejor amigo?',
+        '¿Cuál es tu color favorito?',
+        '¿Cuál es tu deporte favorito?',
+        '¿Cuál es el nombre de tu primera escuela?',
+        '¿Cuál es el nombre de tu primer jefe?',
+        '¿Cuál es tu lugar favorito para vacacionar?',
+        '¿Cuál es el nombre de tu tío favorito?',
+    ];
+
+    /**
      * Constructor del controlador.
      *
      * Aplica middleware de autenticacion a todos los metodos del controlador.
@@ -186,26 +222,64 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:10|confirmed',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'id_type' => 'nullable|string|in:V,E,J,P',
-            'id_number' => 'nullable|string|max:20|unique:users,id_number',
-            'country_id' => 'nullable|exists:countries,id',
-            'state_id' => 'nullable|exists:states,id',
-            'municipality_id' => 'nullable|exists:municipalities,id',
-            'parish_id' => 'nullable|exists:parishes,id',
-            'city_id' => 'nullable|exists:cities,id',
+            'password' => 'required|string|min:10|confirmed|regex:' . self::PASSWORD_REGEX,
+            'phone' => 'nullable|string|max:20|unique:users,phone',
+            'address' => 'required|string|max:500',
+            'id_type' => 'required|string|in:V,E,J,P',
+            'id_number' => 'required|string|max:20|unique:users,id_number',
+            'country_id' => 'required|exists:countries,id',
+            'state_id' => 'required|exists:states,id',
+            'municipality_id' => 'required|exists:municipalities,id',
+            'parish_id' => 'required|exists:parishes,id',
+            'city_id' => 'required|exists:cities,id',
             'role' => 'required|exists:roles,name',
             'is_active' => 'boolean',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'security_question_1' => 'required|string|max:255',
-            'security_answer_1' => 'required|string|max:255',
-            'security_question_2' => 'required|string|max:255',
-            'security_answer_2' => 'required|string|max:255',
-            'security_question_3' => 'required|string|max:255',
-            'security_answer_3' => 'required|string|max:255',
+            'security_question_1' => 'required|string|in:' . implode(',', $this->securityQuestions),
+            'security_answer_1' => 'required|string|min:2|max:255',
+            'security_question_2' => 'required|string|in:' . implode(',', $this->securityQuestions),
+            'security_answer_2' => 'required|string|min:2|max:255',
+            'security_question_3' => 'required|string|in:' . implode(',', $this->securityQuestions),
+            'security_answer_3' => 'required|string|min:2|max:255',
+        ], [
+            'email.unique' => 'Este correo ya está en uso por otro usuario.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
+            'id_number.unique' => 'Este número de identificación ya está en uso por otro usuario.',
+            'phone.unique' => 'Este teléfono ya está en uso por otro usuario.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.regex' => 'La contraseña debe incluir mayúscula, minúscula, número y carácter especial.',
+            'name.required' => 'El nombre es obligatorio.',
+            'role.required' => 'Debes seleccionar un rol.',
+            'security_question_1.required' => 'Debes seleccionar la pregunta 1.',
+            'security_question_2.required' => 'Debes seleccionar la pregunta 2.',
+            'security_question_3.required' => 'Debes seleccionar la pregunta 3.',
+            'security_answer_1.required' => 'La respuesta 1 es obligatoria.',
+            'security_answer_2.required' => 'La respuesta 2 es obligatoria.',
+            'security_answer_3.required' => 'La respuesta 3 es obligatoria.',
+            'address.required' => 'La dirección es obligatoria.',
+            'id_type.required' => 'El tipo de identificación es obligatorio.',
+            'id_number.required' => 'El número de identificación es obligatorio.',
+            'country_id.required' => 'El país es obligatorio.',
+            'state_id.required' => 'El estado es obligatorio.',
+            'municipality_id.required' => 'El municipio es obligatorio.',
+            'parish_id.required' => 'La parroquia es obligatoria.',
+            'city_id.required' => 'La ciudad es obligatoria.',
         ]);
+
+        $questions = [
+            $validated['security_question_1'],
+            $validated['security_question_2'],
+            $validated['security_question_3'],
+        ];
+
+        if (count(array_unique($questions)) < 3) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['security_question' => 'Debes seleccionar 3 preguntas de seguridad diferentes.']);
+        }
 
         try {
             $profilePhotoPath = null;
@@ -218,7 +292,7 @@ class UserController extends Controller
                 'last_name' => $validated['last_name'] ?? null,
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'phone' => $validated['phone'] ?? null,
+                'phone' => isset($validated['phone']) && $validated['phone'] !== '' ? preg_replace('/[^0-9]/', '', $validated['phone']) : null,
                 'address' => $validated['address'] ?? null,
                 'id_type' => $validated['id_type'] ?? null,
                 'id_number' => $validated['id_number'] ?? null,
@@ -283,7 +357,8 @@ class UserController extends Controller
             'leads' => $user->leads()->count(),
         ];
 
-        return view('dashboard.admin.users.show', compact('user', 'stats'));
+        // El detalle completo se muestra via modal (admin.users.modal-show).
+        return redirect()->route('admin.users.index');
     }
 
     /**
@@ -310,7 +385,8 @@ class UserController extends Controller
 
         $isClient = $user->hasRole('Cliente');
 
-        return view('dashboard.admin.users.edit', compact('user', 'roles', 'userRole', 'countries', 'states', 'municipalities', 'parishes', 'cities', 'isClient'));
+        // La edicion se realiza via modal (admin.users.modal-edit).
+        return redirect()->route('admin.users.index');
     }
 
     /**
@@ -336,18 +412,34 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'id_type' => 'nullable|string|in:V,E,J,P',
-            'id_number' => 'nullable|string|max:20|unique:users,id_number,' . $user->id,
-            'country_id' => 'nullable|exists:countries,id',
-            'state_id' => 'nullable|exists:states,id',
-            'municipality_id' => 'nullable|exists:municipalities,id',
-            'parish_id' => 'nullable|exists:parishes,id',
-            'city_id' => 'nullable|exists:cities,id',
+            'phone' => 'nullable|string|max:20|unique:users,phone,' . $user->id,
+            'address' => 'required|string|max:500',
+            'id_type' => 'required|string|in:V,E,J,P',
+            'id_number' => 'required|string|max:20|unique:users,id_number,' . $user->id,
+            'country_id' => 'required|exists:countries,id',
+            'state_id' => 'required|exists:states,id',
+            'municipality_id' => 'required|exists:municipalities,id',
+            'parish_id' => 'required|exists:parishes,id',
+            'city_id' => 'required|exists:cities,id',
             'role' => 'required|exists:roles,name',
             'is_active' => 'boolean',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+        ], [
+            'email.unique' => 'Este correo ya está en uso por otro usuario.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
+            'id_number.unique' => 'Este número de identificación ya está en uso por otro usuario.',
+            'phone.unique' => 'Este teléfono ya está en uso por otro usuario.',
+            'name.required' => 'El nombre es obligatorio.',
+            'role.required' => 'Debes seleccionar un rol.',
+            'address.required' => 'La dirección es obligatoria.',
+            'id_type.required' => 'El tipo de identificación es obligatorio.',
+            'id_number.required' => 'El número de identificación es obligatorio.',
+            'country_id.required' => 'El país es obligatorio.',
+            'state_id.required' => 'El estado es obligatorio.',
+            'municipality_id.required' => 'El municipio es obligatorio.',
+            'parish_id.required' => 'La parroquia es obligatoria.',
+            'city_id.required' => 'La ciudad es obligatoria.',
         ]);
 
         try {
@@ -355,7 +447,7 @@ class UserController extends Controller
 
             if ($request->filled('password')) {
                 $request->validate([
-                    'password' => 'required|string|min:10|confirmed'
+                    'password' => 'required|string|min:10|confirmed|regex:' . self::PASSWORD_REGEX
                 ]);
                 $user->password = Hash::make($request->password);
             }
@@ -371,7 +463,7 @@ class UserController extends Controller
                 'name' => $validated['name'],
                 'last_name' => $validated['last_name'] ?? null,
                 'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
+                'phone' => isset($validated['phone']) && $validated['phone'] !== '' ? preg_replace('/[^0-9]/', '', $validated['phone']) : null,
                 'address' => $validated['address'] ?? null,
                 'id_type' => $validated['id_type'] ?? null,
                 'id_number' => $validated['id_number'] ?? null,
@@ -611,6 +703,51 @@ class UserController extends Controller
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    /**
+     * Verifica si un valor de correo, cédula o teléfono ya está registrado
+     * por otro usuario.
+     *
+     * Se usa para validación en vivo desde los formularios de creación y
+     * edición de usuarios. Acepta 'field' (email|id_number|phone), 'value'
+     * y opcionalmente 'ignore_id' para excluir al usuario que se está
+     * editando.
+     *
+     * @param \Illuminate\Http\Request $request Solicitud con 'field', 'value' y opcionalmente 'ignore_id'.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la disponibilidad del valor.
+     */
+    public function checkUnique(Request $request)
+    {
+        $this->checkAccess();
+
+        $field = $request->input('field');
+        $value = trim((string) $request->input('value'));
+        $ignoreId = $request->input('ignore_id');
+
+        if (!in_array($field, ['email', 'id_number', 'phone'], true)) {
+            return response()->json(['available' => true]);
+        }
+
+        if ($value === '') {
+            return response()->json(['available' => true]);
+        }
+
+        $query = User::query();
+
+        if ($field === 'email') {
+            $query->whereRaw('LOWER(email) = ?', [mb_strtolower($value)]);
+        } elseif ($field === 'id_number') {
+            $query->whereRaw('LOWER(id_number) = ?', [mb_strtolower($value)]);
+        } else {
+            $query->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '.', ''), '(', ''), ')', '') = ?", [preg_replace('/[^0-9]/', '', $value)]);
+        }
+
+        if ($ignoreId) {
+            $query->where('id', '!=', (int) $ignoreId);
+        }
+
+        return response()->json(['available' => !$query->exists()]);
     }
 
     /**

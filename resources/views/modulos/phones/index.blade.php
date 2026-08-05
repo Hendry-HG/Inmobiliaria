@@ -171,7 +171,7 @@ async function openPresetModal() {
     modal.classList.add('flex');
 
     try {
-        const response = await fetch('/api/phone-presets');
+        const response = await fetch('/api/phone/presets');
         const presets = await response.json();
 
         let html = '';

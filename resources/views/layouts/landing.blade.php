@@ -17,39 +17,6 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- TAILWIND CDN (carga rápida) --}}
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        serif: ['Playfair Display', 'serif'],
-                    },
-                    colors: {
-                        mso: {
-                            blue: '#0f172a',
-                            gold: '#c5a059',
-                            light: '#f8fafc'
-                        }
-                    },
-                    animation: {
-                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
-                        'pulse-slow': 'pulse 3s infinite',
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
     {{-- Phosphor Icons (carga diferida) --}}
     <script src="https://unpkg.com/@phosphor-icons/web@2.0.3" defer></script>
 
@@ -133,6 +100,11 @@
     <!-- Floating Support -->
     <x-floating-support />
 
+    <!-- Cookie Consent -->
+    <x-cookie-consent />
+
+    <!-- Modal global de campos incompletos -->
+    @include('components.missing-fields-modal')
 
     @stack('js')
 </body>

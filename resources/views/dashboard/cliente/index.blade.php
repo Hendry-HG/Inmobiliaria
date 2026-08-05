@@ -92,7 +92,7 @@
                             <div>
                                 <p class="font-bold text-slate-800">{{ $appointment->property->title }}</p>
                                 <p class="text-sm text-slate-500">{{ $appointment->scheduled_date->format('d/m/Y h:i A') }}</p>
-                                <p class="text-sm text-slate-500">Asesor: {{ $appointment->asesor->name }}</p>
+                                <p class="text-sm text-slate-500">Asesor: {{ $appointment->asesor->full_name ?? $appointment->asesor->name }}</p>
                             </div>
                             <span class="px-2 py-1 text-xs rounded-full
                                 @if($appointment->status == 'confirmed') bg-green-100 text-green-700
@@ -159,7 +159,7 @@
             <div class="flex items-center gap-6 mb-6">
                 <img src="{{ $user->profile_photo_url ?? asset('images/default-avatar.png') }}" class="w-24 h-24 rounded-full object-cover border-4 border-mso-gold">
                 <div>
-                    <h4 class="text-xl font-bold text-slate-800">{{ $user->name }}</h4>
+                    <h4 class="text-xl font-bold text-slate-800">{{ $user->full_name }}</h4>
                     <p class="text-slate-500">{{ $user->email }}</p>
                     <p class="text-slate-500">Miembro desde {{ $user->created_at->format('d/m/Y') }}</p>
                 </div>

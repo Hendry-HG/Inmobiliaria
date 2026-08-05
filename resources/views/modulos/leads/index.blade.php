@@ -11,14 +11,14 @@
     <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-4 md:p-6">
         <form action="{{ route('leads.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
             <div>
-                <label class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Buscar</label>
-                <input type="text" name="search" value="{{ request('search') }}"
+                <label for="lead_search" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Buscar</label>
+                <input type="text" name="search" id="lead_search" value="{{ request('search') }}"
                     placeholder="Nombre, email o teléfono..."
                     class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
             </div>
             <div>
-                <label class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                <label for="lead_status" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Estado</label>
+                <select name="status" id="lead_status" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     <option value="">Todos</option>
                     @foreach($statuses as $value => $label)
                         <option value="{{ $value }}" {{ request('status') == $value ? 'selected' : '' }}>
@@ -28,8 +28,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Asesor</label>
-                <select name="asesor_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
+                <label for="lead_asesor_id" class="block text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-2">Asesor</label>
+                <select name="asesor_id" id="lead_asesor_id" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                     <option value="">Todos</option>
                     @foreach($asesores as $asesor)
                         <option value="{{ $asesor->id }}" {{ request('asesor_id') == $asesor->id ? 'selected' : '' }}>
@@ -39,11 +39,11 @@
                 </select>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20">
-                    <i class="ph ph-funnel mr-1"></i> Filtrar
+                <button type="submit" class="flex-1 text-white bg-mso-blue hover:bg-slate-800 font-medium rounded-lg text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-magnifying-glass"></i> Buscar
                 </button>
-                <a href="{{ route('leads.index') }}" class="px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                    <i class="ph ph-x"></i>
+                <a href="{{ route('leads.index') }}" class="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 whitespace-nowrap">
+                    <i class="ph ph-x"></i> Limpiar
                 </a>
             </div>
         </form>
@@ -248,7 +248,7 @@
                 @csrf
                 <input type="hidden" id="statusLeadId" name="lead_id" value="">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Selecciona el nuevo estado</label>
+                    <label for="statusSelect" class="block text-sm font-medium text-slate-700 mb-2">Selecciona el nuevo estado</label>
                     <select name="status" id="statusSelect" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-mso-gold focus:border-mso-gold p-2 sm:p-2.5 transition-all">
                         @foreach($statuses as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
@@ -368,27 +368,27 @@
                 let html = `
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div>
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo</p>
                             <p class="text-slate-800 font-medium text-sm sm:text-base">${escapeHtml(data.name || 'No especificado')}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Correo electrónico</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Correo electrónico</p>
                             <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(data.email || 'No especificado')}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Teléfono</p>
                             <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(data.phone || 'No especificado')}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</p>
                             <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(data.status_label || data.status || 'No especificado')}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Asesor asignado</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Asesor asignado</p>
                             <p class="text-slate-800 text-sm sm:text-base">${escapeHtml(asesorFullName)}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha de solicitud</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha de solicitud</p>
                             <p class="text-slate-800 text-sm sm:text-base">${data.created_at ? new Date(data.created_at).toLocaleDateString('es-ES') : 'No disponible'}</p>
                         </div>
                 `;
@@ -396,7 +396,7 @@
                 if (data.notes) {
                     html += `
                         <div class="col-span-2">
-                            <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Notas adicionales</label>
+                            <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Notas adicionales</p>
                             <p class="text-slate-800 bg-slate-50 p-3 rounded-lg text-sm">${escapeHtml(data.notes)}</p>
                         </div>
                     `;
@@ -428,7 +428,7 @@
                     if (Object.keys(propertyFields).length > 0) {
                         let prefHtml = `
                             <div class="col-span-2">
-                                <label class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Información de la propiedad</label>
+                                <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Información de la propiedad</p>
                                 <div class="bg-slate-50 p-3 sm:p-4 rounded-lg space-y-1 text-sm text-slate-700">
                         `;
 

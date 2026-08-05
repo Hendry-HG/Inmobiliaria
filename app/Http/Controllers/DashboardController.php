@@ -210,9 +210,21 @@ class DashboardController extends Controller
         }
 
         $totalProperties = Property::count();
+        $totalUsers = User::where('is_active', true)->count();
         $pendingAppointments = Appointment::where('status', 'pending')->count();
         $newLeads = Lead::where('status', 'nuevo')->count();
         $pendingProperties = Property::where('status', 'pendiente')->count();
+        $publishedProperties = Property::where('status', 'publicada')->count();
+
+        $recentAppointments = Appointment::with(['property', 'user'])
+            ->latest()
+            ->limit(6)
+            ->get();
+
+        $recentProperties = Property::with('primaryImage')
+            ->latest()
+            ->limit(6)
+            ->get();
 
         $query = User::query();
 
@@ -245,8 +257,9 @@ class DashboardController extends Controller
         $countries = Country::orderBy('name')->pluck('name', 'id');
 
         return view('dashboard.admin.index', compact(
-            'user', 'totalProperties', 'pendingAppointments', 'newLeads',
-            'pendingProperties', 'users', 'roles', 'countries'
+            'user', 'totalProperties', 'totalUsers', 'pendingAppointments', 'newLeads',
+            'pendingProperties', 'publishedProperties', 'recentAppointments', 'recentProperties',
+            'users', 'roles', 'countries'
         ));
     }
 

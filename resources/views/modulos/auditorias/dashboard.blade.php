@@ -26,28 +26,58 @@
 <div class="space-y-6">
     {{-- Tarjetas de estadísticas --}}
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500 uppercase">Total Logs</p>
+        <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-slate-500 uppercase">Total Logs</p>
+                <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="ph ph-shield-check text-base"></i>
+                </div>
+            </div>
             <p class="text-2xl font-bold text-slate-800">{{ number_format($stats['total_logs'] ?? 0) }}</p>
         </div>
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500 uppercase">Hoy</p>
+        <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-slate-500 uppercase">Hoy</p>
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="ph ph-gear text-base"></i>
+                </div>
+            </div>
             <p class="text-2xl font-bold text-blue-600">{{ number_format($stats['today_logs'] ?? 0) }}</p>
         </div>
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500 uppercase">Usuarios</p>
+        <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-slate-500 uppercase">Usuarios</p>
+                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="ph ph-users-three text-base"></i>
+                </div>
+            </div>
             <p class="text-2xl font-bold text-purple-600">{{ number_format($stats['total_users'] ?? 0) }}</p>
         </div>
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500 uppercase">Propiedades</p>
+        <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-slate-500 uppercase">Propiedades</p>
+                <div class="w-8 h-8 rounded-lg bg-green-50 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="ph ph-buildings text-base"></i>
+                </div>
+            </div>
             <p class="text-2xl font-bold text-green-600">{{ number_format($stats['total_properties'] ?? 0) }}</p>
         </div>
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500 uppercase">Citas</p>
+        <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-slate-500 uppercase">Citas</p>
+                <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="ph ph-calendar-check text-base"></i>
+                </div>
+            </div>
             <p class="text-2xl font-bold text-orange-600">{{ number_format($stats['total_appointments'] ?? 0) }}</p>
         </div>
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500 uppercase">Leads</p>
+        <div class="stat-card group bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-slate-500 uppercase">Leads</p>
+                <div class="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="ph ph-user text-base"></i>
+                </div>
+            </div>
             <p class="text-2xl font-bold text-red-600">{{ number_format($stats['total_leads'] ?? 0) }}</p>
         </div>
     </div>
@@ -67,7 +97,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm text-slate-700 truncate">
-                        <span class="font-medium">{{ $log->user ? $log->user->name : 'Sistema' }}</span>
+                        <span class="font-medium">{{ $log->user ? $log->user->full_name : 'Sistema' }}</span>
                         <span class="text-slate-500">{{ $log->description ?? 'Realizó una acción' }}</span>
                     </p>
                     <p class="text-xs text-slate-400">

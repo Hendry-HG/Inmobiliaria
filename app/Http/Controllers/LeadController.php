@@ -311,29 +311,7 @@ class LeadController extends Controller
                     ->withInput();
             }
 
-            if ($request->filled('asesor_id')) {
-                $asesor = User::role('Asesor Inmobiliario')
-                    ->where('id', $request->asesor_id)
-                    ->where('is_active', true)
-                    ->first();
-
-                if ($asesor) {
-                    $asesorId = $asesor->id;
-                } else {
-                    $asesor = User::role('Asesor Inmobiliario')
-                        ->where('is_active', true)
-                        ->orderBy('id')
-                        ->first();
-                    $asesorId = $asesor ? $asesor->id : null;
-                }
-            } else {
-                $asesor = User::role('Asesor Inmobiliario')
-                    ->where('is_active', true)
-                    ->orderBy('id')
-                    ->first();
-
-                $asesorId = $asesor ? $asesor->id : null;
-            }
+            $asesorId = $this->assignAsesor($request->filled('asesor_id') ? $request->asesor_id : null);
 
             $fullName = $request->name;
             if ($request->filled('last_name')) {
@@ -519,7 +497,7 @@ class LeadController extends Controller
                 ]);
             }
 
-            return view('modulos.leads.show', compact('lead'));
+            return redirect()->route('leads.index');
 
         } catch (\Exception $e) {
             Log::error('Error en LeadController@show: ' . $e->getMessage());
@@ -664,7 +642,7 @@ class LeadController extends Controller
             }
 
             $oldValues = $lead->toArray();
-            $lead->update($request->all());
+            $lead->update($request->only(['name', 'email', 'phone', 'status', 'asesor_id', 'notes']));
 
             //  AUDITORÍA - ACTUALIZACIÓN DE LEAD
             $changes = [];
@@ -921,6 +899,14 @@ class LeadController extends Controller
         try {
             $query = Lead::query();
 
+            // Aislamiento por rol: el asesor solo ve sus propios leads.
+            if (Auth::check()) {
+                $user = Auth::user();
+                if ($user->hasRole('Asesor Inmobiliario')) {
+                    $query->where('asesor_id', $user->id);
+                }
+            }
+
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
@@ -952,5 +938,51 @@ class LeadController extends Controller
                 'message' => 'Error al obtener los datos'
             ], 500);
         }
+    }
+
+    /**
+     * Asigna un asesor a un nuevo lead.
+     *
+     * Prioriza el asesor solicitado si es valido (existe, tiene el rol
+     * "Asesor Inmobiliario" y esta activo). En caso contrario aplica un
+     * round-robin real: rota sobre el asesor que recibio el ultimo lead
+     * para distribuir la carga de forma equilibrada entre los activos.
+     *
+     * @param int|null $preferredAsesorId ID del asesor solicitado (opcional).
+     * @return int|null ID del asesor asignado o null si no hay asesores activos.
+     */
+    private function assignAsesor($preferredAsesorId = null)
+    {
+        if ($preferredAsesorId) {
+            $asesor = User::role('Asesor Inmobiliario')
+                ->where('id', $preferredAsesorId)
+                ->where('is_active', true)
+                ->first();
+
+            if ($asesor) {
+                return $asesor->id;
+            }
+        }
+
+        $asesores = User::role('Asesor Inmobiliario')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get(['id']);
+
+        if ($asesores->isEmpty()) {
+            return null;
+        }
+
+        $ids = $asesores->pluck('id')->toArray();
+
+        $lastLead = Lead::query()->latest('id')->first();
+        $lastAsesorId = $lastLead ? $lastLead->asesor_id : null;
+
+        if ($lastAsesorId !== null && in_array($lastAsesorId, $ids)) {
+            $pos = array_search($lastAsesorId, $ids);
+            return $ids[($pos + 1) % count($ids)];
+        }
+
+        return $ids[0];
     }
 }
